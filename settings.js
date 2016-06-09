@@ -1,6 +1,7 @@
 'use strict';
 
 var fs = require( 'fs' );
+var _ = require( './helper.js' );
 
 var settings = {};
 var jsonCache = {};
@@ -23,10 +24,14 @@ settings.get = function( file, param, def )
 			settings.reload( file );
 		
 		var val = jsonCache[file][param];
+		if ( !param )
+			val = jsonCache[file];
+		
 		if ( val == null && typeof def !== 'undefined' )
 		{
 			settings.set( file, param, def );
 			val = def;
+			settings.save( file );
 		}
 		
 		return val;
@@ -34,19 +39,32 @@ settings.get = function( file, param, def )
 	
 settings.set = function( file, param, val )
 	{		
-		jsonCache[file][param] = val;
+		if ( param )
+			jsonCache[file][param] = val;
+		else
+			jsonCache[file] = val;
+		
 		settings.save( file );
 	};
 	
-settings.save = function( file )
+settings.save = function( file, json )
 	{		
-		fs.writeFile( makefn( file ), JSON.stringify( jsonCache[file], null, 4 ), 'utf8' );
+		if ( typeof json !== 'undefined' )
+			jsonCache[file] = json;
+		
+		fs.writeFileSync( makefn( file ), JSON.stringify( jsonCache[file], null, 4 ), 'utf8' );
 	};
 	
 settings.reload = function( file )
 	{		
 		if ( settings.exists( file ) )
-			jsonCache[file] = JSON.parse( require('fs').readFileSync( makefn( file ), 'utf8' ) );
+		{
+			var contents = require('fs').readFileSync( makefn( file ), 'utf8' );
+			if ( _.isjson( contents ) )
+				jsonCache[file] = JSON.parse( contents );
+			else
+				jsonCache[file] = {};
+		}
 		else
 			jsonCache[file] = {};
 	};
