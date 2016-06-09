@@ -1,0 +1,16 @@
+{
+		"name": "squanch",
+		"version": "1.0.0",
+		
+		"scripts":
+		{
+			"start": "supervisor -i settings index.js",
+			"test": "node index.js"
+		},
+		
+		"dependencies":
+		{
+			"discordie": "*",
+			"supervisor": "*"
+		}
+}
