@@ -21,7 +21,13 @@ commands.register( {
 		{
 			res = e;
 		}
-		msg.channel.sendMessage( '`' + res + '`' );
+		
+		res = res.toString();
+		if ( res.indexOf( '\n' ) != -1 )
+			res = '```\n' + res + '\n```';
+		else
+			res = '`' + res + '`';
+		msg.channel.sendMessage( res );
 	}});
 
 commands.register( {
@@ -39,7 +45,12 @@ commands.register( {
 		if ( typeof val !== 'undefined' )
 			settings.set( file, param, val );
 		
-		msg.channel.sendMessage( '`' + settings.get( file, param ) + '`' );
+		var val = settings.get( file, param );
+		if ( val.indexOf( '\n' ) != -1 )
+			val = '```\n' + val + '\n```';
+		else
+			val = '`' + val + '`';
+		msg.channel.sendMessage( val );
 	}});
 
 commands.register( {
