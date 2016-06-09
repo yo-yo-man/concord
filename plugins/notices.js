@@ -190,11 +190,16 @@ function processEvent( type, e )
 			sendGuildNotice( e.guild.id, _.fmt( '`%s` was unbanned', e.user.username ) );
 			break;
 			
-		// 'CHANNEL_UPDATE'
+		case 'CHANNEL_UPDATE':
 			// channel
+			var name = e.channel.mention;
+			if ( !name )
+				name = '`' + e.channel.name + '`';
+			sendGuildNotice( e.channel.guild.id, _.fmt( '%s settings updated', name ) );
 			
-		// 'GUILD_UPDATE'
+		case 'GUILD_UPDATE':
 			// guild
+			sendGuildNotice( e.guild.id, 'server settings updated' );
 			
 		// MESSAGE_DELETE
 			// channelid, messageid, message
