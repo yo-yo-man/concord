@@ -2,9 +2,7 @@ var commands = require( '../commands.js' );
 var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 
-const util = require( 'util' );
-var jstr = JSON.stringify;
-var fmt = util.format;
+var _ = require( '../helper.js' );
 
 commands.register( {
 	aliases: [ 'eval' ],
@@ -48,9 +46,9 @@ commands.register( {
 			}
 			
 			if ( cmd.args )
-				help += fmt( ' [%s]', cmd.args );
+				help += _.fmt( ' [%s]', cmd.args );
 			
-			help += fmt( ' - %s', cmd.help );
+			help += _.fmt( ' - %s', cmd.help );
 			
 			if ( cmd.flags )
 			{
@@ -64,7 +62,7 @@ commands.register( {
 				help += '\n';
 		}
 		
-		msg.channel.sendMessage( fmt( '```\n%s\n```', help ) );
+		msg.channel.sendMessage( _.fmt( '```\n%s\n```', help ) );
 	}});
 
 module.exports.setup = function( client )
