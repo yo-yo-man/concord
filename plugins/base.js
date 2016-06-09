@@ -55,14 +55,16 @@ commands.register( {
 
 commands.register( {
 	aliases: [ 'help' ],
+	help: 'display help menu (optionally for a specific command)',
 	args: '[command]',
 	callback: ( client, msg, args ) =>
 	{
 		var author = msg.author;
+		var help = '';
 		
 		if ( args )
 		{
-			var help = 'command not found';
+			help = 'command not found';
 			for ( var i in commands.commandList )
 			{
 				var cmd = commands.commandList[i];
