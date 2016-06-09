@@ -26,12 +26,12 @@ commands.register( {
 		if ( args == 'on' )
 		{
 			guildChannels[ guildId ] = msg.channel.id;
-			console.log( _.fmt( 'notices enabled for %s', msg.channel.name ) );
+			msg.channel.sendMessage( _.fmt( 'notices enabled for %s', msg.channel.mention ) );
 		}
 		else if ( args == 'off' )
 		{
 			delete guildChannels[ guildId ];
-			console.log( _.fmt( 'notices disabled for %s', msg.channel.name ) );
+			msg.channel.sendMessage( _.fmt( 'notices enabled for %s', msg.channel.mention ) );
 		}
 		
 		settings.set( 'notices', 'guild_channels', guildChannels );
@@ -156,12 +156,18 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_CREATE':
 			// channel
-			sendGuildNotice( e.channel.guild.id, _.fmt( '`%s` created', e.channel.name ) );
+			var name = e.channel.mention;
+			if ( !name )
+				name = '`' + e.channel.name + '`';
+			sendGuildNotice( e.channel.guild.id, _.fmt( '%s created', name ) );
 			break;
 			
 		case 'CHANNEL_DELETE':
 			// channelid, data
-			sendGuildNotice( e.data.guild_id, _.fmt( '`%s` deleted', e.data.name ) );
+			var name = e.data.name;
+			if ( e.data.type == 'text' )
+				name = '#' + name;
+			sendGuildNotice( e.data.guild_id, _.fmt( '`%s` deleted', name ) );
 			break;
 			
 		case 'GUILD_MEMBER_ADD':
