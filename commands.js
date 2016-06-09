@@ -5,6 +5,7 @@ var settings = require( './settings.js' );
 var _ = require( './helper.js' );
 
 var commands = {};
+var client = null;
 
 commands.commandList = [];
 commands.register = function( params )
@@ -36,6 +37,60 @@ commands.generateHelp = function( cmd )
 		}
 		
 		return help;
+	};
+	
+commands.findTarget = function( msg, str )
+	{
+		var matches = [];
+		
+		if ( msg.isPrivate || !msg.guild )
+		{
+			client.Users.forEach( function( user )
+			{
+				if ( user.username.indexOf( str ) != -1 )
+					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
+				if ( str == user.username+'#'+user.discriminator )
+					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
+			});
+		}
+		else
+		{
+			for ( var i in msg.guild.members )
+			{
+				var user = msg.guild.members[i];
+				if ( user.nick && user.nick.indexOf( str ) != -1 )
+					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
+				if ( user.username.indexOf( str ) != -1 )
+					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
+				if ( str == user.username+'#'+user.discriminator )
+					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
+			}
+		}
+		
+		if ( matches.length == 0 )
+		{
+			var reply = _.fmt( 'could not find user matching `%s`', str );
+			msg.channel.sendMessage( reply );
+			return false;
+		}
+		
+		if ( matches.length > 1 )
+		{
+			var matchesString = '';
+			for ( var i in matches )
+			{
+				var user = matches[i];
+				var nick = '';
+				if ( user.nick )
+					nick = '(' + user.nick + ')';
+				matchesString += _.fmt( '%s#%s %s\n', user.username, user.discriminator, nick );
+			}
+			var reply = _.fmt( 'found %s matches for `%s`:\n```\n%s```', matches.length, str, matchesString );
+			msg.channel.sendMessage( reply );
+			return false;
+		}
+		
+		return matches[0];
 	};
 	
 function checkArgs( cmd, message )
@@ -100,9 +155,10 @@ function onMessage( client, e )
 	}
 };
 
-commands.init = function( client )
+commands.init = function( _cl )
 	{
-		client.Dispatcher.on( 'MESSAGE_CREATE', e => onMessage( client, e ) );
+		client = _cl;
+		_cl.Dispatcher.on( 'MESSAGE_CREATE', e => onMessage( _cl, e ) );
 	};
 	
 module.exports = commands;
