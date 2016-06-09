@@ -25,6 +25,24 @@ commands.register( {
 	}});
 
 commands.register( {
+	aliases: [ 'setting' ],
+	help: 'view or change settings',
+	flags: [ 'owner_only' ],
+	args: 'file param [value]',
+	callback: ( client, msg, args ) =>
+	{
+		var split = args.split( ' ' );
+		var file = split[0];
+		var param = split[1];
+		var val = split[2];
+		
+		if ( typeof val !== 'undefined' )
+			settings.set( file, param, val );
+		
+		msg.channel.sendMessage( '`' + settings.get( file, param ) + '`' );
+	}});
+
+commands.register( {
 	aliases: [ 'help' ],
 	args: '[command]',
 	callback: ( client, msg, args ) =>
