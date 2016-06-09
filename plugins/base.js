@@ -26,16 +26,6 @@ commands.register( {
 	}});
 
 commands.register( {
-	aliases: [ 'reload' ],
-	help: 'reload plugins',
-	flags: [ 'owner_only' ],
-	callback: ( client, msg, args ) =>
-	{
-		require('../plugins.js').reload( client );
-		msg.channel.sendMessage( 'plugins reloaded' );
-	}});
-
-commands.register( {
 	aliases: [ 'help' ],
 	callback: ( client, msg, args ) =>
 	{
