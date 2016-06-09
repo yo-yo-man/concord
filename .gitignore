@@ -7,3 +7,4 @@ playlists/*
 !playlists/*.empty
 npm-debug.log
 screenlog.0
+crash.log
