@@ -26,44 +26,45 @@ commands.register( {
 
 commands.register( {
 	aliases: [ 'help' ],
+	args: '[command]',
 	callback: ( client, msg, args ) =>
 	{
 		var author = msg.author;
 		
-		var help = '';
-		for ( var i in commands.commandList )
+		if ( args )
 		{
-			var cmd = commands.commandList[i];
-			
-			if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
-				continue;
-			
-			help += settings.get( 'config', 'command_prefix' );
-			for ( var j in cmd.aliases )
+			var help = 'command not found';
+			for ( var i in commands.commandList )
 			{
-				help += cmd.aliases[j];
-				if ( j != cmd.aliases.length-1 )
-					help += '|';
+				var cmd = commands.commandList[i];
+				if ( cmd.aliases.indexOf( args ) != -1 )
+				{
+					if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
+						continue;
+					
+					help = commands.generateHelp( cmd );
+					break;
+				}
 			}
-			
-			if ( cmd.args )
-				help += _.fmt( ' [%s]', cmd.args );
-			
-			help += _.fmt( ' - %s', cmd.help );
-			
-			if ( cmd.flags )
-			{
-				if ( cmd.flags.indexOf( 'owner_only' ) != -1 )
-					help += ' (owner-only)';
-				else if ( cmd.flags.indexOf( 'admin_only' ) != -1 )
-					help += ' (admin-only)';
-			}
-			
-			if ( i != commands.commandList.length-1 )
-				help += '\n';
+			msg.channel.sendMessage( _.fmt( '```\n%s\n```', help ) );
 		}
-		
-		msg.channel.sendMessage( _.fmt( '```\n%s\n```', help ) );
+		else
+		{
+			for ( var i in commands.commandList )
+			{
+				var cmd = commands.commandList[i];
+				
+				if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
+					continue;
+				
+				help += commands.generateHelp( cmd );
+				
+				if ( i != commands.commandList.length-1 )
+					help += '\n';
+			}
+			
+			author.openDM().then( d => d.sendMessage( _.fmt( '```\n%s\n```', help ) ) );
+		}
 	}});
 
 module.exports.setup = function( client )
