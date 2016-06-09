@@ -32,11 +32,11 @@ commands.register( {
 		var author = msg.author;
 		
 		var help = '';
-		for ( var i in commandList )
+		for ( var i in commands.commandList )
 		{
-			var cmd = commandList[i];
+			var cmd = commands.commandList[i];
 			
-			if ( !userHasCommand( author, cmd ) || !cmd.help )
+			if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
 				continue;
 			
 			help += settings.get( 'config', 'command_prefix' );
@@ -60,7 +60,7 @@ commands.register( {
 					help += ' (admin-only)';
 			}
 			
-			if ( i != commandList.length-1 )
+			if ( i != commands.commandList.length-1 )
 				help += '\n';
 		}
 		
