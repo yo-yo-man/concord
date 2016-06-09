@@ -70,4 +70,6 @@ commands.register( {
 module.exports.setup = function( client )
 	{
 		console.log( 'base plugin loaded' );
+		
+		client.Dispatcher.onAny( ( type, e ) => { return console.log('<' + type + '>'); });
 	};
