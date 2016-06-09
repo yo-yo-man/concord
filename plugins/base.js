@@ -26,6 +26,16 @@ commands.register( {
 	}});
 
 commands.register( {
+	aliases: [ 'reload' ],
+	help: 'reload plugins',
+	flags: [ 'owner_only' ],
+	callback: ( client, msg, args ) =>
+	{
+		require('../plugins.js').reload( client );
+		msg.channel.sendMessage( 'plugins reloaded' );
+	}});
+
+commands.register( {
 	aliases: [ 'help' ],
 	callback: ( client, msg, args ) =>
 	{
@@ -66,3 +76,8 @@ commands.register( {
 		
 		msg.channel.sendMessage( fmt( '```\n%s\n```', help ) );
 	}});
+
+module.exports.setup = function( client )
+	{
+		console.log( 'base plugin loaded' );
+	};

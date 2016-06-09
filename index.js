@@ -14,6 +14,7 @@ client.connect( { token: settings.get( 'config', 'login_token' ) } );
 client.Dispatcher.on( Events.GATEWAY_READY, e =>
 {
 	console.log( 'Connected as: ' + client.User.username );
+	require('./plugins.js').load( client );
 });
 
 client.Dispatcher.onAny( ( type, e ) =>
@@ -49,11 +50,3 @@ client.Dispatcher.on( 'MESSAGE_CREATE', e =>
 					return e.message.channel.sendMessage( 'insufficient permissions' );
 	}
 });
-
-
-var pluginDir = './plugins';
-var normalizedPath = require('path').join( __dirname, pluginDir );
-require('fs').readdirSync( normalizedPath ).forEach( function( file )
-	{
-	  require( pluginDir + '/' + file );
-	});
