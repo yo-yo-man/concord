@@ -11,7 +11,7 @@ var guildChannels = {};
 function initGuilds( _cl )
 {
 	client = _cl;
-	guildChannels = settings.get( 'cache_notices', 'guild_channels' ) || {};
+	guildChannels = settings.get( 'notices', 'guild_channels', {} );
 }
 
 commands.register( {
@@ -34,7 +34,7 @@ commands.register( {
 			console.log( _.fmt( 'notices disabled for %s', msg.channel.name ) );
 		}
 		
-		settings.set( 'cache_notices', 'guild_channels', guildChannels );
+		settings.set( 'notices', 'guild_channels', guildChannels );
 	}});
 
 function sendGuildNotice( guildId, message )
@@ -45,7 +45,7 @@ function sendGuildNotice( guildId, message )
 		if ( !channel )
 		{
 			delete guildChannels[ guildId ];
-			settings.set( 'cache_notices', 'guild_channels', guildChannels );
+			settings.set( 'notices', 'guild_channels', guildChannels );
 			console.log( _.fmt( 'WARNING: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], client.Guilds.get( guildId ).name ) );
 			return;
 		}
@@ -69,7 +69,7 @@ function sendGlobalUserNotice( userId, message )
 		if ( !guild )
 		{
 			delete guildChannels[ guildId ];
-			settings.set( 'cache_notices', 'guild_channels', guildChannels );
+			settings.set( 'notices', 'guild_channels', guildChannels );
 			console.log( _.fmt( 'WARNING: tried to send global notice to invalid guild %s', guildId ) );
 			return;
 		}
@@ -110,6 +110,8 @@ function processEvent( type, e )
 			
 		case 'VOICE_USER_SELF_MUTE':
 			// user, channel, channelid, guildid, state
+			if ( settings.get( 'notices', 'hide_mute_events', false ) )
+				return;
 			if ( e.state )
 				sendGuildNotice( e.guildId, _.fmt( '`%s` muted', e.user.username ) );
 			else
@@ -118,6 +120,8 @@ function processEvent( type, e )
 		
 		case 'VOICE_USER_SELF_DEAF':
 			// user, channel, channelid, guildid, state
+			if ( settings.get( 'notices', 'hide_deaf_events', false ) )
+				return;
 			if ( e.state )
 				sendGuildNotice( e.guildId, _.fmt( '`%s` deafened', e.user.username ) );
 			else
@@ -142,6 +146,8 @@ function processEvent( type, e )
 			
 		case 'PRESENCE_UPDATE':
 			// guild, user, member
+			if ( settings.get( 'notices', 'hide_game_events', false ) )
+				return;
 			if ( e.user.previousGameName != null )
 				sendGuildNotice( e.guild.id, _.fmt( '`%s` stopped playing `%s`', e.user.username, e.user.previousGameName ) );
 			if ( e.user.gameName != null )
