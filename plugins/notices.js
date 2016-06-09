@@ -195,11 +195,13 @@ function processEvent( type, e )
 			var name = e.channel.mention;
 			if ( !name )
 				name = '`' + e.channel.name + '`';
-			sendGuildNotice( e.channel.guild.id, _.fmt( '%s settings updated', name ) );
+			sendGuildNotice( e.channel.guild.id, _.fmt( '%s updated', name ) );
+			break;
 			
 		case 'GUILD_UPDATE':
 			// guild
 			sendGuildNotice( e.guild.id, 'server settings updated' );
+			break;
 			
 		// MESSAGE_DELETE
 			// channelid, messageid, message
