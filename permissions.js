@@ -1,6 +1,14 @@
+'use strict';
+
 var settings = require( './settings.js' );
+var client = null;
 
 var permissions = {};
+
+permissions.init = function( _cl )
+	{
+		client = _cl;
+	};
 
 permissions.hasGlobalRole = function( user, roleName )
 	{

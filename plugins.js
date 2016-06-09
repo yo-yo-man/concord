@@ -1,3 +1,5 @@
+'use strict';
+
 var plugins = {};
 
 plugins.load = function( client, decache )

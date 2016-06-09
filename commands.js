@@ -1,3 +1,5 @@
+'use strict';
+
 var permissions = require( './permissions.js' );
 var settings = require( './settings.js' );
 

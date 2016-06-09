@@ -1,3 +1,5 @@
+'use strict';
+
 var fs = require( 'fs' );
 
 var settings = {};
@@ -31,12 +33,15 @@ settings.set = function( file, param, val )
 	
 settings.save = function( file )
 	{		
-		fs.writeFile( makefn( file ), JSON.stringify( jsonCache[file] ), 'utf8' );
+		fs.writeFile( makefn( file ), JSON.stringify( jsonCache[file], null, 4 ), 'utf8' );
 	};
 	
 settings.reload = function( file )
 	{		
-		jsonCache[file] = JSON.parse( require('fs').readFileSync( makefn( file ), 'utf8' ) );
+		if ( settings.exists( file ) )
+			jsonCache[file] = JSON.parse( require('fs').readFileSync( makefn( file ), 'utf8' ) );
+		else
+			jsonCache[file] = {};
 	};
 	
 module.exports = settings;

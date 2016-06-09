@@ -1,14 +1,15 @@
+'use strict';
+
 var commands = require( '../commands.js' );
 var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
-
 var _ = require( '../helper.js' );
 
 commands.register( {
 	aliases: [ 'eval' ],
 	help: 'eval some code',
 	flags: [ 'owner_only' ],
-	args: 'code',
+	args: 'code*',
 	callback: ( client, msg, args ) =>
 	{
 		var res = '';
@@ -68,6 +69,4 @@ commands.register( {
 module.exports.setup = function( client )
 	{
 		console.log( 'base plugin loaded' );
-		
-		client.Dispatcher.onAny( ( type, e ) => { return console.log('<' + type + '>'); });
 	};
