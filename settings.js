@@ -17,12 +17,19 @@ settings.exists = function( file, param )
 		return fs.existsSync( makefn( file ) );
 	};
 
-settings.get = function( file, param )
+settings.get = function( file, param, def )
 	{
 		if ( !( file in jsonCache ) )
 			settings.reload( file );
 		
-		return jsonCache[file][param];
+		var val = jsonCache[file][param];
+		if ( val == null && typeof def !== 'undefined' )
+		{
+			settings.set( file, param, def );
+			val = def;
+		}
+		
+		return val;
 	};
 	
 settings.set = function( file, param, val )
