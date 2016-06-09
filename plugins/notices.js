@@ -110,7 +110,7 @@ function processEvent( type, e )
 			
 		case 'VOICE_USER_SELF_MUTE':
 			// user, channel, channelid, guildid, state
-			if ( settings.get( 'notices', 'hide_mute_events', false ) )
+			if ( settings.get( 'notices', 'hide_mute_events', true ) )
 				return;
 			if ( e.state )
 				sendGuildNotice( e.guildId, _.fmt( '`%s` muted', e.user.username ) );
@@ -146,7 +146,7 @@ function processEvent( type, e )
 			
 		case 'PRESENCE_UPDATE':
 			// guild, user, member
-			if ( settings.get( 'notices', 'hide_game_events', false ) )
+			if ( settings.get( 'notices', 'hide_game_events', true ) )
 				return;
 			if ( e.user.previousGameName != null )
 				sendGuildNotice( e.guild.id, _.fmt( '`%s` stopped playing `%s`', e.user.username, e.user.previousGameName ) );
