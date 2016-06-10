@@ -42,14 +42,15 @@ commands.generateHelp = function( cmd )
 commands.findTarget = function( msg, str )
 	{
 		var matches = [];
+		str = str.toLowerCase();
 		
 		if ( msg.isPrivate || !msg.guild )
 		{
 			client.Users.forEach( function( user )
 			{
-				if ( user.username.indexOf( str ) != -1 )
+				if ( user.username.toLowerCase().indexOf( str ) != -1 )
 					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
-				if ( str == user.username+'#'+user.discriminator )
+				if ( str == user.username.toLowerCase()+'#'+user.discriminator )
 					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
 			});
 		}
@@ -58,11 +59,11 @@ commands.findTarget = function( msg, str )
 			for ( var i in msg.guild.members )
 			{
 				var user = msg.guild.members[i];
-				if ( user.nick && user.nick.indexOf( str ) != -1 )
+				if ( user.nick && user.nick.toLowerCase().indexOf( str ) != -1 )
 					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
-				if ( user.username.indexOf( str ) != -1 )
+				if ( user.username.toLowerCase().indexOf( str ) != -1 )
 					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
-				if ( str == user.username+'#'+user.discriminator )
+				if ( str == user.username.toLowerCase()+'#'+user.discriminator )
 					 if ( matches.indexOf( user ) == -1 ) matches.push( user );
 			}
 		}
