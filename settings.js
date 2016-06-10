@@ -31,7 +31,6 @@ settings.get = function( file, param, def )
 		{
 			settings.set( file, param, def );
 			val = def;
-			settings.save( file );
 		}
 		
 		return val;
