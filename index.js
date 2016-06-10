@@ -10,7 +10,7 @@ var log = [];
 var logSize = 16;
 function logData( data )
 {
-	data = data.toString().split( '\n' );
+	data = data.toString().replace( /\r/g, '' ).split( '\n' );
 	for ( var i in data )
 		log.push( data[i] );
 	
@@ -39,7 +39,7 @@ bot.on( 'exit', function( code )
 	{
 		console.log( 'process exited with code ' + code + ', restarting...' );
 		if ( code != 0 )
-			require('fs').writeFileSync( './crash.log', log.join(''), 'utf8' );
+			require('fs').writeFileSync( './crash.log', log.join('\n'), 'utf8' );
 		log = [];
 	});
 
