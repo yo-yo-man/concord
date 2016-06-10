@@ -148,13 +148,10 @@ function onMessage( client, e )
 			else
 				if ( permissions.userHasCommand( e.message.author, cmd ) )
 				{
-					var date = new Date();
 					var guildname = '<pm>';
 					if ( e.message.guild )
 						guildname = '(' + e.message.guild.name + ')';
-					console.log( _.fmt( '[%s-%s-%s %s:%s:%s]  %s in #%s %s: %s',
-						date.getFullYear(), date.getMonth()+1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(),
-						e.message.author.username, e.message.channel.name, guildname, e.message.content ) );
+					console.log( _.fmt( '[%s]  %s in #%s %s: %s', _.prettytime(), e.message.author.username, e.message.channel.name, guildname, e.message.content ) );
 					
 					if ( checkArgs( cmd, args ) )
 						return cmd.callback( client, e.message, args );
