@@ -57,6 +57,70 @@ commands.register( {
 	}});
 
 commands.register( {
+	aliases: [ 'clear' ],
+	help: 'clear messages',
+	flags: [ 'admin_only', 'no_pm' ],
+	args: '[limit=100] [user]',
+	callback: ( client, msg, args ) =>
+	{
+		var split = args.split( ' ' );
+		var limit = split[0] || 100;
+		var target = split[1] || false;
+		
+		if ( isNaN( limit ) )
+			return msg.channel.sendMessage( limit + ' is not a number' );
+		
+		if ( !client.User.can( permissions.discord.Text.MANAGE_MESSAGES, msg.channel ) )
+			return msg.channel.sendMessage( "invalid 'manage messages' permission in this channel" );
+		
+		if ( target )
+		{
+			target = commands.findTarget( msg, target );
+			if ( target === false )
+				return;
+		}
+		
+		msg.channel.sendMessage( 'clearing, please wait...' ).then( tempMsg =>
+			{
+				msg.channel.fetchMessages( limit*2, tempMsg ).then( () =>
+					{
+						var toDelete = [];
+						msg.channel.messages.forEach( function( message )
+							{
+								if ( message.deleted )
+									return;
+								
+								if ( target !== false && target.id != message.author.id )
+								{
+									limit++;
+									return;
+								}
+								
+								if ( toDelete.length >= limit )
+									return;
+									
+								toDelete.unshift( message );
+							});
+						
+						var deleteQueue = function( i )
+							{
+								if ( i >= toDelete.length )
+								{
+									tempMsg.delete();
+									msg.channel.sendMessage( _.fmt( '%s cleared %s messages', msg.author.username, toDelete.length) )
+									return;
+								}
+								
+								toDelete[i].delete().then( () => { deleteQueue( i+1 ) } );
+							};
+							
+						deleteQueue( 0 );
+						
+					}).catch( e => { console.log( e.stack ) } );
+			}).catch( e => { console.log( e.stack ) } );
+	}});
+
+commands.register( {
 	aliases: [ 'help' ],
 	help: 'display help menu (optionally for a specific command)',
 	args: '[command]',
