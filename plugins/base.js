@@ -22,6 +22,9 @@ commands.register( {
 			res = e;
 		}
 		
+		if ( typeof res === 'undefined' )
+			res = 'undefined';
+		
 		res = res.toString();
 		if ( res.indexOf( '\n' ) != -1 )
 			res = '```\n' + res + '\n```';
