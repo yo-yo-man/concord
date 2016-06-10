@@ -115,9 +115,10 @@ commands.register( {
 							};
 							
 						deleteQueue( 0 );
-						
-					}).catch( e => { console.log( e.stack ) } );
-			}).catch( e => { console.log( e.stack ) } );
+					})
+					.catch( e => { console.log( e.stack ) } );
+			})
+			.catch( e => { console.log( e.stack ) } );
 	}});
 
 commands.register( {

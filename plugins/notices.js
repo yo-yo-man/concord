@@ -50,8 +50,6 @@ function sendGuildNotice( guildId, message )
 		
 		channel.sendMessage( message );
 	}
-	else
-		console.log( _.fmt( 'WARNING: tried to send notice to invalid guild %s', guildId ) );
 }
 
 function sendGlobalUserNotice( userId, message )
