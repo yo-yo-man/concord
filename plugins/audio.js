@@ -5,6 +5,8 @@ var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 
+var ytdl = require( 'ytdl-core' );
+
 var sessions = {};
 
 function join( msg )
@@ -31,7 +33,43 @@ function join( msg )
 	return promise;
 }
 
-function play( file, voiceConnection )
+function playRemote( remote, conn )
+{
+	function onMediaInfo( err, mediaInfo )
+	{
+		if ( err )
+			return console.log( 'ytdl error:', err );
+
+		// sort by bitrate, high to low; prefer webm over anything else
+		var formats = mediaInfo.formats.filter( f => f.container === 'webm' ).sort( (a, b) => b.audioBitrate - a.audioBitrate );
+
+		// get first audio-only format or fallback to non-dash video
+		var bestaudio = formats.find( f => f.audioBitrate > 0 && !f.bitrate ) || formats.find( f => f.audioBitrate > 0 );
+		if ( !bestaudio )
+			return console.log( '[playRemote] No valid formats' );
+
+		var encoder = conn.createExternalEncoder(
+		{
+			type: 'ffmpeg',
+			source: bestaudio.url,
+			format: 'opus',
+			//frameDuration: 60,
+			inputArgs: [ ],
+			outputArgs: [ '-af', 'volume=0.3' ]
+		});
+		
+		if ( !encoder )
+			return console.log( 'Voice connection is disposed' );
+		
+		encoder.play();
+	}
+	try
+	{
+		ytdl.getInfo( remote, onMediaInfo );
+	} catch(e) { console.log( 'ytdl threw:', e ); }
+}
+
+function playLocal( file, voiceConnection )
 {
 	var encoder = voiceConnection.createExternalEncoder(
 		{
@@ -55,14 +93,15 @@ function play( file, voiceConnection )
 }
 
 commands.register( {
-	aliases: [ 'play', 'p', 'test' ],
+	aliases: [ 'test' ], // 'play', 'p', 
 	help: 'play audio from a url',
 	args: 'url',
 	callback: ( client, msg, args ) =>
 	{
 		join( msg ).then( conn =>
 			{				
-				play( args, conn.voiceConnection );
+				//playLocal( args, conn.voiceConnection );
+				playRemote( args, conn.voiceConnection );
 				//setTimeout( function() { msg.member.getVoiceChannel().leave() }, 3000 );
 			})
 			.catch( text => { return msg.channel.sendMessage( text ); });

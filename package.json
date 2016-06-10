@@ -11,6 +11,7 @@
 		{
 			"discordie": "*",
 			"respawn": "*",
-			"moment": "*"
+			"moment": "*",
+			"ytdl-core": "*"
 		}
 }
