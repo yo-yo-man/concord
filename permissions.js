@@ -53,4 +53,6 @@ permissions.userHasCommand = function( user, command )
 		return false;
 	};
 	
+permissions.discord = require('discordie').Permissions;
+	
 module.exports = permissions;

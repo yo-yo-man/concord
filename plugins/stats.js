@@ -66,17 +66,47 @@ commands.register( {
 		msg.channel.sendMessage( who );
 	}});
 
+var startTime = 0;
 commands.register( {
 	aliases: [ 'uptime', 'stats' ],
 	help: 'bot uptime and statistics',
 	callback: ( client, msg, args ) =>
 	{
+		var duration = moment.duration( moment.unix( _.time() ).diff( moment.unix( startTime ) ) );
+		var uptime = Math.floor( duration.asHours() ) + moment.utc( duration.asMilliseconds() ).format( ':mm:ss' )
 		
+		var stats = _.fmt( 'uptime: %s\n', uptime );
+		stats += _.fmt( 'commands since boot: %s\n', commands.numSinceBoot );
+		stats += _.fmt( 'servers connected: %s\n', client.Guilds.length );
+		
+		var total = 0;
+		var listening = 0;
+		client.Channels.forEach( function( channel )
+			{
+				if ( channel.type == 'text' && !channel.is_private )
+				{
+					total++;
+					if ( client.User.can( permissions.discord.Text.READ_MESSAGES, channel ) )
+						listening++;
+				}
+			});
+			
+		stats += _.fmt( 'channels listening: %s / %s\n', listening, total );
+		stats += _.fmt( 'users seen online: %s / %s\n', Object.keys( lastSeen ).length, client.Users.length );
+		
+		// TO DO: voice
+		stats += _.fmt( 'songs played since boot: %s\n', 0 );
+		stats += _.fmt( 'active music sessions: %s\n', 0 );
+		stats += _.fmt( 'music cache size: %smb\n', 0 );
+		stats += _.fmt( 'music cache count: %s\n', 0 );
+		
+		msg.channel.sendMessage( '```' + stats + '```' );
 	}});
 
 module.exports.setup = function( _cl )
 	{
 		client = _cl;
+		startTime = _.time();
 		lastSeen = settings.get( 'lastseen', null, {} );
 		updateLastSeen();
 		console.log( 'stats plugin loaded' );

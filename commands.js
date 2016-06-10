@@ -8,6 +8,7 @@ var moment = require( 'moment' );
 var commands = {};
 var client = null;
 
+commands.numSinceBoot = 0;
 commands.commandList = [];
 commands.register = function( params )
 	{
