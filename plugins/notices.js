@@ -99,12 +99,14 @@ function processEvent( type, e )
 			
 		case 'VOICE_CHANNEL_LEAVE':
 			// user, channel, channelid, guildid, newchannelid, newguildid
+			if ( e.user.bot ) return;
 			if ( e.newChannelId == null )
 				sendGuildNotice( e.guildId, _.fmt( '`%s` disconnected', e.user.username ) );
 			break;
 			
 		case 'VOICE_CHANNEL_JOIN':
 			// user, channel, channelid, guildid
+			if ( e.user.bot ) return;
 			sendGuildNotice( e.guildId, _.fmt( '`%s` connected to `%s`', e.user.username, e.channel.name ) );
 			break;
 			
