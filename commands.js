@@ -6,7 +6,6 @@ var _ = require( './helper.js' );
 var moment = require( 'moment' );
 
 var commands = {};
-var client = null;
 
 commands.numSinceBoot = 0;
 commands.commandList = [];
@@ -167,6 +166,7 @@ function onMessage( client, e )
 	}
 };
 
+var client = null;
 commands.init = function( _cl )
 	{
 		client = _cl;

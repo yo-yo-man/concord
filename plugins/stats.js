@@ -6,8 +6,6 @@ var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 var moment = require( 'moment' );
 
-var client = null;
-
 var lastSeen = {};
 var idleTime = {};
 var lastSeenDelay = 60 * 1000;
@@ -103,6 +101,7 @@ commands.register( {
 		msg.channel.sendMessage( '```' + stats + '```' );
 	}});
 
+var client = null;
 module.exports.setup = function( _cl )
 	{
 		client = _cl;

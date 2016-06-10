@@ -5,8 +5,6 @@ var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 
-var client = null;
-
 var guildChannels = {};
 function initGuilds( _cl )
 {
@@ -225,8 +223,10 @@ function processEvent( type, e )
 	}
 }
 
-module.exports.setup = function( client )
+var client = null;
+module.exports.setup = function( _cl )
 	{
+		client = _cl;
 		initGuilds( client );
 		client.Dispatcher.onAny( ( type, e ) => { processEvent( type, e ); } );
 		console.log( 'notices plugin loaded' );

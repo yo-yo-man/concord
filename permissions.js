@@ -1,14 +1,8 @@
 'use strict';
 
 var settings = require( './settings.js' );
-var client = null;
 
 var permissions = {};
-
-permissions.init = function( _cl )
-	{
-		client = _cl;
-	};
 
 permissions.hasGlobalRole = function( user, roleName )
 	{
@@ -54,5 +48,11 @@ permissions.userHasCommand = function( user, command )
 	};
 	
 permissions.discord = require('discordie').Permissions;
+
+var client = null;
+permissions.init = function( _cl )
+	{
+		client = _cl;
+	};
 	
 module.exports = permissions;

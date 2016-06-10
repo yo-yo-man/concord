@@ -165,7 +165,9 @@ commands.register( {
 		}
 	}});
 
-module.exports.setup = function( client )
+var client = null;
+module.exports.setup = function( _cl )
 	{
+		client = _cl;
 		console.log( 'base plugin loaded' );
 	};
