@@ -3,6 +3,7 @@
 var permissions = require( './permissions.js' );
 var settings = require( './settings.js' );
 var _ = require( './helper.js' );
+var moment = require( 'moment' );
 
 var commands = {};
 var client = null;
@@ -151,7 +152,9 @@ function onMessage( client, e )
 					var guildname = '<pm>';
 					if ( e.message.guild )
 						guildname = '(' + e.message.guild.name + ')';
-					console.log( _.fmt( '[%s]  %s in #%s %s: %s', _.prettytime(), e.message.author.username, e.message.channel.name, guildname, e.message.content ) );
+					
+					commands.numSinceBoot++;
+					console.log( _.fmt( '[%s]  %s in #%s %s: %s', moment().format( 'YYYY-MM-DD hh:mm:ss' ), e.message.author.username, e.message.channel.name, guildname, e.message.content ) );
 					
 					if ( checkArgs( cmd, args ) )
 						return cmd.callback( client, e.message, args );

@@ -4,6 +4,7 @@ var commands = require( '../commands.js' );
 var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
+var moment = require( 'moment' );
 
 var client = null;
 
@@ -52,15 +53,15 @@ commands.register( {
 		
 		var who = _.fmt( '```%s\n\n%s#%s %s\n<@\u200b%s>\n%s', target.avatarURL, target.username, target.discriminator, nick, target.id, roles );		
 		if ( target.joined_at )
-			who += _.fmt( 'joined %s\n', _.prettytime( target.joined_at ) );
+			who += _.fmt( 'joined %s\n', moment( target.joined_at ).fromNow() );
 		
 		var timestamp = 0;
 		if ( target.id in lastSeen )
 			timestamp = lastSeen[ target.id ];
-		who += _.fmt( 'last seen %s```', _.prettydate( timestamp ) );
+		who += _.fmt( 'last seen %s```', moment.unix( timestamp ).fromNow() );
 		
 		if ( target.id in idleTime )
-			who += _.fmt( 'went idle %s```', _.prettydate( idleTime[ target.id ] ) );
+			who += _.fmt( 'went idle %s```', moment.unix( idleTime[ target.id ] ).fromNow() );
 		
 		msg.channel.sendMessage( who );
 	}});
