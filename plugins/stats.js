@@ -51,7 +51,7 @@ commands.register( {
 		
 		var who = _.fmt( '```%s\n\n%s#%s %s\n<@\u200b%s>\n%s', target.avatarURL, target.username, target.discriminator, nick, target.id, roles );		
 		if ( target.joined_at )
-			who += _.fmt( 'joined %s\n', moment( target.joined_at ).fromNow() );
+			who += _.fmt( 'joined server %s\n', moment( target.joined_at ).fromNow() );
 		
 		var timestamp = 0;
 		if ( target.id in lastSeen )
