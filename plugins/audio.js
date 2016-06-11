@@ -160,7 +160,7 @@ function queryRemote( msg, url )
 					if ( length_seconds > max_length * 60 )
 					{
 						var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
-						return reject( _.fmt( 'song exceeds max length: %s > %s', length, maxlen ) );
+						return reject( _.fmt( 'song exceeds max length: `%s` > `%s`', length, maxlen ) );
 					}
 				}
 				
@@ -184,11 +184,11 @@ function queryRemote( msg, url )
 				
 				if ( queue_empty )
 				{
-					resolve( _.fmt( '%s started playing %s [%s]', msg.author.username, title, length ) );
+					resolve( _.fmt( '`%s` started playing `%s [%s]`', msg.author.username, title, length ) );
 					rotate_queue( id );
 				}
 				else // TO DO: force play (admin)
-					resolve( _.fmt( '%s queued %s [%s]', msg.author.username, title, length ) );
+					resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
 			}
 			
 			ydl.getInfo( url, [], parseInfo );
@@ -277,7 +277,7 @@ commands.register( {
 			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', args ) );
 		
 		var vol = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
-		msg.channel.sendMessage( _.fmt( '%s changed volume to `%s`', msg.author.username, vol ) );
+		msg.channel.sendMessage( _.fmt( '`%s` changed volume to `%s`', msg.author.username, vol ) );
 		
 		var id = msg.guild.id;
 		setGuildSetting( id, 'volume', vol );

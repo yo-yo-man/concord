@@ -110,7 +110,7 @@ commands.register( {
 								if ( i >= toDelete.length )
 								{
 									tempMsg.delete();
-									msg.channel.sendMessage( _.fmt( '%s cleared %s messages', msg.author.username, toDelete.length) )
+									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages', msg.author.username, toDelete.length) )
 									return;
 								}
 								
