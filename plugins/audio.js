@@ -47,7 +47,7 @@ function join( msg )
 
 function parse_seek( str )
 {
-	var time = str.match( '(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?' );
+	var time = str.match( /(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?/g );
 	var hours = parseInt( time[0] || 0 ) * 60 * 60;
 	var minutes = parseInt( time[1] || 0 ) * 60;
 	var seconds = parseInt( time[2] || 0 );
@@ -66,25 +66,30 @@ function rotate_queue( id )
 	var song = sess.queue.shift();
 	console.log( 'playing ' + song.url );
 	
+	var inputArgs = [];
+	if ( song.seek )
+		inputArgs = [ '-ss', song.seek ];
+	
 	var encoder = sess.conn.createExternalEncoder(
 		{
 			type: 'ffmpeg',
 			source: song.streamurl,
 			format: 'opus',
 			//frameDuration: 60,
-			//inputArgs: [ '-ss', '00:09:30' ],
+			inputArgs: inputArgs,
 			outputArgs: [ '-af', 'volume=0.3' ]
 		});
 		
 	if ( !encoder )
 		return console.log( 'voice connection is disposed' );
 	
-	encoder.once( 'end', () => console.log( 'stream end' ) );
+	sess.encoder = encoder;
+	encoder.once( 'end', () => rotate_queue( id ) );
 
 	var encoderStream = encoder.play();
 	encoderStream.resetTimestamp();
 	encoderStream.removeAllListeners( 'timestamp' );
-	//encoderStream.on( 'timestamp', time => console.log( 'Time ' + time ) );
+	encoderStream.on( 'timestamp', time => sess.time = time );
 }
 
 function queryRemote( msg, url )
@@ -100,19 +105,18 @@ function queryRemote( msg, url )
 				
 				var length = '??:??';
 				if ( info.duration )
-				{
-					var length = info.duration;
-					
-					var split = length.split( /:/g );
+				{					
+					var split = info.duration.split( /:/g );
 					if ( split.length == 1 )
 						split.unshift( '00' );
 					if ( split.length == 2 )
 						split.unshift( '00' );
 					var durstr = _.fmt( '%s:%s:%s', _.pad( split[0], 2 ), _.pad( split[1], 2 ), _.pad( split[2], 2 ) )
-					var len_seconds = moment.duration( durstr ).format( 'ss' );
+					var length_seconds = moment.duration( durstr ).format( 'ss' );
+					length = moment.duration( length_seconds*1000 ).format( 'h:mm:ss' );
 					
 					var max_length = settings.get( 'audio', 'max_length', 62 );
-					if ( len_seconds > max_length * 60 )
+					if ( length_seconds > max_length * 60 )
 					{
 						var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
 						return reject( _.fmt( 'song exceeds max length: %s > %s', length, maxlen ) );
@@ -128,12 +132,12 @@ function queryRemote( msg, url )
 				
 				var seek = false;
 				if ( url.indexOf( 't=' ) != -1 )
-					seek = parse_seek( url.match( 't=(.*)' )[0] );
+					seek = parse_seek( url.match( /t=(.*)/g )[0] );
 				
 				var id = msg.guild.id;
 				if ( !sessions[ id ].queue )
 					sessions[ id ].queue = [];
-				sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl } );
+				sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl, length_seconds: length_seconds } );
 				
 				if ( sessions[ id ].queue.length == 1 )
 				{
@@ -175,9 +179,26 @@ commands.register( {
 				}
 				
 				queryRemote( msg, args ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( s ) );
-				//setTimeout( function() { msg.member.getVoiceChannel().leave() }, 3000 );
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ); } );
+	}});
+
+commands.register( {
+	aliases: [ 'stoptest' ], // 'stop', 's', 
+	help: 'stop audio',
+	flags: [ 'admin_only' ],
+	callback: ( client, msg, args ) =>
+	{
+		var channel = msg.member.getVoiceChannel();
+		if ( !channel )
+			return msg.channel.sendMessage( 'you are not in a voice channel' );
+		
+		var id = msg.guild.id;
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			sess.conn.channel.leave();
+		}
 	}});
 
 var client = null;
