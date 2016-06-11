@@ -75,7 +75,8 @@ function parse_seek( str )
 function rotate_queue( id )
 {
 	var sess = sessions[ id ];
-	sess.queue.shift(); // TO DO: looping
+	if ( typeof sess.loop === 'undefined' || !sess.loop )
+		sess.queue.shift();
 	start_player( id );
 }
 
@@ -94,7 +95,9 @@ function start_player( id, forceseek )
 	
 	console.log( 'playing ' + song.url );
 	module.exports.songsSinceBoot++;
+	
 	sess.skipVotes = [];
+	sess.paused = false;
 	
 	sess.starttime = 0;
 	var seek = forceseek || song.seek;	
@@ -283,7 +286,7 @@ commands.register( {
 			if ( !samechan )
 				return msg.channel.sendMessage( "can't vote to skip from another channel" );
 			
-			if ( args && permissions.isAdmin( msg.author ) )
+			if ( args && permissions.hasAdmin( msg.author ) )
 			{
 				msg.channel.sendMessage( _.fmt( '`%s` force-skipped the song', msg.author.username ) );
 				rotate_queue( id );
@@ -318,6 +321,8 @@ commands.register( {
 			else
 				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', msg.author.username, sess.skipVotes.length, votesNeeded ) );
 		}
+		else
+			msg.channel.sendMessage( 'nothing is currently playing' );
 	}});
 
 commands.register( {
@@ -345,6 +350,139 @@ commands.register( {
 			sess.volume = vol;
 			sess.encoder.stop();
 			start_player( id, sess.time );
+		}
+	}});
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'title', 'song', 'nowplaying' ],
+	help: "info about what's currently playing",
+	callback: ( client, msg, args ) =>
+	{
+		var id = msg.guild.id;		
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			if ( !sess.playing ) return msg.channel.sendMessage( 'nothing is currently playing' );
+			
+			var song = sess.queue[0];
+			if ( !song )
+				return msg.channel.sendMessage( 'nothing is currently playing' );
+			
+			var by_user = client.Users.get( song.queuedby );
+			if ( !by_user ) by_user = '<unknown user>';
+				else by_user = by_user.username;
+			msg.channel.sendMessage( _.fmt( 'now playing: `%s [%s]` (queued by `%s`)', song.title, song.length, by_user ) );
+		}
+		else
+			msg.channel.sendMessage( 'nothing is currently playing' );
+	}});
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'queue', 'q' ],
+	help: 'view the current audio queue',
+	callback: ( client, msg, args ) =>
+	{
+		var id = msg.guild.id;		
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			if ( !sess.playing ) return msg.channel.sendMessage( '```\nempty\n```' );
+			
+			var queue = sess.queue;
+			if ( queue.length == 0 )
+				return msg.channel.sendMessage( '```\nempty\n```' );
+			
+			var res = '';
+			for ( var i in queue )
+			{
+				var song = queue[i];
+				
+				var by_user = client.Users.get( song.queuedby );
+				if ( !by_user ) by_user = '<unknown user>';
+					else by_user = by_user.username;
+				res += msg.channel.sendMessage( _.fmt( '%s [%s] (queued by %s)\n', song.title, song.length, by_user ) );
+			}
+			
+			msg.channel.sendMessage( '```\n' + res + '\n```' );
+		}
+		else
+			msg.channel.sendMessage( '```\nempty\n```' );
+	}});
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'pause' ],
+	help: 'pauses the current song',
+	callback: ( client, msg, args ) =>
+	{
+		var id = msg.guild.id;		
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			if ( !sess.playing ) return;
+			if ( sess.paused ) return;
+			
+			sess.paused = true;
+			sess.encoder.stop();
+		}
+	}});
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'resume' ],
+	help: 'resumes the current song if paused',
+	callback: ( client, msg, args ) =>
+	{
+		var id = msg.guild.id;		
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			if ( !sess.playing ) return;
+			if ( !sess.paused ) return;
+			
+			sess.paused = false;
+			start_player( id, sess.time );
+		}
+	}});
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'seek' ],
+	help: 'seek to a specific time',
+	args: 'time',
+	callback: ( client, msg, args ) =>
+	{		
+		var id = msg.guild.id;		
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			if ( !sess.playing ) return;
+			
+			sess.encoder.stop();
+			start_player( id, parse_seek( args ) );
+		}
+	}});
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'loop' ],
+	help: 'toggle looping',
+	callback: ( client, msg, args ) =>
+	{		
+		var id = msg.guild.id;		
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			if ( !sess.playing ) return;
+			
+			sess.loop = !sess.loop;
+			
+			if ( sess.loop )
+				msg.channel.sendMessage( 'turned on looping, use `!loop` again to toggle off' )
+			else
+				msg.channel.sendMessage( 'turned off looping, queue will proceed as normal' )
 		}
 	}});
 
