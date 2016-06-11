@@ -4,7 +4,9 @@ var commands = require( '../commands.js' );
 var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
+
 var moment = require( 'moment' );
+require( 'moment-duration-format' );
 
 var lastSeen = {};
 var idleTime = {};
@@ -70,8 +72,7 @@ commands.register( {
 	help: 'bot uptime and statistics',
 	callback: ( client, msg, args ) =>
 	{
-		var duration = moment.duration( moment.unix( _.time() ).diff( moment.unix( startTime ) ) );
-		var uptime = Math.floor( duration.asHours() ) + moment.utc( duration.asMilliseconds() ).format( ':mm:ss' )
+		var uptime = moment.duration( (_.time() - startTime)*1000 ).format( 'h:mm:ss' )
 		
 		var stats = _.fmt( 'uptime: %s\n', uptime );
 		stats += _.fmt( 'commands since boot: %s\n', commands.numSinceBoot );
