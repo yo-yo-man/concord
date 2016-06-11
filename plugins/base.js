@@ -80,27 +80,27 @@ commands.register( {
 				return;
 		}
 		
+		limit++; // clear the user's !clear command as well
 		msg.channel.sendMessage( 'clearing, please wait...' ).then( tempMsg =>
 			{
-				msg.channel.fetchMessages( limit*2, tempMsg ).then( () =>
+				msg.channel.fetchMessages( limit, tempMsg ).then( () =>
 					{
 						var toDelete = [];
-						msg.channel.messages.forEach( function( message )
+						for ( var i = msg.channel.messages.length-1; i >= 0; i-- )
+						{
+							var message = msg.channel.messages[i];
+							
+							if ( message.deleted || message.id == tempMsg.id || ( target !== false && target.id != message.author.id ) )
 							{
-								if ( message.deleted )
-									return;
+								limit++;
+								continue;
+							}
+							
+							if ( toDelete.length >= limit )
+								break;
 								
-								if ( target !== false && target.id != message.author.id )
-								{
-									limit++;
-									return;
-								}
-								
-								if ( toDelete.length >= limit )
-									return;
-									
-								toDelete.unshift( message );
-							});
+							toDelete.push( message );
+						}
 						
 						var deleteQueue = function( i )
 							{
