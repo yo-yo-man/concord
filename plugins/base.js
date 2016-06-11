@@ -110,11 +110,13 @@ commands.register( {
 								if ( i >= toDelete.length )
 								{
 									tempMsg.delete();
-									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages', msg.author.username, toDelete.length) )
+									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages', msg.author.username, toDelete.length - 1 ) )
 									return;
 								}
 								
-								toDelete[i].delete().then( () => { deleteQueue( i+1 ) } );
+								toDelete[i].delete().then( () =>
+									{ setTimeout( function() { deleteQueue( i+1 ) }, 1000 )
+									}).catch( e => { console.log( e.stack ) } );
 							};
 							
 						deleteQueue( 0 );
