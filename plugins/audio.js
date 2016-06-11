@@ -140,64 +140,72 @@ function queryRemote( msg, url )
 {
 	var promise = new Promise( function( resolve, reject )
 		{
-			function parseInfo( err, info )
-			{
-				if ( err )
-					return reject( _.fmt( 'youtube error: `%s`', err ) );
-				
-				var title = info.title;
-				
-				var length = '??:??';
-				if ( info.duration )
-				{					
-					var split = info.duration.split( /:/g );
-					if ( split.length == 1 )
-						split.unshift( '00' );
-					if ( split.length == 2 )
-						split.unshift( '00' );
-					
-					length = _.fmt( '%s:%s:%s', _.pad( split[0], 2 ), _.pad( split[1], 2 ), _.pad( split[2], 2 ) )
-					var length_seconds = moment.duration( length ).format( 'ss' );
-					
-					if ( length.substring( 0, 3 ) == '00:' )
-						length = length.substring( 3 );
-					
-					var max_length = settings.get( 'audio', 'max_length', 62 );
-					if ( length_seconds > max_length * 60 )
+			msg.channel.sendMessage( 'fetching info, please wait...' ).then( tempMsg =>
+				{
+					function parseInfo( err, info )
 					{
-						var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
-						return reject( _.fmt( 'song exceeds max length: `%s` > `%s`', length, maxlen ) );
+						if ( err )
+						{
+							tempMsg.delete();
+							return reject( _.fmt( 'youtube error: `%s`', err ) );
+						}
+						
+						var title = info.title;
+						
+						var length = '??:??';
+						if ( info.duration )
+						{					
+							var split = info.duration.split( /:/g );
+							if ( split.length == 1 )
+								split.unshift( '00' );
+							if ( split.length == 2 )
+								split.unshift( '00' );
+							
+							length = _.fmt( '%s:%s:%s', _.pad( split[0], 2 ), _.pad( split[1], 2 ), _.pad( split[2], 2 ) )
+							var length_seconds = moment.duration( length ).format( 'ss' );
+							
+							if ( length.substring( 0, 3 ) == '00:' )
+								length = length.substring( 3 );
+							
+							var max_length = settings.get( 'audio', 'max_length', 62 );
+							if ( length_seconds > max_length * 60 )
+							{
+								var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
+								tempMsg.delete();
+								return reject( _.fmt( 'song exceeds max length: `%s` > `%s`', length, maxlen ) );
+							}
+						}
+						
+						var streamurl = info.formats[0].url;
+						if ( info.formats[0].abr )
+						{
+							var formats = info.formats.sort( (a, b) => b.abr - a.abr );
+							streamurl = formats[0].url;
+						}
+						
+						var seek = false;
+						if ( url.indexOf( 't=' ) != -1 )
+							seek = parse_seek( url.match( /t=(.*)/g )[0] );
+						
+						var id = msg.guild.id;
+						if ( !sessions[ id ].queue )
+							sessions[ id ].queue = [];
+						
+						var queue_empty = sessions[ id ].queue.length == 0;
+						sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl, length_seconds: length_seconds } );
+						
+						tempMsg.delete();
+						if ( queue_empty )
+						{
+							resolve( _.fmt( '`%s` started playing `%s [%s]`', msg.author.username, title, length ) );
+							start_player( id );
+						}
+						else // TO DO: force play (admin)
+							resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
 					}
-				}
 				
-				var streamurl = info.formats[0].url;
-				if ( info.formats[0].abr )
-				{
-					var formats = info.formats.sort( (a, b) => b.abr - a.abr );
-					streamurl = formats[0].url;
-				}
-				
-				var seek = false;
-				if ( url.indexOf( 't=' ) != -1 )
-					seek = parse_seek( url.match( /t=(.*)/g )[0] );
-				
-				var id = msg.guild.id;
-				if ( !sessions[ id ].queue )
-					sessions[ id ].queue = [];
-				
-				var queue_empty = sessions[ id ].queue.length == 0;
-				sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl, length_seconds: length_seconds } );
-				
-				if ( queue_empty )
-				{
-					resolve( _.fmt( '`%s` started playing `%s [%s]`', msg.author.username, title, length ) );
-					start_player( id );
-				}
-				else // TO DO: force play (admin)
-					resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
-			}
-			
-			ydl.getInfo( url, [], parseInfo );
+					ydl.getInfo( url, [], parseInfo );
+				});
 		});
 		
 	return promise;
