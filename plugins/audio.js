@@ -63,6 +63,13 @@ function join_channel( msg )
 	return promise;
 }
 
+function leave_channel( id )
+{
+	var sess = sessions[ id ];
+	sess.conn.channel.leave();
+	delete sessions[id];
+}
+
 function parse_seek( str )
 {
 	var time = str.match( /(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?/g );
@@ -89,9 +96,21 @@ function start_player( id, forceseek )
 		sess.playing = false;
 	}
 	
+	sess.lastActivity = _.time();
+	
 	var song = sess.queue[0];
 	if ( !song )
-		return console.log( 'reached end of queue' ); // TO DO: disconnect timeout
+	{
+		var timeout = settings.get( 'audio', 'idle_timeout', 60 );
+		setTimeout( () =>
+			{
+				var sess = sessions[ id ];
+				if ( !sess ) return;
+				if ( !sess.playing &&  _.time() >= sess.lastActivity + timeout )
+					leave_channel( id );
+			}, timeout * 1000 );
+		return;
+	}
 	
 	console.log( 'playing ' + song.url );
 	module.exports.songsSinceBoot++;
@@ -270,8 +289,7 @@ commands.register( {
 			var sess = sessions[id];
 			if ( !sess.playing ) return;
 			
-			sess.conn.channel.leave();
-			delete sessions[id];
+			leave_channel( id );
 		}
 	}});
 
