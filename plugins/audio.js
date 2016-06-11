@@ -63,7 +63,10 @@ function rotate_queue( id )
 		sess.playing = false;
 	}
 	
-	var song = sess.queue.shift();
+	var song = sess.queue[0];
+	if ( !song )
+		return console.log( 'reached end of queue' );
+	
 	console.log( 'playing ' + song.url );
 	
 	var inputArgs = [];
@@ -77,14 +80,18 @@ function rotate_queue( id )
 			format: 'opus',
 			//frameDuration: 60,
 			inputArgs: inputArgs,
-			outputArgs: [ '-af', 'volume=0.3' ]
+			outputArgs: [ '-af', 'volume=0.3' ] // TO DO: volume
 		});
 		
 	if ( !encoder )
 		return console.log( 'voice connection is disposed' );
 	
 	sess.encoder = encoder;
-	encoder.once( 'end', () => rotate_queue( id ) );
+	encoder.once( 'end', () =>
+		{
+			sess.queue.shift(); // TO DO: looping
+			rotate_queue( id );
+		});
 
 	var encoderStream = encoder.play();
 	encoderStream.resetTimestamp();
@@ -137,9 +144,11 @@ function queryRemote( msg, url )
 				var id = msg.guild.id;
 				if ( !sessions[ id ].queue )
 					sessions[ id ].queue = [];
+				
+				var queue_empty = sessions[ id ].queue.length == 0;
 				sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl, length_seconds: length_seconds } );
 				
-				if ( sessions[ id ].queue.length == 1 )
+				if ( queue_empty )
 				{
 					resolve( _.fmt( '%s started playing %s [%s]', msg.author.username, title, length ) );
 					rotate_queue( id );
@@ -198,6 +207,7 @@ commands.register( {
 		{
 			var sess = sessions[id];
 			sess.conn.channel.leave();
+			delete sessions[id];
 		}
 	}});
 
