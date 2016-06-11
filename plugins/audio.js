@@ -29,7 +29,7 @@ function setGuildSetting( id, param, val )
 	settings.set( 'audio', 'guild_settings', guildSettings );
 }
 
-function join( msg )
+function join_channel( msg )
 {
 	var promise = new Promise( function( resolve, reject )
 		{
@@ -72,7 +72,14 @@ function parse_seek( str )
 	return hours + minutes + seconds;
 }
 
-function rotate_queue( id, forceseek )
+function rotate_queue( id )
+{
+	var sess = sessions[ id ];
+	sess.queue.shift(); // TO DO: looping
+	start_player( id );
+}
+
+function start_player( id, forceseek )
 {
 	var sess = sessions[ id ];
 	if ( sess.playing )
@@ -87,6 +94,7 @@ function rotate_queue( id, forceseek )
 	
 	console.log( 'playing ' + song.url );
 	module.exports.songsSinceBoot++;
+	sess.skipVotes = [];
 	
 	sess.starttime = 0;
 	var seek = forceseek || song.seek;	
@@ -117,12 +125,7 @@ function rotate_queue( id, forceseek )
 	
 	sess.playing = true;
 	sess.encoder = encoder;
-	encoder.once( 'end', () =>
-		{
-			sess.queue.shift(); // TO DO: looping
-			sess.playing = false;
-			rotate_queue( id );
-		});
+	encoder.once( 'end', () => rotate_queue( id ) );
 
 	var encoderStream = encoder.play();
 	encoderStream.resetTimestamp();
@@ -185,7 +188,7 @@ function queryRemote( msg, url )
 				if ( queue_empty )
 				{
 					resolve( _.fmt( '`%s` started playing `%s [%s]`', msg.author.username, title, length ) );
-					rotate_queue( id );
+					start_player( id );
 				}
 				else // TO DO: force play (admin)
 					resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
@@ -229,7 +232,7 @@ commands.register( {
 		if ( !found )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', args ) );
 		
-		join( msg ).then( res =>
+		join_channel( msg ).then( res =>
 			{
 				if ( res.isnew )
 				{
@@ -250,10 +253,6 @@ commands.register( {
 	flags: [ 'admin_only' ],
 	callback: ( client, msg, args ) =>
 	{
-		var channel = msg.member.getVoiceChannel();
-		if ( !channel )
-			return msg.channel.sendMessage( 'you are not in a voice channel' );
-		
 		var id = msg.guild.id;
 		if ( id in sessions )
 		{
@@ -262,6 +261,62 @@ commands.register( {
 			
 			sess.conn.channel.leave();
 			delete sessions[id];
+		}
+	}});
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'skip' ],
+	help: 'vote to skip song',
+	args: '[force]',
+	callback: ( client, msg, args ) =>
+	{
+		var id = msg.guild.id;
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			if ( !sess.playing )
+				return msg.channel.sendMessage( 'not playing anything to skip' );
+			
+			var channel = msg.member.getVoiceChannel();
+			var samechan = sess.channel == channel.id;
+			if ( !samechan )
+				return msg.channel.sendMessage( "can't vote to skip from another channel" );
+			
+			if ( args && permissions.isAdmin( msg.author ) )
+			{
+				msg.channel.sendMessage( _.fmt( '`%s` force-skipped the song', msg.author.username ) );
+				rotate_queue( id );
+				return;
+			}
+			
+			if ( !sess.skipVotes )
+				sess.skipVotes = [];
+			
+			if ( sess.skipVotes.indexOf( msg.author.id ) != -1 )
+				return msg.channel.sendMessage( _.fmt( '`%s` has already voted to skip this song', msg.author.username ) );
+			
+			var current_users = [];
+			for ( var i in channel.members )
+				current_users.push( channel.members[i].id );
+			
+			var clean_votes = [];
+			for ( var i in sess.skipVotes )
+				if ( current_users.indexOf( sess.skipVotes[i] ) != -1 )
+					clean_votes.push( sess.skipVotes[i] );
+			sess.skipVotes = clean_votes;
+			
+			var votesNeeded = Math.round( current_users.length * settings.get( 'audio', 'skip_percent', 0.6 ) )
+			sess.skipVotes.push( msg.author.id );
+			
+			if ( sess.skipVotes.length >= votesNeeded )
+			{
+				sess.skipVotes = [];
+				msg.channel.sendMessage( 'vote skip passed' );
+				return rotate_queue( id );
+			}
+			else
+				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', msg.author.username, sess.skipVotes.length, votesNeeded ) );
 		}
 	}});
 
@@ -289,7 +344,7 @@ commands.register( {
 			
 			sess.volume = vol;
 			sess.encoder.stop();
-			rotate_queue( id, sess.time );
+			start_player( id, sess.time );
 		}
 	}});
 
