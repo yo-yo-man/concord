@@ -50,6 +50,9 @@ permissions.userHasCommand = function( user, command )
 		if ( !command.flags )
 			return true;
 		
+		if ( command.flags.length == 1 && command.flags.indexOf( 'no_pm' ) != -1 )
+			return true;
+		
 		if ( command.flags.indexOf( 'owner_only' ) != -1 && permissions.isOwner( user ) )
 			return true;
 		
