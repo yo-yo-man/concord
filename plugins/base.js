@@ -51,7 +51,7 @@ commands.register( {
 			settings.set( file, param, val );
 		
 		var val = settings.get( file, param );
-		if ( val.indexOf( '\n' ) != -1 )
+		if ( val.toString().indexOf( '\n' ) != -1 )
 			val = '```\n' + val + '\n```';
 		else
 			val = '`' + val + '`';
