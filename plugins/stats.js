@@ -18,8 +18,10 @@ function updateLastSeen()
 			if ( user.status != 'offline' )
 				lastSeen[ user.id ] = _.time();
 			if ( user.status == 'idle' )
+			{
 				if ( !( user.id in idleTime ) )
 					idleTime[ user.id ] = _.time();
+			}
 			else
 				if ( user.id in idleTime )
 					delete idleTime[ user.id ];
@@ -59,11 +61,12 @@ commands.register( {
 		var timestamp = 0;
 		if ( target.id in lastSeen )
 			timestamp = lastSeen[ target.id ];
-		who += _.fmt( 'last seen %s```', moment.unix( timestamp ).fromNow() );
+		who += _.fmt( 'last seen %s', moment.unix( timestamp ).fromNow() );
 		
 		if ( target.id in idleTime )
-			who += _.fmt( 'went idle %s```', moment.unix( idleTime[ target.id ] ).fromNow() );
+			who += _.fmt( '\nwent idle %s', moment.unix( idleTime[ target.id ] ).fromNow() );
 		
+		who += '```';		
 		msg.channel.sendMessage( who );
 	}});
 
