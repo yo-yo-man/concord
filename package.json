@@ -13,6 +13,6 @@
 			"respawn": "*",
 			"moment": "*",
 			"moment-duration-format": "*",
-			"ytdl-core": "*"
+			"youtube-dl": "*"
 		}
 }

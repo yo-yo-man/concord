@@ -5,7 +5,7 @@ var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 
-var ytdl = require( 'ytdl-core' );
+var ydl = require( 'youtube-dl' );
 var moment = require( 'moment' );
 require( 'moment-duration-format' );
 
@@ -72,12 +72,12 @@ function rotate_queue( id )
 			source: song.streamurl,
 			format: 'opus',
 			//frameDuration: 60,
-			inputArgs: [ '-ss', '00:09:30' ],
+			//inputArgs: [ '-ss', '00:09:30' ],
 			outputArgs: [ '-af', 'volume=0.3' ]
 		});
 		
 	if ( !encoder )
-		return console.log( 'Voice connection is disposed' );
+		return console.log( 'voice connection is disposed' );
 	
 	encoder.once( 'end', () => console.log( 'stream end' ) );
 
@@ -97,23 +97,34 @@ function queryRemote( msg, url )
 					return reject( _.fmt( 'youtube error: `%s`', err ) );
 				
 				var title = info.title;
-				var length = info.length_seconds;
 				
-				var length_pretty = '';
-				if ( length )
-					length_pretty = moment.duration( length*1000 ).format( 'h:mm:ss' );
-				
-				var max_length = settings.get( 'audio', 'max_length', 62 );
-				if ( length && length > max_length * 60 )
+				var length = '??:??';
+				if ( info.duration )
 				{
-					var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
-					return reject( _.fmt( 'song exceeds max length: %s > %s', length_pretty, maxlen ) );
+					var length = info.duration;
+					
+					var split = length.split( /:/g );
+					if ( split.length == 1 )
+						split.unshift( '00' );
+					if ( split.length == 2 )
+						split.unshift( '00' );
+					var durstr = _.fmt( '%s:%s:%s', _.pad( split[0], 2 ), _.pad( split[1], 2 ), _.pad( split[2], 2 ) )
+					var len_seconds = moment.duration( durstr ).format( 'ss' );
+					
+					var max_length = settings.get( 'audio', 'max_length', 62 );
+					if ( len_seconds > max_length * 60 )
+					{
+						var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
+						return reject( _.fmt( 'song exceeds max length: %s > %s', length, maxlen ) );
+					}
 				}
 				
-				var formats = info.formats.filter( f => f.container === 'webm' ).sort( (a, b) => b.audioBitrate - a.audioBitrate );
-				var bestaudio = formats.find( f => f.audioBitrate > 0 && !f.bitrate ) || formats.find( f => f.audioBitrate > 0 );
-				if ( !bestaudio )
-					return reject( 'could not find suitable audio format' );
+				var streamurl = info.formats[0].url;
+				if ( info.formats[0].abr )
+				{
+					var formats = info.formats.sort( (a, b) => b.abr - a.abr );
+					streamurl = formats[0].url;
+				}
 				
 				var seek = false;
 				if ( url.indexOf( 't=' ) != -1 )
@@ -122,18 +133,18 @@ function queryRemote( msg, url )
 				var id = msg.guild.id;
 				if ( !sessions[ id ].queue )
 					sessions[ id ].queue = [];
-				sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: bestaudio.url } );
+				sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl } );
 				
 				if ( sessions[ id ].queue.length == 1 )
 				{
-					resolve( _.fmt( '%s started playing %s [%s]', msg.author.username, title, length_pretty ) );
+					resolve( _.fmt( '%s started playing %s [%s]', msg.author.username, title, length ) );
 					rotate_queue( id );
 				}
 				else
-					resolve( _.fmt( '%s queued %s [%s]', msg.author.username, title, length_pretty ) );
+					resolve( _.fmt( '%s queued %s [%s]', msg.author.username, title, length ) );
 			}
 			
-			ytdl.getInfo( url, parseInfo );
+			ydl.getInfo( url, [], parseInfo );
 		});
 		
 	return promise;
