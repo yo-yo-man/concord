@@ -5,6 +5,9 @@ var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 
+var fs = require( 'fs' );
+var path = require( 'path' );
+
 var ydl = require( 'youtube-dl' );
 var moment = require( 'moment' );
 require( 'moment-duration-format' );
@@ -162,7 +165,7 @@ function start_player( id, forceseek )
 	encoderStream.on( 'timestamp', time => sess.time = sess.starttime + time );
 }
 
-function queryRemote( msg, url )
+function queryRemote( msg, url, returnInfo )
 {
 	var promise = new Promise( function( resolve, reject )
 		{
@@ -213,20 +216,21 @@ function queryRemote( msg, url )
 						if ( url.indexOf( 't=' ) != -1 )
 							seek = parse_seek( _.matches( /t=(.*)/g, url )[0] );
 						
-						var id = msg.guild.id;
-						if ( !sessions[ id ].queue )
-							sessions[ id ].queue = [];
-						
-						var queue_empty = sessions[ id ].queue.length == 0;
-						sessions[ id ].queue.push( { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl, length_seconds: length_seconds } );
-						
 						tempMsg.delete();
+						var songInfo = { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl, length_seconds: length_seconds };
+						if ( returnInfo )
+							return resolve( songInfo );
+						
+						var id = msg.guild.id;
+						var queue_empty = sessions[ id ].queue.length == 0;
+						sessions[ id ].queue.push( songInfo );
+						
 						if ( queue_empty )
 						{
 							resolve( _.fmt( '`%s` started playing `%s [%s]`', msg.author.username, title, length ) );
 							start_player( id );
 						}
-						else // TO DO: force play (admin)
+						else
 							resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
 					}
 				
@@ -237,6 +241,44 @@ function queryRemote( msg, url )
 	return promise;
 }
 
+function is_accepted_url( link )
+{
+	var acceptedURLs = settings.get( 'audio', 'accepted_urls',
+		[
+			"(https?\\:\\/\\/)?(www\\.)?(youtube\\.com|youtu\\.be)\\/.*",
+			"(https?\\:\\/\\/)?(www\\.)?soundcloud.com\\/.*",
+			"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/.*",
+			"(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*",
+			"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*",
+			".*\\.mp3",
+			".*\\.ogg",
+			".*\\.wav",
+			".*\\.flac",
+			".*\\.m4a",
+			".*\\.aac",
+			".*\\.webm",
+			".*\\.mp4"
+		]);
+	
+	var found = false;
+	for ( var i in acceptedURLs )
+		if ( link.match( acceptedURLs[i] ) )
+			found = true;
+			
+	return found;
+}
+
+function create_session( conn, msg )
+{	
+	var channel = msg.member.getVoiceChannel().id;
+	var guild = msg.guild.id;
+	
+	sessions[ guild ] = { conn: conn.voiceConnection, channel: channel };
+	sessions[ guild ].queue = [];
+	
+	restoreGuildSettings( guild );
+}
+
 commands.register( {
 	category: 'audio',
 	aliases: [ 'play', 'p' ],
@@ -244,39 +286,13 @@ commands.register( {
 	args: 'url',
 	callback: ( client, msg, args ) =>
 	{
-		var acceptedURLs = settings.get( 'audio', 'accepted_urls',
-			[
-				"(https?\\:\\/\\/)?(www\\.)?(youtube\\.com|youtu\\.be)\\/.*",
-				"(https?\\:\\/\\/)?(www\\.)?soundcloud.com\\/.*",
-				"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/.*",
-				"(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*",
-				"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*",
-				".*\\.mp3",
-				".*\\.ogg",
-				".*\\.wav",
-				".*\\.flac",
-				".*\\.m4a",
-				".*\\.aac",
-				".*\\.webm",
-				".*\\.mp4"
-			]);
-		
-		var found = false;
-		for ( var i in acceptedURLs )
-			if ( args.match( acceptedURLs[i] ) )
-				found = true;
-				
-		if ( !found )
+		if ( !is_accepted_url( args ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', args ) );
 		
 		join_channel( msg ).then( res =>
 			{
 				if ( res.isnew )
-				{
-					var channel = msg.member.getVoiceChannel();
-					sessions[ msg.guild.id ] = { conn: res.conn.voiceConnection, channel: channel.id };
-					restoreGuildSettings( msg.guild.id );
-				}
+					create_session( res.conn, msg );
 				
 				queryRemote( msg, args ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( s ) );
 			})
@@ -403,9 +419,9 @@ commands.register( {
 				return msg.channel.sendMessage( 'nothing is currently playing' );
 			
 			var by_user = client.Users.get( song.queuedby );
-			if ( !by_user ) by_user = '<unknown user>';
+			if ( !by_user ) by_user = '<unknown>';
 				else by_user = by_user.username;
-			msg.channel.sendMessage( _.fmt( 'now playing: `%s [%s]` (queued by `%s`)', song.title, song.length, by_user ) );
+			msg.channel.sendMessage( _.fmt( 'now playing: `%s [%s] (%s)`', song.title, song.length, by_user ) );
 		}
 		else
 			msg.channel.sendMessage( 'nothing is currently playing' );
@@ -433,9 +449,9 @@ commands.register( {
 				var song = queue[i];
 				
 				var by_user = client.Users.get( song.queuedby );
-				if ( !by_user ) by_user = '<unknown user>';
+				if ( !by_user ) by_user = '<unknown>';
 					else by_user = by_user.username;
-				res += msg.channel.sendMessage( _.fmt( '%s [%s] (queued by %s)\n', song.title, song.length, by_user ) );
+				res += _.fmt( '%s. %s [%s] (%s)\n', parseInt(i)+1, song.title, song.length, by_user );
 			}
 			
 			msg.channel.sendMessage( '```\n' + res + '\n```' );
@@ -517,6 +533,197 @@ commands.register( {
 			else
 				msg.channel.sendMessage( 'turned off looping, queue will proceed as normal' )
 		}
+	}});
+
+
+var playlistDir = '../playlists';
+function sanitize_filename( str )
+{
+	return str.replace( /[^a-zA-Z0-9-_]/g, '_' ).trim();
+}
+	
+commands.register( {
+	category: 'audio playlists',
+	aliases: [ 'addtoplaylist', 'pladd' ],
+	help: 'add a song to the end of a playlist',
+	flags: [ 'admin_only' ],
+	args: 'name url',
+	callback: ( client, msg, args ) =>
+	{
+		var split = args.split( ' ' );
+		var name = split[0];
+		var link = split[1];
+		
+		var name = sanitize_filename( name );
+		if ( !name )
+			return msg.channel.sendMessage( 'please enter a valid playlist name' );
+		
+		if ( !is_accepted_url( link ) )
+			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', link ) );
+		
+		var filePath = path.join( __dirname, playlistDir, name + '.json' );
+		
+		var data = [];
+		if ( fs.existsSync( filePath ) )
+		{
+			var playlist = fs.readFileSync( filePath, 'utf8' );
+			if ( !_.isjson( playlist ) )
+				return msg.channel.sendMessage( 'error in `%s`, please delete', name );
+			data = JSON.parse( playlist );
+		}
+		
+		queryRemote( msg, link, true ).then( info =>
+			{
+				data.push( info );
+				fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' );
+				msg.channel.sendMessage( _.fmt( '`%s` added `%s [%s]` to `%s`', msg.author.username, info.title, info.length, name ) );
+			})
+			.catch( s => msg.channel.sendMessage( s ) );
+	}});
+
+commands.register( {
+	category: 'audio playlists',
+	aliases: [ 'loadplaylist', 'lp' ],
+	help: 'load a playlist into the queue',
+	args: 'name',
+	callback: ( client, msg, args ) =>
+	{		
+		var name = sanitize_filename( args );
+		if ( !name )
+			return msg.channel.sendMessage( 'please enter a valid playlist name' );
+		
+		var filePath = path.join( __dirname, playlistDir, name + '.json' );
+		if ( !fs.existsSync( filePath ) )
+			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) );
+		
+		var playlist = fs.readFileSync( filePath, 'utf8' );
+		if ( !_.isjson( playlist ) )
+			return msg.channel.sendMessage( 'error in `%s`, please delete', name );
+		var data = JSON.parse( playlist );
+		
+		join_channel( msg ).then( res =>
+			{
+				if ( res.isnew )
+					create_session( res.conn, msg );
+				
+				var id = msg.guild.id;
+				var queue_empty = sessions[ id ].queue.length == 0;
+				
+				
+				for ( var i in data )
+				{
+					var song = data[i];
+					sessions[ id ].queue.push( song );
+				}
+				
+				if ( queue_empty )
+				{
+					msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`', msg.author.username, name, data.length ) );
+					start_player( id );
+				}
+				else
+					msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`', msg.author.username, name, data.length ) );
+			})
+			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ); } );
+	}});
+
+commands.register( {
+	category: 'audio playlists',
+	aliases: [ 'playlists', 'playlist', 'list' ],
+	help: 'list playlists, or songs in a playlist',
+	args: '[name]',
+	callback: ( client, msg, args ) =>
+	{
+		var list = '';
+		
+		var normalizedPath = path.join( __dirname, playlistDir );
+		if ( !args )
+		{
+			fs.readdirSync( normalizedPath ).forEach( function( file )
+				{
+					if ( !file.endsWith( '.json' ) ) return;
+					list += file.replace( '.json', '' ) + '\n';
+				});
+			list = '--- playlists ---\n' + list;
+		}
+		else
+		{
+			var name = sanitize_filename( args );
+			if ( !name )
+				return msg.channel.sendMessage( 'please enter a valid playlist name' );
+			
+			var filename = name + '.json';
+			var filePath = path.join( __dirname, playlistDir, filename );
+			
+			var playlist = fs.readFileSync( filePath, 'utf8' );
+			if ( !_.isjson( playlist ) )
+				return msg.channel.sendMessage( 'error in `%s`, please delete', name );
+			
+			var data = JSON.parse( playlist );
+			for ( var i in data )
+			{
+				var song = data[i];
+				
+				var by_user = client.Users.get( song.queuedby );
+				if ( !by_user ) by_user = '<unknown>';
+					else by_user = by_user.username;
+					
+				list +=_.fmt( '%s. %s [%s] (%s)\n', parseInt(i)+1, song.title, song.length, by_user );
+			}
+		}
+		
+		msg.channel.sendMessage( '```\n' + list + '\n```' );
+	}});
+
+commands.register( {
+	category: 'audio playlists',
+	aliases: [ 'copyplaylist' ],
+	help: 'copy a playlist to a different name',
+	flags: [ 'admin_only' ],
+	args: 'old new',
+	callback: ( client, msg, args ) =>
+	{
+		var split = args.split( ' ' );
+		var oldName = split[0];
+		var newName = split[1];
+		
+		oldName = sanitize_filename( oldName );		
+		newName = sanitize_filename( newName );
+		if ( !oldName || !newName )
+			return msg.channel.sendMessage( 'please enter valid playlist names' );
+		
+		var oldPath = path.join( __dirname, playlistDir, oldName + '.json' );
+		var newPath = path.join( __dirname, playlistDir, newName + '.json' );
+		
+		if ( !fs.existsSync( oldPath ) )
+			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', oldName ) );
+		
+		if ( fs.existsSync( newPath ) )
+			return msg.channel.sendMessage( _.fmt( '`%s` already exists', newName ) );
+		
+		fs.createReadStream( oldPath ).pipe( fs.createWriteStream( newPath ) );
+		msg.channel.sendMessage( _.fmt( '`%s` has been copied to `%s`', oldName, newName ) );
+	}});
+
+commands.register( {
+	category: 'audio playlists',
+	aliases: [ 'deleteplaylist' ],
+	help: 'delete a playlist',
+	flags: [ 'admin_only' ],
+	args: 'name',
+	callback: ( client, msg, args ) =>
+	{
+		var name = sanitize_filename( args );
+		if ( !name )
+			return msg.channel.sendMessage( 'please enter a valid playlist name' );
+		
+		var filePath = path.join( __dirname, playlistDir, name + '.json' );
+		if ( !fs.existsSync( filePath ) )
+			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) );
+		
+		// TO DO: check for owner || admin?
+		fs.unlinkSync( filePath );
+		msg.channel.sendMessage( _.fmt( '`%s` deleted', name ) );
 	}});
 
 var client = null;
