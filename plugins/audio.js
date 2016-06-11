@@ -361,9 +361,9 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'volume', 'v' ],
-	help: 'change audio volume',
+	help: 'set volume between 0 and 1',
 	flags: [ 'admin_only' ],
-	args: 'number0-1',
+	args: 'number',
 	callback: ( client, msg, args ) =>
 	{		
 		if ( isNaN( args ) )
@@ -501,7 +501,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'loop' ],
-	help: 'toggle looping',
+	help: 'toggle looping of the current song',
 	callback: ( client, msg, args ) =>
 	{		
 		var id = msg.guild.id;		

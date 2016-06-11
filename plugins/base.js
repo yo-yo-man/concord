@@ -127,7 +127,7 @@ commands.register( {
 commands.register( {
 	category: 'base',
 	aliases: [ 'help' ],
-	help: 'display help menu (optionally for a specific command)',
+	help: 'display help menu, optionally for a specific command',
 	args: '[command]',
 	callback: ( client, msg, args ) =>
 	{
