@@ -561,7 +561,7 @@ commands.register( {
 		if ( !is_accepted_url( link ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', link ) );
 		
-		var filePath = path.join( __dirname, playlistDir, name + '.json' );
+		var filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' );
 		
 		var data = [];
 		if ( fs.existsSync( filePath ) )
@@ -592,7 +592,7 @@ commands.register( {
 		if ( !name )
 			return msg.channel.sendMessage( 'please enter a valid playlist name' );
 		
-		var filePath = path.join( __dirname, playlistDir, name + '.json' );
+		var filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' );
 		if ( !fs.existsSync( filePath ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) );
 		
@@ -642,7 +642,8 @@ commands.register( {
 			fs.readdirSync( normalizedPath ).forEach( function( file )
 				{
 					if ( !file.endsWith( '.json' ) ) return;
-					list += file.replace( '.json', '' ) + '\n';
+					if ( !file.startsWith( msg.guild.id + '_' ) ) return;
+					list += file.replace( '.json', '' ).replace( msg.guild.id + '_', '' ) + '\n';
 				});
 			list = '--- playlists ---\n' + list;
 		}
@@ -652,7 +653,7 @@ commands.register( {
 			if ( !name )
 				return msg.channel.sendMessage( 'please enter a valid playlist name' );
 			
-			var filename = name + '.json';
+			var filename = msg.guild.id + '_' + name + '.json';
 			var filePath = path.join( __dirname, playlistDir, filename );
 			
 			var playlist = fs.readFileSync( filePath, 'utf8' );
@@ -692,8 +693,8 @@ commands.register( {
 		if ( !oldName || !newName )
 			return msg.channel.sendMessage( 'please enter valid playlist names' );
 		
-		var oldPath = path.join( __dirname, playlistDir, oldName + '.json' );
-		var newPath = path.join( __dirname, playlistDir, newName + '.json' );
+		var oldPath = path.join( __dirname, playlistDir, msg.guild.id + '_' + oldName + '.json' );
+		var newPath = path.join( __dirname, playlistDir, msg.guild.id + '_' + newName + '.json' );
 		
 		if ( !fs.existsSync( oldPath ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', oldName ) );
@@ -717,11 +718,10 @@ commands.register( {
 		if ( !name )
 			return msg.channel.sendMessage( 'please enter a valid playlist name' );
 		
-		var filePath = path.join( __dirname, playlistDir, name + '.json' );
+		var filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' );
 		if ( !fs.existsSync( filePath ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) );
 		
-		// TO DO: check for owner || admin?
 		fs.unlinkSync( filePath );
 		msg.channel.sendMessage( _.fmt( '`%s` deleted', name ) );
 	}});
