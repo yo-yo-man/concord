@@ -10,6 +10,24 @@ var moment = require( 'moment' );
 require( 'moment-duration-format' );
 
 var sessions = {};
+var guildSettings = {};
+
+function restoreGuildSettings( id )
+{
+	if ( !(id in guildSettings) )
+		return;
+	
+	sessions[id].volume = guildSettings[id]['volume'];
+}
+
+function setGuildSetting( id, param, val )
+{
+	if ( !(id in guildSettings) )
+		guildSettings[id] = {};
+	
+	guildSettings[id][param] = val;
+	settings.set( 'audio', 'guild_settings', guildSettings );
+}
 
 function join( msg )
 {
@@ -216,6 +234,7 @@ commands.register( {
 				{
 					var channel = msg.member.getVoiceChannel();
 					sessions[ msg.guild.id ] = { conn: res.conn.voiceConnection, channel: channel.id };
+					restoreGuildSettings( msg.guild.id );
 				}
 				
 				queryRemote( msg, args ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( s ) );
@@ -238,7 +257,7 @@ commands.register( {
 		if ( id in sessions )
 		{
 			var sess = sessions[id];
-			if ( !sess.playing ) return msg.channel.sendMessage( 'not playing anything to stop' );
+			if ( !sess.playing ) return;
 			
 			sess.conn.channel.leave();
 			delete sessions[id];
@@ -256,13 +275,18 @@ commands.register( {
 		if ( isNaN( args ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', args ) );
 		
+		var vol = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
+		msg.channel.sendMessage( _.fmt( '%s changed volume to `%s`', msg.author.username, vol ) );
+		
 		var id = msg.guild.id;
+		setGuildSetting( id, 'volume', vol );
+		
 		if ( id in sessions )
 		{
 			var sess = sessions[id];
 			if ( !sess.playing ) return;
 			
-			sess.volume = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
+			sess.volume = vol;
 			sess.encoder.stop();
 			rotate_queue( id, sess.time );
 		}
@@ -272,5 +296,6 @@ var client = null;
 module.exports.setup = function( _cl )
 	{
 		client = _cl;
+		guildSettings = settings.get( 'audio', 'guild_settings', {} );
 		console.log( 'audio plugin loaded' );
 	};
