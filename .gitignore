@@ -1,6 +1,4 @@
 node_modules
-cache/*
-!cache/*.empty
 settings/*
 !settings/*.empty
 playlists/*

@@ -86,6 +86,7 @@ function rotate_queue( id, forceseek )
 		return console.log( 'reached end of queue' ); // TO DO: disconnect timeout
 	
 	console.log( 'playing ' + song.url );
+	module.exports.songsSinceBoot++;
 	
 	sess.starttime = 0;
 	var seek = forceseek || song.seek;	
@@ -299,3 +300,6 @@ module.exports.setup = function( _cl )
 		guildSettings = settings.get( 'audio', 'guild_settings', {} );
 		console.log( 'audio plugin loaded' );
 	};
+	
+module.exports.songsSinceBoot = 0;
+module.exports.sessions = sessions;

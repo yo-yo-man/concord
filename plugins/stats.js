@@ -95,11 +95,12 @@ commands.register( {
 		stats += _.fmt( 'channels listening: %s / %s\n', listening, total );
 		stats += _.fmt( 'users seen online: %s / %s\n', Object.keys( lastSeen ).length, client.Users.length );
 		
-		// TO DO: voice
-		stats += _.fmt( 'songs played since boot: %s\n', 0 );
-		stats += _.fmt( 'active music sessions: %s\n', 0 );
-		stats += _.fmt( 'music cache size: %smb\n', 0 );
-		stats += _.fmt( 'music cache count: %s\n', 0 );
+		try
+		{
+			var audio = require( './audio.js' );
+			stats += _.fmt( 'songs played since boot: %s\n', audio.songsSinceBoot );
+			stats += _.fmt( 'active music sessions: %s\n', Object.keys( audio.sessions ).length );
+		} catch(e) {};
 		
 		msg.channel.sendMessage( '```' + stats + '```' );
 	}});
