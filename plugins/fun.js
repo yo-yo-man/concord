@@ -42,7 +42,7 @@ var roulette_chamber = 0;
 var roulette_bullet = _.rand( 1, 6 );
 commands.register( {
 	category: 'fun',
-	aliases: [ 'roulette' ],
+	aliases: [ 'roulette', 'no_pm' ],
 	help: 'clench your ass cheeks and pull the trigger',
 	callback: ( client, msg, args ) =>
 	{

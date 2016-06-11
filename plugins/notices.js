@@ -16,7 +16,7 @@ commands.register( {
 	category: 'notices',
 	aliases: [ 'notices' ],
 	help: 'toggle notice output in this text channel',
-	flags: [ 'admin_only' ],
+	flags: [ 'admin_only', 'no_pm' ],
 	args: 'on|off',
 	callback: ( client, msg, args ) =>
 	{

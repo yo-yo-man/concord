@@ -283,6 +283,7 @@ commands.register( {
 	category: 'audio',
 	aliases: [ 'play', 'p' ],
 	help: 'play audio from a url',
+	flags: [ 'no_pm' ],
 	args: 'url',
 	callback: ( client, msg, args ) =>
 	{
@@ -302,8 +303,8 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'stop', 's' ],
-	help: 'stop audio',
-	flags: [ 'admin_only' ],
+	help: 'stop the currently playing audio',
+	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
 	{
 		var id = msg.guild.id;
@@ -320,6 +321,7 @@ commands.register( {
 	category: 'audio',
 	aliases: [ 'skip' ],
 	help: 'vote to skip song',
+	flags: [ 'no_pm' ],
 	args: '[force]',
 	callback: ( client, msg, args ) =>
 	{
@@ -378,7 +380,7 @@ commands.register( {
 	category: 'audio',
 	aliases: [ 'volume', 'v' ],
 	help: 'set volume between 0 and 1',
-	flags: [ 'admin_only' ],
+	flags: [ 'admin_only', 'no_pm' ],
 	args: 'number',
 	callback: ( client, msg, args ) =>
 	{		
@@ -463,6 +465,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'pause' ],
+	flags: [ 'admin_only', 'no_pm' ],
 	help: 'pauses the current song',
 	callback: ( client, msg, args ) =>
 	{
@@ -481,6 +484,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'resume' ],
+	flags: [ 'admin_only', 'no_pm' ],
 	help: 'resumes the current song if paused',
 	callback: ( client, msg, args ) =>
 	{
@@ -500,6 +504,7 @@ commands.register( {
 	category: 'audio',
 	aliases: [ 'seek' ],
 	help: 'seek to a specific time',
+	flags: [ 'admin_only', 'no_pm' ],
 	args: 'time',
 	callback: ( client, msg, args ) =>
 	{		
@@ -518,6 +523,7 @@ commands.register( {
 	category: 'audio',
 	aliases: [ 'loop' ],
 	help: 'toggle looping of the current song',
+	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
 	{		
 		var id = msg.guild.id;		
@@ -585,6 +591,7 @@ commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'loadplaylist', 'lp' ],
 	help: 'load a playlist into the queue',
+	flags: [ 'no_pm' ],
 	args: 'name',
 	callback: ( client, msg, args ) =>
 	{		
