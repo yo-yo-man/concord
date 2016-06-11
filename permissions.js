@@ -28,20 +28,33 @@ permissions.hasGlobalRole = function( user, roleName )
 			} );
 		return found;
 	};
+	
+permissions.hasAdmin = function( user )
+	{
+		var adminrole = settings.get( 'config', 'admin_role', 'admin' );
+		if ( command.flags.indexOf( 'admin_only' ) != -1 &&
+			( permissions.hasGlobalRole( user, adminrole ) || user.id == ownerid ) )
+			return true;
+		return false;
+	};
+	
+permissions.isOwner = function( user )
+	{
+		var ownerid = settings.get( 'config', 'owner_id', '' );
+		if ( command.flags.indexOf( 'owner_only' ) != -1 && user.id == ownerid )
+			return true;
+		return false;
+	};
 
 permissions.userHasCommand = function( user, command )
 	{
 		if ( !command.flags )
 			return true;
 		
-		var ownerid = settings.get( 'config', 'owner_id', '' );
-		var adminrole = settings.get( 'config', 'admin_role', 'admin' );
-		
-		if ( command.flags.indexOf( 'owner_only' ) != -1 && user.id == ownerid )
+		if ( isOwner( user ) )
 			return true;
 		
-		if ( command.flags.indexOf( 'admin_only' ) != -1 &&
-			( permissions.hasGlobalRole( user, adminrole ) || user.id == ownerid ) )
+		if ( hasAdmin( user ) )
 			return true;
 		
 		return false;
