@@ -407,6 +407,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'title', 'song', 'nowplaying' ],
+	flags: [ 'no_pm' ],
 	help: "info about what's currently playing",
 	callback: ( client, msg, args ) =>
 	{
@@ -432,6 +433,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'queue', 'q' ],
+	flags: [ 'no_pm' ],
 	help: 'view the current audio queue',
 	callback: ( client, msg, args ) =>
 	{
@@ -552,7 +554,7 @@ commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'addtoplaylist', 'pladd' ],
 	help: 'add a song to a playlist',
-	flags: [ 'admin_only' ],
+	flags: [ 'admin_only', 'no_pm' ],
 	args: 'name url',
 	callback: ( client, msg, args ) =>
 	{
@@ -638,6 +640,7 @@ commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'playlists', 'playlist', 'list' ],
 	help: 'list playlists, or songs in a playlist',
+	flags: [ 'no_pm' ],
 	args: '[name]',
 	callback: ( client, msg, args ) =>
 	{
@@ -687,7 +690,7 @@ commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'copyplaylist' ],
 	help: 'copy a playlist to a different name',
-	flags: [ 'admin_only' ],
+	flags: [ 'admin_only', 'no_pm' ],
 	args: 'old new',
 	callback: ( client, msg, args ) =>
 	{
@@ -717,7 +720,7 @@ commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'deleteplaylist' ],
 	help: 'delete a playlist',
-	flags: [ 'admin_only' ],
+	flags: [ 'admin_only', 'no_pm' ],
 	args: 'name',
 	callback: ( client, msg, args ) =>
 	{
