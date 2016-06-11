@@ -118,9 +118,12 @@ function queryRemote( msg, url )
 						split.unshift( '00' );
 					if ( split.length == 2 )
 						split.unshift( '00' );
-					var durstr = _.fmt( '%s:%s:%s', _.pad( split[0], 2 ), _.pad( split[1], 2 ), _.pad( split[2], 2 ) )
-					var length_seconds = moment.duration( durstr ).format( 'ss' );
-					length = moment.duration( length_seconds*1000 ).format( 'h:mm:ss' );
+					
+					length = _.fmt( '%s:%s:%s', _.pad( split[0], 2 ), _.pad( split[1], 2 ), _.pad( split[2], 2 ) )
+					var length_seconds = moment.duration( length ).format( 'ss' );
+					
+					if ( length.substring( 0, 3 ) == '00:' )
+						length = length.substring( 3 )
 					
 					var max_length = settings.get( 'audio', 'max_length', 62 );
 					if ( length_seconds > max_length * 60 )
