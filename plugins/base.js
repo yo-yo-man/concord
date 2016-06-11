@@ -6,6 +6,7 @@ var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 
 commands.register( {
+	category: 'base',
 	aliases: [ 'eval' ],
 	help: 'eval some code',
 	flags: [ 'owner_only' ],
@@ -34,6 +35,7 @@ commands.register( {
 	}});
 
 commands.register( {
+	category: 'base',
 	aliases: [ 'setting' ],
 	help: 'view or change settings',
 	flags: [ 'owner_only' ],
@@ -57,6 +59,7 @@ commands.register( {
 	}});
 
 commands.register( {
+	category: 'base',
 	aliases: [ 'clear' ],
 	help: 'clear messages',
 	flags: [ 'admin_only', 'no_pm' ],
@@ -122,6 +125,7 @@ commands.register( {
 	}});
 
 commands.register( {
+	category: 'base',
 	aliases: [ 'help' ],
 	help: 'display help menu (optionally for a specific command)',
 	args: '[command]',
@@ -149,12 +153,19 @@ commands.register( {
 		}
 		else
 		{
+			var lastCat = '';
 			for ( var i in commands.commandList )
 			{
 				var cmd = commands.commandList[i];
 				
 				if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
 					continue;
+				
+				if ( cmd.category != lastCat )
+				{
+					lastCat = cmd.category;
+					help += _.fmt( '\n--- %s ---\n', cmd.category );
+				}
 				
 				help += commands.generateHelp( cmd );
 				

@@ -30,6 +30,7 @@ function updateLastSeen()
 }
 
 commands.register( {
+	category: 'stats',
 	aliases: [ 'who', 'lastseen' ],
 	help: 'display user info and when they were last seen',
 	args: 'user',
@@ -68,6 +69,7 @@ commands.register( {
 
 var startTime = 0;
 commands.register( {
+	category: 'stats',
 	aliases: [ 'uptime', 'stats' ],
 	help: 'bot uptime and statistics',
 	callback: ( client, msg, args ) =>

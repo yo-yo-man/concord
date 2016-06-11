@@ -13,6 +13,7 @@ function initGuilds( _cl )
 }
 
 commands.register( {
+	category: 'notices',
 	aliases: [ 'notices' ],
 	help: 'toggle notice output in this text channel',
 	flags: [ 'admin_only' ],

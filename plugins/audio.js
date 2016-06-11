@@ -177,6 +177,7 @@ function queryRemote( msg, url )
 }
 
 commands.register( {
+	category: 'audio',
 	aliases: [ 'play', 'p' ],
 	help: 'play audio from a url',
 	args: 'url',
@@ -221,6 +222,7 @@ commands.register( {
 	}});
 
 commands.register( {
+	category: 'audio',
 	aliases: [ 'stop', 's' ],
 	help: 'stop audio',
 	flags: [ 'admin_only' ],
@@ -240,10 +242,11 @@ commands.register( {
 	}});
 
 commands.register( {
+	category: 'audio',
 	aliases: [ 'volume', 'v' ],
 	help: 'change audio volume',
 	flags: [ 'admin_only' ],
-	args: 'number=0-1',
+	args: 'number_0-1',
 	callback: ( client, msg, args ) =>
 	{
 		var channel = msg.member.getVoiceChannel();
