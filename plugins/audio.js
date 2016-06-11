@@ -72,11 +72,18 @@ function leave_channel( id )
 
 function parse_seek( str )
 {
-	var time = str.match( /(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?/g );
-	var hours = parseInt( time[0] || 0 ) * 60 * 60;
-	var minutes = parseInt( time[1] || 0 ) * 60;
-	var seconds = parseInt( time[2] || 0 );
-	return hours + minutes + seconds;
+	var time = 0;
+	if ( str.match( /(\d+)h/g ) )
+		time += parseInt( _.matches( /(\d+)h/g, str )[0] ) * 60 * 60;
+	if ( str.match( /(\d+)m/g ) )
+		time += parseInt( _.matches( /(\d+)m/g, str )[0] ) * 60;
+	if ( str.match( /(\d+)s/g ) )
+		time += parseInt( _.matches( /(\d+)s/g, str )[0] );
+	
+	if ( time == 0 && str.length != 0 )
+		time = parseInt( str );
+	
+	return time;
 }
 
 function rotate_queue( id )
@@ -174,7 +181,7 @@ function queryRemote( msg, url )
 						var length = '??:??';
 						if ( info.duration )
 						{					
-							var split = info.duration.split( /:/g );
+							var split = info.duration.split( ':' );
 							if ( split.length == 1 )
 								split.unshift( '00' );
 							if ( split.length == 2 )
@@ -204,7 +211,7 @@ function queryRemote( msg, url )
 						
 						var seek = false;
 						if ( url.indexOf( 't=' ) != -1 )
-							seek = parse_seek( url.match( /t=(.*)/g )[0] );
+							seek = parse_seek( _.matches( /t=(.*)/g, url )[0] );
 						
 						var id = msg.guild.id;
 						if ( !sessions[ id ].queue )
@@ -487,7 +494,7 @@ commands.register( {
 			if ( !sess.playing ) return;
 			
 			sess.encoder.stop();
-			start_player( id, parse_seek( args ) );
+			start_player( id, args );
 		}
 	}});
 

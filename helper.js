@@ -15,5 +15,12 @@ _.pad = function( num, size )
 	    	s = "0" + s;
 	    return s;
 	};
+_.matches = function( reg, str )
+	{
+		var matches, output = [];
+		while ( matches = reg.exec( str ) )
+			output.push( matches[1] );
+		return output;
+	};
 
 module.exports = _;

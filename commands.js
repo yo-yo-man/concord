@@ -101,8 +101,8 @@ function checkArgs( cmd, message )
 	if ( !cmd.args )
 		return true;
 	
-	var msg_args = message.split( / / );
-	var cmd_args = cmd.args.split( / / );
+	var msg_args = message.split( ' ' );
+	var cmd_args = cmd.args.split( ' ' );
 	for ( var i in cmd_args )
 	{
 		var cmd_arg = cmd_args[i].trim();
@@ -113,7 +113,7 @@ function checkArgs( cmd, message )
 		
 		if ( cmd_arg.indexOf( '|' ) != -1 )
 		{
-			var accepted_args = cmd_arg.split( /\|/ );
+			var accepted_args = cmd_arg.split( '|' );
 			if ( accepted_args.indexOf( msg_arg ) == -1 )
 				return false;
 		}
