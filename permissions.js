@@ -32,8 +32,7 @@ permissions.hasGlobalRole = function( user, roleName )
 permissions.hasAdmin = function( user )
 	{
 		var adminrole = settings.get( 'config', 'admin_role', 'admin' );
-		if ( command.flags.indexOf( 'admin_only' ) != -1 &&
-			( permissions.hasGlobalRole( user, adminrole ) || user.id == ownerid ) )
+		if ( permissions.hasGlobalRole( user, adminrole ) || permissions.isOwner( user ) )
 			return true;
 		return false;
 	};
@@ -41,7 +40,7 @@ permissions.hasAdmin = function( user )
 permissions.isOwner = function( user )
 	{
 		var ownerid = settings.get( 'config', 'owner_id', '' );
-		if ( command.flags.indexOf( 'owner_only' ) != -1 && user.id == ownerid )
+		if ( user.id == ownerid )
 			return true;
 		return false;
 	};
@@ -51,10 +50,10 @@ permissions.userHasCommand = function( user, command )
 		if ( !command.flags )
 			return true;
 		
-		if ( isOwner( user ) )
+		if ( command.flags.indexOf( 'owner_only' ) != -1 && permissions.isOwner( user ) )
 			return true;
 		
-		if ( hasAdmin( user ) )
+		if ( command.flags.indexOf( 'admin_only' ) != -1 && permissions.hasAdmin( user ) )
 			return true;
 		
 		return false;
