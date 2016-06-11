@@ -16,7 +16,7 @@ commands.register( {
 	category: 'fun',
 	aliases: [ 'roll' ],
 	help: 'roll an X sided dice',
-	args: '[max=6]',
+	args: '[sides=6]',
 	callback: ( client, msg, args ) =>
 	{
 		var max = args || 6;
@@ -26,7 +26,7 @@ commands.register( {
 commands.register( {
 	category: 'fun',
 	aliases: [ 'flip' ],
-	help: 'flip a coin',
+	help: 'flip a coin, decide your fate',
 	callback: ( client, msg, args ) =>
 	{
 		msg.channel.sendMessage( '*flips a coin*' );
@@ -42,7 +42,8 @@ var roulette_chamber = 0;
 var roulette_bullet = _.rand( 1, 6 );
 commands.register( {
 	category: 'fun',
-	aliases: [ 'roulette', 'no_pm' ],
+	aliases: [ 'roulette' ],
+	flags: [ 'no_pm' ],
 	help: 'clench your ass cheeks and pull the trigger',
 	callback: ( client, msg, args ) =>
 	{
@@ -78,7 +79,7 @@ commands.register( {
 commands.register( {
 	category: 'fun',
 	aliases: [ 'joke' ],
-	help: 'provided by your dad',
+	help: 'provided by your dad, laughter not guaranteed',
 	callback: ( client, msg, args ) =>
 	{		
 		request( 'http://www.jokes2go.com/cgi-bin/includejoke.cgi?type=o', function( error, response, body )

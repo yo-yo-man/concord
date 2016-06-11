@@ -320,7 +320,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'skip' ],
-	help: 'vote to skip song',
+	help: 'vote to skip the current song',
 	flags: [ 'no_pm' ],
 	args: '[force]',
 	callback: ( client, msg, args ) =>
@@ -551,7 +551,7 @@ function sanitize_filename( str )
 commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'addtoplaylist', 'pladd' ],
-	help: 'add a song to the end of a playlist',
+	help: 'add a song to a playlist',
 	flags: [ 'admin_only' ],
 	args: 'name url',
 	callback: ( client, msg, args ) =>
