@@ -6,8 +6,26 @@ var fs = require( 'fs' );
 var settings = require( './settings.js' );
 var _ = require( './helper.js' );
 
+
 var client = new Discordie( { autoReconnect: true } );
-client.connect( { token: settings.get( 'config', 'login_token' ) } );
+
+var token = settings.get( 'config', 'login_token' );
+if ( !token )
+{
+	var config =
+		{
+			'login_token': '',
+			'admin_role': 'admin',
+			'owner_id': '',
+			'command_prefix': '!'
+		};
+	settings.save( 'config', config );
+	console.log( '\nBot has not been configured.\nPlease edit settings/config.json and restart.' );
+	process.exit( 8 );
+}
+else
+	client.connect( { token: token } );
+
 
 client.Dispatcher.on( 'GATEWAY_READY', e =>
 	{
@@ -20,7 +38,7 @@ client.Dispatcher.on( 'GATEWAY_READY', e =>
 		if ( fs.existsSync( './crash.log' ) )
 		{
 			var log = fs.readFileSync( './crash.log', 'utf8' );
-			var owner = client.Users.get( settings.get( 'config', 'owner_id' ) );
+			var owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) );
 			if ( owner )
 				owner.openDM().then( d => d.sendMessage( _.fmt( '```\n%s\n```', log ) ) );
 			else

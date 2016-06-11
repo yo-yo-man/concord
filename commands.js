@@ -16,7 +16,7 @@ commands.register = function( params )
 	
 commands.generateHelp = function( cmd )
 	{
-		var help = settings.get( 'config', 'command_prefix' );
+		var help = settings.get( 'config', 'command_prefix', '!' );
 		for ( var j in cmd.aliases )
 		{
 			help += cmd.aliases[j];
@@ -124,7 +124,7 @@ function checkArgs( cmd, message )
 	
 function onMessage( client, e )
 {
-	var prefix = settings.get( 'config', 'command_prefix' );
+	var prefix = settings.get( 'config', 'command_prefix', '!' );
 	
 	var content = e.message.content;
 	if ( !content.startsWith( prefix ) )

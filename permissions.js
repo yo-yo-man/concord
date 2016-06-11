@@ -34,8 +34,8 @@ permissions.userHasCommand = function( user, command )
 		if ( !command.flags )
 			return true;
 		
-		var ownerid = settings.get( 'config', 'owner_id' );
-		var adminrole = settings.get( 'config', 'admin_role' );
+		var ownerid = settings.get( 'config', 'owner_id', '' );
+		var adminrole = settings.get( 'config', 'admin_role', 'admin' );
 		
 		if ( command.flags.indexOf( 'owner_only' ) != -1 && user.id == ownerid )
 			return true;

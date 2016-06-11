@@ -7,7 +7,7 @@ var bot = respawn( ['node', 'bot.js'],
 	});
 
 var log = [];
-var logSize = 16;
+var logSize = 21;
 function logData( data )
 {
 	data = data.toString().replace( /\r/g, '' ).split( '\n' );
@@ -20,7 +20,7 @@ function logData( data )
 
 bot.on( 'spawn', function()
 	{
-		console.log( 'spawning bot process...' );
+		console.log( 'spawning bot process...\n' );
 	});
 
 bot.on( 'stdout', function( data )
@@ -37,7 +37,10 @@ bot.on( 'stderr', function( data )
 
 bot.on( 'exit', function( code )
 	{
-		console.log( 'process exited with code ' + code + ', restarting...' );
+		if ( code == 8 )
+			return process.exit( 0 );
+		
+		console.log( '\nprocess exited with code ' + code + ', restarting...' );
 		if ( code != 0 )
 			require('fs').writeFileSync( './crash.log', log.join('\n'), 'utf8' );
 		log = [];
