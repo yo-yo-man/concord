@@ -54,7 +54,7 @@ function parse_seek( str )
 	return hours + minutes + seconds;
 }
 
-function rotate_queue( id )
+function rotate_queue( id, forceseek )
 {
 	var sess = sessions[ id ];
 	if ( sess.playing )
@@ -65,13 +65,23 @@ function rotate_queue( id )
 	
 	var song = sess.queue[0];
 	if ( !song )
-		return console.log( 'reached end of queue' );
+		return console.log( 'reached end of queue' ); // TO DO: disconnect timeout
 	
 	console.log( 'playing ' + song.url );
 	
+	sess.starttime = 0;
+	var seek = forceseek || song.seek;	
 	var inputArgs = [];
-	if ( song.seek )
-		inputArgs = [ '-ss', song.seek ];
+	if ( seek )
+	{
+		sess.starttime = seek;
+		inputArgs = [ '-ss', seek ];
+	}
+	
+	var volume = sess.volume || settings.get( 'audio', 'volume_default', 0.5 );
+	
+	if ( sess.encoder )
+		delete sess.encoder;
 	
 	var encoder = sess.conn.createExternalEncoder(
 		{
@@ -80,7 +90,7 @@ function rotate_queue( id )
 			format: 'opus',
 			//frameDuration: 60,
 			inputArgs: inputArgs,
-			outputArgs: [ '-af', 'volume=0.3' ] // TO DO: volume
+			outputArgs: [ '-af', 'volume='+volume ]
 		});
 		
 	if ( !encoder )
@@ -96,7 +106,7 @@ function rotate_queue( id )
 	var encoderStream = encoder.play();
 	encoderStream.resetTimestamp();
 	encoderStream.removeAllListeners( 'timestamp' );
-	encoderStream.on( 'timestamp', time => sess.time = time );
+	encoderStream.on( 'timestamp', time => sess.time = sess.starttime + time );
 }
 
 function queryRemote( msg, url )
@@ -123,7 +133,7 @@ function queryRemote( msg, url )
 					var length_seconds = moment.duration( length ).format( 'ss' );
 					
 					if ( length.substring( 0, 3 ) == '00:' )
-						length = length.substring( 3 )
+						length = length.substring( 3 );
 					
 					var max_length = settings.get( 'audio', 'max_length', 62 );
 					if ( length_seconds > max_length * 60 )
@@ -167,12 +177,27 @@ function queryRemote( msg, url )
 }
 
 commands.register( {
-	aliases: [ 'test' ], // 'play', 'p', 
+	aliases: [ 'play', 'p' ],
 	help: 'play audio from a url',
 	args: 'url',
 	callback: ( client, msg, args ) =>
 	{
-		var acceptedURLs = settings.get( 'audio', 'accepted_urls' );
+		var acceptedURLs = settings.get( 'audio', 'accepted_urls',
+			[
+				"(https?\\:\\/\\/)?(www\\.)?(youtube\\.com|youtu\\.be)\\/.*",
+				"(https?\\:\\/\\/)?(www\\.)?soundcloud.com\\/.*",
+				"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/.*",
+				"(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*",
+				"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*",
+				".*\\.mp3",
+				".*\\.ogg",
+				".*\\.wav",
+				".*\\.flac",
+				".*\\.m4a",
+				".*\\.aac",
+				".*\\.webm",
+				".*\\.mp4"
+			]);
 		
 		var found = false;
 		for ( var i in acceptedURLs )
@@ -196,7 +221,7 @@ commands.register( {
 	}});
 
 commands.register( {
-	aliases: [ 'stoptest' ], // 'stop', 's', 
+	aliases: [ 'stop', 's' ],
 	help: 'stop audio',
 	flags: [ 'admin_only' ],
 	callback: ( client, msg, args ) =>
@@ -211,6 +236,30 @@ commands.register( {
 			var sess = sessions[id];
 			sess.conn.channel.leave();
 			delete sessions[id];
+		}
+	}});
+
+commands.register( {
+	aliases: [ 'volume', 'v' ],
+	help: 'change audio volume',
+	flags: [ 'admin_only' ],
+	args: 'number=0-1',
+	callback: ( client, msg, args ) =>
+	{
+		var channel = msg.member.getVoiceChannel();
+		if ( !channel )
+			return msg.channel.sendMessage( 'you are not in a voice channel' );
+		
+		if ( isNaN( args ) )
+			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', args ) );
+		
+		var id = msg.guild.id;
+		if ( id in sessions )
+		{
+			var sess = sessions[id];
+			sess.volume = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
+			sess.encoder.stop();
+			rotate_queue( id, sess.time );
 		}
 	}});
 
