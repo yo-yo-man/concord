@@ -96,10 +96,12 @@ function rotate_queue( id, forceseek )
 	if ( !encoder )
 		return console.log( 'voice connection is disposed' );
 	
+	sess.playing = true;
 	sess.encoder = encoder;
 	encoder.once( 'end', () =>
 		{
 			sess.queue.shift(); // TO DO: looping
+			sess.playing = false;
 			rotate_queue( id );
 		});
 
@@ -166,7 +168,7 @@ function queryRemote( msg, url )
 					resolve( _.fmt( '%s started playing %s [%s]', msg.author.username, title, length ) );
 					rotate_queue( id );
 				}
-				else
+				else // TO DO: force play (admin)
 					resolve( _.fmt( '%s queued %s [%s]', msg.author.username, title, length ) );
 			}
 			
@@ -236,6 +238,8 @@ commands.register( {
 		if ( id in sessions )
 		{
 			var sess = sessions[id];
+			if ( !sess.playing ) return msg.channel.sendMessage( 'not playing anything to stop' );
+			
 			sess.conn.channel.leave();
 			delete sessions[id];
 		}
@@ -246,13 +250,9 @@ commands.register( {
 	aliases: [ 'volume', 'v' ],
 	help: 'change audio volume',
 	flags: [ 'admin_only' ],
-	args: 'number_0-1',
+	args: 'number0-1',
 	callback: ( client, msg, args ) =>
-	{
-		var channel = msg.member.getVoiceChannel();
-		if ( !channel )
-			return msg.channel.sendMessage( 'you are not in a voice channel' );
-		
+	{		
 		if ( isNaN( args ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', args ) );
 		
@@ -260,6 +260,8 @@ commands.register( {
 		if ( id in sessions )
 		{
 			var sess = sessions[id];
+			if ( !sess.playing ) return;
+			
 			sess.volume = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
 			sess.encoder.stop();
 			rotate_queue( id, sess.time );
