@@ -71,7 +71,10 @@ commands.register( {
 		var target = split[1] || false;
 		
 		if ( isNaN( limit ) )
-			return msg.channel.sendMessage( limit + ' is not a number' );
+			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', limit ) );
+		
+		if ( parseInt( limit ) > 100 )
+			return msg.channel.sendMessage( _.fmt( 'can only delete `100` messages at a time' ) );
 		
 		if ( !client.User.can( permissions.discord.Text.MANAGE_MESSAGES, msg.channel ) )
 			return msg.channel.sendMessage( "invalid 'manage messages' permission in this channel" );
@@ -84,9 +87,10 @@ commands.register( {
 		}
 		
 		limit++; // clear the user's !clear command as well
+		var lookback = 100; // number of messages to look back into
 		msg.channel.sendMessage( 'clearing, please wait...' ).then( tempMsg =>
 			{
-				msg.channel.fetchMessages( limit, tempMsg ).then( () =>
+				msg.channel.fetchMessages( lookback, tempMsg ).then( () =>
 					{
 						var toDelete = [];
 						for ( var i = msg.channel.messages.length-1; i >= 0; i-- )
@@ -94,10 +98,7 @@ commands.register( {
 							var message = msg.channel.messages[i];
 							
 							if ( message.deleted || message.id == tempMsg.id || ( target !== false && target.id != message.author.id ) )
-							{
-								limit++;
 								continue;
-							}
 							
 							if ( toDelete.length >= limit )
 								break;
@@ -110,7 +111,11 @@ commands.register( {
 								if ( i >= toDelete.length )
 								{
 									tempMsg.delete();
-									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages', msg.author.username, toDelete.length - 1 ) )
+									var byUser = '';
+									if ( target !== false )
+										byUser = _.fmt( ' by `%s`', target.username );
+									var numCleared = toDelete.length-1; // subtract user's !clear command
+									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages%s', msg.author.username, numCleared, byUser ) )
 									return;
 								}
 								
