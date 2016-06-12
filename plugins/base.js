@@ -45,12 +45,15 @@ commands.register( {
 		var split = args.split( ' ' );
 		var file = split[0];
 		var param = split[1];
-		var val = split[2];
+		var newVal = split[2];
 		
-		if ( typeof val !== 'undefined' )
-			settings.set( file, param, val );
+		if ( typeof newVal !== 'undefined' )
+			settings.set( file, param, newVal );
 		
 		var val = settings.get( file, param );
+		if ( typeof val === 'undefined' )
+			val = 'undefined';
+		
 		if ( val.toString().indexOf( '\n' ) != -1 )
 			val = '```\n' + val + '\n```';
 		else
