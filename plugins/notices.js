@@ -6,9 +6,13 @@ var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 
 var guildChannels = {};
-function initGuilds( _cl )
+function initGuilds()
 {
-	client = _cl;
+	client.Guilds.forEach( function( guild )
+		{
+			cacheUsersConnected( guild );
+		});
+	
 	guildChannels = settings.get( 'notices', 'guild_channels', {} );
 }
 
@@ -76,6 +80,20 @@ function sendGlobalUserNotice( userId, message )
 	}
 }
 
+var usersConnected = {};
+function cacheUsersConnected( guild )
+{
+	if ( !( guild.id in usersConnected ) )
+		usersConnected[ guild.id ] = {};
+	
+	for ( var i = 0; i < guild.members.length; i++ )
+	{
+		var member = guild.members[i];
+		if ( member.getVoiceChannel() != null )
+			usersConnected[ guild.id ][ member.id ] = true;
+	}
+}
+
 function processEvent( type, e )
 {
 	//console.log( type );
@@ -98,12 +116,22 @@ function processEvent( type, e )
 			// user, channel, channelid, guildid, newchannelid, newguildid
 			if ( e.user.bot ) return;
 			if ( e.newChannelId == null )
+			{
 				sendGuildNotice( e.guildId, _.fmt( '`%s` disconnected', e.user.username ) );
+				
+				if ( usersConnected[ e.guildId ] && usersConnected[ e.guildId ][ e.user.id ] )
+					delete usersConnected[ e.guildId ][ e.user.id ];
+			}
 			break;
 			
 		case 'VOICE_CHANNEL_JOIN':
 			// user, channel, channelid, guildid
 			if ( e.user.bot ) return;
+			
+			if ( !( e.guildId in usersConnected ) )
+				usersConnected[ e.guildId ] = {};
+			usersConnected[ e.guildId ][ e.user.id ] = true;
+			
 			sendGuildNotice( e.guildId, _.fmt( '`%s` connected to `%s`', e.user.username, e.channel.name ) );
 			break;
 			
@@ -145,6 +173,13 @@ function processEvent( type, e )
 			
 		case 'PRESENCE_UPDATE':
 			// guild, user, member
+			if ( e.user.status == 'offline' && e.user.status != e.user.previousStatus )
+				if ( usersConnected[ e.guild.id ] && e.user.id in usersConnected[ e.guild.id ] )
+				{
+					sendGuildNotice( e.guild.id, _.fmt( '`%s` disconnected', e.user.username ) );
+					delete usersConnected[ e.guild.id ][ e.user.id ];
+				}
+				
 			if ( settings.get( 'notices', 'hide_game_events', true ) )
 				return;
 			if ( e.user.previousGameName != null )
@@ -205,6 +240,11 @@ function processEvent( type, e )
 			sendGuildNotice( e.guild.id, 'server settings updated' );
 			break;
 			
+		case 'GUILD_CREATE':
+			// guild, becameAvailable
+			cacheUsersConnected( e.guild );
+			break;
+			
 		// MESSAGE_DELETE
 			// channelid, messageid, message
 			
@@ -229,7 +269,7 @@ var client = null;
 module.exports.setup = function( _cl )
 	{
 		client = _cl;
-		initGuilds( client );
+		initGuilds();
 		client.Dispatcher.onAny( ( type, e ) => { processEvent( type, e ); } );
 		console.log( 'notices plugin loaded' );
 	};
