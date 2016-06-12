@@ -11,4 +11,4 @@ a multifunctional node.js discord bot
 * **stable, clean code**
 
 ### getting started
-detailed instructions can be found on the wiki
+detailed instructions can be found on the [wiki](https://github.com/DougTy/concord/wiki)
