@@ -1,19 +1,27 @@
 {
-		"name": "squanch",
-		"version": "1.0.0",
-		
-		"scripts":
-		{
-			"start": "node index.js"
-		},
-		
-		"dependencies":
-		{
-			"discordie": "*",
-			"respawn": "*",
-			"moment": "*",
-			"moment-duration-format": "*",
-			"youtube-dl": "*",
-			"request": "*"
-		}
+	"name": "@dougty/concord",
+	"version": "1.0.0",
+	"author": "Doug Ty (https://github.com/DougTy)",
+	"description": "a multifunctional discord bot",
+	
+	"repository":
+	{
+		"type" : "git",
+		"url" : "https://github.com/DougTy/concord"
+	},
+	
+	"scripts":
+	{
+		"start": "node index.js"
+	},
+	
+	"dependencies":
+	{
+		"discordie": "*",
+		"respawn": "*",
+		"moment": "*",
+		"moment-duration-format": "*",
+		"youtube-dl": "*",
+		"request": "*"
+	}
 }

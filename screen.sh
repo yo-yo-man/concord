@@ -1,2 +1,2 @@
 #!/bin/bash
-screen -L -A -m -d -S squanch npm start
+screen -L -A -m -d -S concord npm start
