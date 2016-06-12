@@ -108,7 +108,7 @@ commands.register( {
 			"My reply is no", "My sources say no", "Outlook not so good", "Very doubtful" ] );
 		
 		var max = answers.length-1;
-		msg.channel.sendMessage( _.fmt( '`%s`', msg.author.username, answers[ _.rand(0,max) ] ) );
+		msg.channel.sendMessage( _.fmt( '`%s`', answers[ _.rand(0,max) ] ) );
 	}});
 
 var client = null;
