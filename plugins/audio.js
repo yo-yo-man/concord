@@ -32,6 +32,14 @@ function setGuildSetting( id, param, val )
 	settings.set( 'audio', 'guild_settings', guildSettings );
 }
 
+function getGuildSetting( id, param )
+{
+	if ( !(id in guildSettings) )
+		guildSettings[id] = {};
+	
+	return guildSettings[id][param];
+}
+
 function join_channel( msg )
 {
 	var promise = new Promise( function( resolve, reject )
@@ -379,18 +387,25 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'volume', 'v' ],
-	help: 'set volume between 0 and 1',
+	help: 'view or change current volume',
 	flags: [ 'admin_only', 'no_pm' ],
-	args: 'number',
+	args: '[number=0-1]',
 	callback: ( client, msg, args ) =>
 	{		
+		var id = msg.guild.id;
+		
+		if ( !args )
+		{
+			var vol = getGuildSetting( id, 'volume' ) || settings.get( 'audio', 'volume_default', 0.5 );
+			return msg.channel.sendMessage( _.fmt( 'current volume is `%s`', vol ) );
+		}
+		
 		if ( isNaN( args ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', args ) );
 		
 		var vol = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
 		msg.channel.sendMessage( _.fmt( '`%s` changed volume to `%s`', msg.author.username, vol ) );
 		
-		var id = msg.guild.id;
 		setGuildSetting( id, 'volume', vol );
 		
 		if ( id in sessions )
