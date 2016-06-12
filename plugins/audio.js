@@ -130,7 +130,7 @@ function start_player( id, forceseek )
 		return;
 	}
 	
-	console.log( 'playing ' + song.url );
+	console.log( _.fmt( 'playing <%s>', song.url ) );
 	module.exports.songsSinceBoot++;
 	
 	sess.skipVotes = [];
@@ -155,7 +155,6 @@ function start_player( id, forceseek )
 			type: 'ffmpeg',
 			source: song.streamurl,
 			format: 'opus',
-			//frameDuration: 60,
 			inputArgs: inputArgs,
 			outputArgs: [ '-af', 'volume='+volume ]
 		});
@@ -439,7 +438,7 @@ commands.register( {
 			var by_user = client.Users.get( song.queuedby );
 			if ( !by_user ) by_user = '<unknown>';
 				else by_user = by_user.username;
-			msg.channel.sendMessage( _.fmt( 'now playing: `%s [%s] (%s)`', song.title, song.length, by_user ) );
+			msg.channel.sendMessage( _.fmt( 'now playing: `%s [%s]\n(queued by %s)` <%s>', song.title, song.length, by_user, song.url ) );
 		}
 		else
 			msg.channel.sendMessage( 'nothing is currently playing' );
