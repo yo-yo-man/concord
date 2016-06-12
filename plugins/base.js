@@ -160,6 +160,8 @@ commands.register( {
 		}
 		else
 		{
+			help = 'powered by concord <http://github.com/DougTy/concord>\n';
+			
 			var lastCat = '';
 			for ( var i in commands.commandList )
 			{
