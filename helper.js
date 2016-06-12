@@ -23,5 +23,17 @@ _.matches = function( reg, str )
 			output.push( matches[1] );
 		return output;
 	};
+_.filterlinks = function( str )
+	{
+		str = str.toString();
+		var link_regex = /(\bhttps?\:\/\/[^\s]+)/g;
+		if ( str.match( link_regex ) )
+		{
+			var link = _.matches( link_regex, str )[0];
+			if ( !link.endsWith( '>' ) ) // if it ends with a > it's already been filtered
+				str = str.replace( link_regex, '<' + link + '>' );
+		}
+		return str;
+	};
 
 module.exports = _;

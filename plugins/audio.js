@@ -182,8 +182,13 @@ function queryRemote( msg, url, returnInfo )
 					{
 						if ( err )
 						{
-							tempMsg.delete();
-							return reject( _.fmt( 'youtube error: `%s`', err ) );
+							tempMsg.delete().then( () => {
+								setTimeout( function() { // wait a second to give time to send the error message
+									console.log( _.filterlinks( err ) );
+									process.exit(1); // exit so the log gets sent to the owner
+								}, 1000 )
+							});
+							return reject( 'error querying info' );
 						}
 						
 						var title = info.title;

@@ -155,13 +155,7 @@ function onMessage( client, e )
 					
 					// put < > around links so they don't clutter up the owner's crash logs too much
 					var fullContent = e.message.content;
-					var link_regex = /(\bhttps?\:\/\/[^\s]+)/g;
-					if ( fullContent.match( link_regex ) )
-					{
-						var link = _.matches( link_regex, fullContent )[0];
-						if ( !link.endsWith( '>' ) ) // if it ends with a > it's already been filtered
-							fullContent = fullContent.replace( link_regex, '<' + link + '>' );
-					}
+					fullContent = _.filterlinks( fullContent );
 					
 					commands.numSinceBoot++;
 					console.log( _.fmt( '[%s]  %s in #%s %s: %s', moment().format( 'YYYY-MM-DD hh:mm:ss' ), e.message.author.username, e.message.channel.name, guildname, fullContent ) );
