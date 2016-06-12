@@ -294,6 +294,7 @@ commands.register( {
 	args: 'url',
 	callback: ( client, msg, args ) =>
 	{
+		args = args.replace( /</g, '' ).replace( />/g, '' ); // remove filtering
 		if ( !is_accepted_url( args ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', args ) );
 		
@@ -580,6 +581,7 @@ commands.register( {
 		if ( !name )
 			return msg.channel.sendMessage( 'please enter a valid playlist name' );
 		
+		link = link.replace( /</g, '' ).replace( />/g, '' ); // remove filtering
 		if ( !is_accepted_url( link ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', link ) );
 		
