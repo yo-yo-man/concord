@@ -83,7 +83,7 @@ function sendGlobalUserNotice( userId, message )
 var usersConnected = {};
 function cacheUsersConnected( guild )
 {
-	if ( !( guild.id in usersConnected ) )
+	if ( !usersConnected[ guild.id ] )
 		usersConnected[ guild.id ] = {};
 	
 	for ( var i = 0; i < guild.members.length; i++ )
@@ -128,7 +128,7 @@ function processEvent( type, e )
 			// user, channel, channelid, guildid
 			if ( e.user.bot ) return;
 			
-			if ( !( e.guildId in usersConnected ) )
+			if ( !usersConnected[ e.guildId ] )
 				usersConnected[ e.guildId ] = {};
 			usersConnected[ e.guildId ][ e.user.id ] = true;
 			
@@ -174,10 +174,11 @@ function processEvent( type, e )
 		case 'PRESENCE_UPDATE':
 			// guild, user, member
 			if ( e.user.status == 'offline' && e.user.status != e.user.previousStatus )
-				if ( usersConnected[ e.guild.id ] && e.user.id in usersConnected[ e.guild.id ] )
+				if ( usersConnected[ e.guild.id ] && usersConnected[ e.guild.id ][ e.user.id ] )
 				{
 					sendGuildNotice( e.guild.id, _.fmt( '`%s` disconnected', e.user.username ) );
 					delete usersConnected[ e.guild.id ][ e.user.id ];
+					return;
 				}
 				
 			if ( settings.get( 'notices', 'hide_game_events', true ) )
