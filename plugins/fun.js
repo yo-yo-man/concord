@@ -38,8 +38,7 @@ commands.register( {
 		setTimeout( () => msg.channel.sendMessage( str[rand] ), 3 * 1000 );
 	}});
 
-var roulette_chamber = 0;
-var roulette_bullet = _.rand( 1, 6 );
+var rouletteCache = {};
 commands.register( {
 	category: 'fun',
 	aliases: [ 'roulette' ],
@@ -49,11 +48,19 @@ commands.register( {
 	{
 		msg.channel.sendMessage( _.fmt( '*`%s` pulls the trigger...*', msg.author.username ) );
 		
-		roulette_chamber++;
-		if ( roulette_chamber >= roulette_bullet )
+		var guildId = msg.guild.id;
+		if ( !rouletteCache[ guildId ] )
 		{
-			roulette_chamber = 0;
-			roulette_bullet = _.rand( 1, 6 );
+			rouletteCache[ guildId ] = {};
+			rouletteCache[ guildId ]['chamber'] = 0;
+			rouletteCache[ guildId ]['bullet'] = _.rand( 1, 6 );
+		}
+		
+		rouletteCache[ guildId ]['chamber']++;
+		if ( rouletteCache[ guildId ]['chamber'] >= rouletteCache[ guildId ]['bullet'] )
+		{
+			rouletteCache[ guildId ]['chamber'] = 0;
+			rouletteCache[ guildId ]['bullet'] = _.rand( 1, 6 );
 			setTimeout( () => msg.channel.sendMessage( '*BANG!*' ), 2 * 1000 );
 		}
 		else
