@@ -155,6 +155,7 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_CREATE':
 			// channel
+			if ( e.channel.is_private ) return;
 			var name = e.channel.mention;
 			if ( !name )
 				name = '`' + e.channel.name + '`';
@@ -163,6 +164,7 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_DELETE':
 			// channelid, data
+			if ( e.channel.is_private ) return;
 			var name = e.data.name;
 			if ( e.data.type == 'text' )
 				name = '#' + name;
@@ -191,6 +193,7 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_UPDATE':
 			// channel
+			if ( e.channel.is_private ) return;
 			var name = e.channel.mention;
 			if ( !name )
 				name = '`' + e.channel.name + '`';
