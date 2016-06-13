@@ -124,14 +124,14 @@ commands.register( {
 								
 								toDelete[i].delete().then( () =>
 									{ setTimeout( function() { deleteQueue( i+1 ) }, 1000 )
-									}).catch( e => { console.log( e.stack ) } );
+									}).catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing: %s`', e.message ) ); tempMsg.delete(); } );
 							};
 							
 						deleteQueue( 0 );
 					})
-					.catch( e => { console.log( e.stack ) } );
+					.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing: %s`', e.message ) ); tempMsg.delete(); } );
 			})
-			.catch( e => { console.log( e.stack ) } );
+			.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing: %s`', e.message ) ); } );
 	}});
 
 commands.register( {
