@@ -138,7 +138,7 @@ function start_player( id, forceseek )
 		return;
 	}
 	
-	if ( song.channel && typeof forceseek === 'undefined' )
+	if ( song.channel && typeof forceseek === 'undefined' && !sess.loop )
 	{
 		var by_user = get_queuedby_user( song );
 		song.channel.sendMessage( _.fmt( '`NOW PLAYING: %s [%s] (%s)`', song.title, song.length, by_user ) );
@@ -576,12 +576,10 @@ commands.register( {
 		if ( id in sessions )
 		{
 			var sess = sessions[id];
-			if ( !sess.playing ) return;
 			
 			sess.loop = !sess.loop;
-			
 			if ( sess.loop )
-				msg.channel.sendMessage( 'turned on looping, use `!loop` again to toggle off' )
+				msg.channel.sendMessage( _.fmt( 'turned on looping, use `%sloop` again to toggle off', settings.get( 'config', 'command_prefix', '!' ) ) )
 			else
 				msg.channel.sendMessage( 'turned off looping, queue will proceed as normal' )
 		}
