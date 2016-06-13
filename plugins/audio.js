@@ -77,6 +77,11 @@ function join_channel( msg )
 function leave_channel( id )
 {
 	var sess = sessions[ id ];
+	if ( sess.playing )
+	{
+		sess.encoder.stop();
+		sess.encoder.destroy();
+	}
 	sess.conn.channel.leave();
 	delete sessions[id];
 }
@@ -119,6 +124,7 @@ function start_player( id, forceseek )
 	if ( sess.playing )
 	{
 		sess.encoder.stop();
+		sess.encoder.destroy();
 		sess.playing = false;
 	}
 	
