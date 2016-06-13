@@ -105,6 +105,14 @@ function rotate_queue( id )
 	start_player( id );
 }
 
+function get_queuedby_user( song )
+{
+	var by_user = client.Users.get( song.queuedby );
+	if ( !by_user ) by_user = '<unknown>';
+		else by_user = by_user.username;
+	return by_user;
+}
+
 function start_player( id, forceseek )
 {
 	var sess = sessions[ id ];
@@ -130,7 +138,14 @@ function start_player( id, forceseek )
 		return;
 	}
 	
-	console.log( _.fmt( 'playing <%s>', song.url ) );
+	if ( song.channel && typeof forceseek === 'undefined' )
+	{
+		var by_user = get_queuedby_user( song );
+		song.channel.sendMessage( _.fmt( '`NOW PLAYING: %s [%s] (%s)`', song.title, song.length, by_user ) );
+	}
+	
+	var guildname = sess.conn.guild.name;
+	console.log( _.fmt( 'playing <%s> in (%s)', song.url, guildname ) );
 	module.exports.songsSinceBoot++;
 	
 	sess.skipVotes = [];
@@ -160,7 +175,7 @@ function start_player( id, forceseek )
 		});
 		
 	if ( !encoder )
-		return console.log( 'voice connection is disposed' );
+		return console.log( 'WARNING: voice connection is disposed' );
 	
 	sess.playing = true;
 	sess.encoder = encoder;
@@ -172,22 +187,25 @@ function start_player( id, forceseek )
 	encoderStream.on( 'timestamp', time => sess.time = sess.starttime + time );
 }
 
-function queryRemote( msg, url, returnInfo )
+function queryRemote( args )
 {
+	var msg = args.msg;
+	var url = args.url;
+	var returnInfo = args.returnInfo;
+	var forPlaylist = args.forPlaylist;
+	var quiet = args.quiet;
+	
 	var promise = new Promise( function( resolve, reject )
 		{
-			msg.channel.sendMessage( 'fetching info, please wait...' ).then( tempMsg =>
+			var doQuery = function( tempMsg )
 				{
 					function parseInfo( err, info )
 					{
 						if ( err )
 						{
-							tempMsg.delete().then( () => {
-								setTimeout( function() { // wait a second to give time to send the error message
-									console.log( _.filterlinks( err ) );
-									process.exit(1); // exit so the log gets sent to the owner
-								}, 1000 )
-							});
+							console.log( _.filterlinks( err ) );
+							if ( !quiet )
+								tempMsg.delete().then( () => setTimeout( () => process.exit( 1 ), 1000 ) ); // wait a second before exiting
 							return reject( 'error querying info' );
 						}
 						
@@ -212,7 +230,7 @@ function queryRemote( msg, url, returnInfo )
 							if ( length_seconds > max_length * 60 )
 							{
 								var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
-								tempMsg.delete();
+								if ( tempMsg ) tempMsg.delete();
 								return reject( _.fmt( 'song exceeds max length: `%s` > `%s`', length, maxlen ) );
 							}
 						}
@@ -228,10 +246,15 @@ function queryRemote( msg, url, returnInfo )
 						if ( url.indexOf( 't=' ) != -1 )
 							seek = parse_seek( _.matches( /t=(.*)/g, url )[0] );
 						
-						tempMsg.delete();
-						var songInfo = { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, streamurl: streamurl, length_seconds: length_seconds };
+						if ( tempMsg ) tempMsg.delete();
+						var songInfo = { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, length_seconds: length_seconds };
+						if ( !forPlaylist )
+							songInfo.streamurl = streamurl;
 						if ( returnInfo )
 							return resolve( songInfo );
+						
+						// never return this
+						songInfo.channel = msg.channel;
 						
 						var id = msg.guild.id;
 						var queue_empty = sessions[ id ].queue.length == 0;
@@ -240,14 +263,19 @@ function queryRemote( msg, url, returnInfo )
 						if ( queue_empty )
 						{
 							resolve( _.fmt( '`%s` started playing `%s [%s]`', msg.author.username, title, length ) );
-							start_player( id );
+							start_player( id, 0 );
 						}
 						else
 							resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
 					}
 				
 					ydl.getInfo( url, [], parseInfo );
-				});
+				};
+				
+			if ( quiet )
+				doQuery();
+			else
+				msg.channel.sendMessage( 'fetching info, please wait...' ).then( tempMsg => doQuery( tempMsg ) );
 		});
 		
 	return promise;
@@ -308,7 +336,7 @@ commands.register( {
 				if ( res.isnew )
 					create_session( res.conn, msg );
 				
-				queryRemote( msg, args ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( s ) );
+				queryRemote( { msg: msg, url: args } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( s ) );
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ); } );
 	}});
@@ -441,10 +469,8 @@ commands.register( {
 			if ( !song )
 				return msg.channel.sendMessage( 'nothing is currently playing' );
 			
-			var by_user = client.Users.get( song.queuedby );
-			if ( !by_user ) by_user = '<unknown>';
-				else by_user = by_user.username;
-			msg.channel.sendMessage( _.fmt( 'now playing: `%s [%s]\n(queued by %s)` <%s>', song.title, song.length, by_user, song.url ) );
+			var by_user = get_queuedby_user( song );
+			msg.channel.sendMessage( _.fmt( '`NOW PLAYING:\n%s [%s] (queued by %s)`\n<%s>', song.title, song.length, by_user, song.url ) );
 		}
 		else
 			msg.channel.sendMessage( 'nothing is currently playing' );
@@ -472,9 +498,7 @@ commands.register( {
 			{
 				var song = queue[i];
 				
-				var by_user = client.Users.get( song.queuedby );
-				if ( !by_user ) by_user = '<unknown>';
-					else by_user = by_user.username;
+				var by_user = get_queuedby_user( song );
 				res += _.fmt( '%s. %s [%s] (%s)\n', parseInt(i)+1, song.title, song.length, by_user );
 			}
 			
@@ -601,7 +625,7 @@ commands.register( {
 			data = JSON.parse( playlist );
 		}
 		
-		queryRemote( msg, link, true ).then( info =>
+		queryRemote( { msg: msg, url: link, returnInfo: true, forPlaylist: true } ).then( info =>
 			{
 				data.push( info );
 				fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' );
@@ -637,22 +661,62 @@ commands.register( {
 					create_session( res.conn, msg );
 				
 				var id = msg.guild.id;
-				var queue_empty = sessions[ id ].queue.length == 0;
 				
+				var numSongs = data.length;
+				var numLoaded = 0;
+				var numErrors = 0;
+				var errors = '';
+				var tempMsg = null;
+				var queueBuffer = [];
+				var checkLoaded = function( i )
+					{
+						numLoaded++;
+						if ( numLoaded >= numSongs )
+						{
+							if ( numErrors > 0 )
+								errors = _.fmt( '\n```error loading %s song(s) in %s:\n%s```', numErrors, name, errors );
+							
+							if ( numErrors < numLoaded )
+							{
+								var queue_empty = sessions[ id ].queue.length == 0;
+								sessions[ id ].queue.push.apply( sessions[ id ].queue, queueBuffer );
+								
+								tempMsg.delete();
+								if ( queue_empty )
+								{
+									msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
+									start_player( id );
+								}
+								else
+									msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
+							}
+						}
+						else
+							queryPlaylist( i+1 );
+					};
 				
-				for ( var i in data )
-				{
-					var song = data[i];
-					sessions[ id ].queue.push( song );
-				}
-				
-				if ( queue_empty )
-				{
-					msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`', msg.author.username, name, data.length ) );
-					start_player( id );
-				}
-				else
-					msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`', msg.author.username, name, data.length ) );
+				var queryPlaylist = function( i )
+					{
+						var song = data[i];
+						queryRemote( { quiet: true, msg: msg, url: song.url, returnInfo: true } ).then( info =>
+							{
+								info.channel = msg.channel;
+								queueBuffer.push( info );
+								checkLoaded( i );
+							})
+						.catch( s =>
+							{
+								errors += _.fmt( '<%s>: %s\n', song.url, s );
+								numErrors++;
+								checkLoaded( i );
+							});
+					};
+					
+				msg.channel.sendMessage( _.fmt( 'fetching info for `%s` song(s), please wait...', numSongs ) ).then( m =>
+					{
+						tempMsg = m;
+						queryPlaylist( 0 )
+					});
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ); } );
 	}});
@@ -696,10 +760,7 @@ commands.register( {
 			{
 				var song = data[i];
 				
-				var by_user = client.Users.get( song.queuedby );
-				if ( !by_user ) by_user = '<unknown>';
-					else by_user = by_user.username;
-					
+				var by_user = get_queuedby_user( song );					
 				list +=_.fmt( '%s. %s [%s] (%s)\n', parseInt(i)+1, song.title, song.length, by_user );
 			}
 		}
