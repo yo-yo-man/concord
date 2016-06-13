@@ -1,5 +1,7 @@
 'use strict';
 
+var _ = require( './helper.js' );
+
 var plugins = {};
 
 plugins.load = function( client, decache )
@@ -14,6 +16,7 @@ plugins.load = function( client, decache )
 				if ( plugin.setup )
 					plugin.setup( client );
 			});
+		_.log( 'initialized plugins' );
 	};
 	
 module.exports = plugins;

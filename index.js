@@ -1,4 +1,5 @@
 var respawn = require( 'respawn' );
+var _ = require( './helper.js' );
 
 var bot = respawn( ['node', 'bot.js'],
 	{
@@ -20,7 +21,8 @@ function logData( data )
 
 bot.on( 'spawn', function()
 	{
-		console.log( 'spawning bot process...\n' );
+		_.log( 'spawning bot process...' );
+		console.log( '' );
 	});
 
 bot.on( 'stdout', function( data )
@@ -40,7 +42,8 @@ bot.on( 'exit', function( code )
 		if ( code == 8 )
 			return process.exit( 0 );
 		
-		console.log( '\nprocess exited with code ' + code + ', restarting...' );
+		console.log( '' );
+		_.log( 'process exited with code ' + code + ', restarting...' );
 		if ( code != 0 )
 			require('fs').writeFileSync( './crash.log', log.join('\n'), 'utf8' );
 		log = [];

@@ -1,6 +1,7 @@
 'use strict';
 
 var settings = require( './settings.js' );
+var _ = require( './helper.js' );
 
 var permissions = {};
 
@@ -68,6 +69,7 @@ var client = null;
 permissions.init = function( _cl )
 	{
 		client = _cl;
+		_.log( 'initialized permissions' );
 	};
 	
 module.exports = permissions;

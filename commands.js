@@ -3,7 +3,6 @@
 var permissions = require( './permissions.js' );
 var settings = require( './settings.js' );
 var _ = require( './helper.js' );
-var moment = require( 'moment' );
 
 var commands = {};
 
@@ -158,7 +157,7 @@ function onMessage( client, e )
 					fullContent = _.filterlinks( fullContent );
 					
 					commands.numSinceBoot++;
-					console.log( _.fmt( '[%s]  %s in #%s %s: %s', moment().format( 'YYYY-MM-DD hh:mm:ss' ), e.message.author.username, e.message.channel.name, guildname, fullContent ) );
+					_.log( _.fmt( '%s in #%s %s: %s', e.message.author.username, e.message.channel.name, guildname, fullContent ) );
 					
 					if ( checkArgs( cmd, args ) )
 						return cmd.callback( client, e.message, args );
@@ -175,6 +174,7 @@ commands.init = function( _cl )
 	{
 		client = _cl;
 		_cl.Dispatcher.on( 'MESSAGE_CREATE', e => onMessage( _cl, e ) );
+		_.log( 'initialized commands' );
 	};
 	
 module.exports = commands;

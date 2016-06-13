@@ -145,7 +145,7 @@ function start_player( id, forceseek )
 	}
 	
 	var guildname = sess.conn.guild.name;
-	console.log( _.fmt( 'playing <%s> in (%s)', song.url, guildname ) );
+	_.log( _.fmt( 'playing <%s> in (%s)', song.url, guildname ) );
 	module.exports.songsSinceBoot++;
 	
 	sess.skipVotes = [];
@@ -175,7 +175,7 @@ function start_player( id, forceseek )
 		});
 		
 	if ( !encoder )
-		return console.log( 'WARNING: voice connection is disposed' );
+		return _.log( 'WARNING: voice connection is disposed' );
 	
 	sess.playing = true;
 	sess.encoder = encoder;
@@ -823,7 +823,7 @@ module.exports.setup = function( _cl )
 	{
 		client = _cl;
 		guildSettings = settings.get( 'audio', 'guild_settings', {} );
-		console.log( 'audio plugin loaded' );
+		_.log( 'loaded plugin: audio' );
 	};
 	
 module.exports.songsSinceBoot = 0;

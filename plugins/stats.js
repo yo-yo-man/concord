@@ -115,5 +115,5 @@ module.exports.setup = function( _cl )
 		startTime = _.time();
 		lastSeen = settings.get( 'lastseen', null, {} );
 		updateLastSeen();
-		console.log( 'stats plugin loaded' );
+		_.log( 'loaded plugin: stats' );
 	};

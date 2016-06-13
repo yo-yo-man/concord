@@ -29,11 +29,11 @@ else
 
 client.Dispatcher.on( 'GATEWAY_READY', e =>
 	{
-		console.log( _.fmt( 'logged in as %s <@%s>', client.User.username, client.User.id ) );
+		_.log( _.fmt( 'logged in as %s <@%s>', client.User.username, client.User.id ) );
 		require('./permissions.js').init( client );
 		require('./commands.js').init( client );
 		require('./plugins.js').load( client );
-		console.log( 'bot is ready!' );
+		_.log( 'bot is ready!' );
 		
 		if ( fs.existsSync( './crash.log' ) )
 		{
@@ -42,7 +42,7 @@ client.Dispatcher.on( 'GATEWAY_READY', e =>
 			if ( owner )
 				owner.openDM().then( d => d.sendMessage( _.fmt( '```\n%s\n```', log ) ) );
 			else
-				console.log( 'WARNING: no owner to send crash log to' );
+				_.log( 'WARNING: no owner to send crash log to' );
 			fs.unlinkSync( './crash.log' );
 		}
 	});
@@ -50,5 +50,5 @@ client.Dispatcher.on( 'GATEWAY_READY', e =>
 client.Dispatcher.onAny( ( type, e ) =>
 	{
 		if ( [ 'GATEWAY_RESUMED', 'DISCONNECTED', 'GUILD_UNAVAILABLE', 'GUILD_CREATE', 'GUILD_DELETE' ].indexOf( type ) != -1 )
-			return console.log('<' + type + '> ' + (e.error || e.guildId || e.guild.id || '') );
+			return _.log('<' + type + '> ' + (e.error || e.guildId || e.guild.id || '') );
 	});

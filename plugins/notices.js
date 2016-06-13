@@ -49,7 +49,7 @@ function sendGuildNotice( guildId, message )
 		{
 			delete guildChannels[ guildId ];
 			settings.set( 'notices', 'guild_channels', guildChannels );
-			console.log( _.fmt( 'WARNING: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], client.Guilds.get( guildId ).name ) );
+			_.log( _.fmt( 'WARNING: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], client.Guilds.get( guildId ).name ) );
 			return;
 		}
 		
@@ -61,7 +61,7 @@ function sendGlobalUserNotice( userId, message )
 {
 	var user = client.Users.get( userId );
 	if ( !user )
-		return console.log( _.fmt( 'WARNING: tried to send global notice about invalid user %s', userId ) );
+		return _.log( _.fmt( 'WARNING: tried to send global notice about invalid user %s', userId ) );
 		
 	for ( var guildId in guildChannels )
 	{
@@ -71,7 +71,7 @@ function sendGlobalUserNotice( userId, message )
 		{
 			delete guildChannels[ guildId ];
 			settings.set( 'notices', 'guild_channels', guildChannels );
-			console.log( _.fmt( 'WARNING: tried to send global notice to invalid guild %s', guildId ) );
+			_.log( _.fmt( 'WARNING: tried to send global notice to invalid guild %s', guildId ) );
 			return;
 		}
 		
@@ -272,5 +272,5 @@ module.exports.setup = function( _cl )
 		client = _cl;
 		initGuilds();
 		client.Dispatcher.onAny( ( type, e ) => { processEvent( type, e ); } );
-		console.log( 'notices plugin loaded' );
+		_.log( 'loaded plugin: notices' );
 	};

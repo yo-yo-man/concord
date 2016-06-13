@@ -122,5 +122,5 @@ var client = null;
 module.exports.setup = function( _cl )
 	{
 		client = _cl;
-		console.log( 'fun plugin loaded' );
+		_.log( 'loaded plugin: fun' );
 	};

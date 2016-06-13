@@ -193,5 +193,5 @@ var client = null;
 module.exports.setup = function( _cl )
 	{
 		client = _cl;
-		console.log( 'base plugin loaded' );
+		_.log( 'loaded plugin: base' );
 	};
