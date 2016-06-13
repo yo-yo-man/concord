@@ -212,7 +212,7 @@ function queryRemote( args )
 						var title = info.title;
 						
 						var length = '??:??';
-						if ( info.duration )
+						if ( info.duration && info.duration != 'NaN' )
 						{					
 							var split = info.duration.split( ':' );
 							if ( split.length == 1 )
