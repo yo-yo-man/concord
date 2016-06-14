@@ -403,13 +403,8 @@ commands.register( {
 	callback: ( client, msg, args ) =>
 	{
 		var id = msg.guild.id;
-		if ( id in sessions )
-		{
-			var sess = sessions[id];
-			if ( !sess.playing ) return;
-			
+		if ( id in sessions )		
 			leave_channel( id );
-		}
 	}});
 
 commands.register( {
