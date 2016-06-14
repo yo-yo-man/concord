@@ -313,7 +313,11 @@ function queryRemote( args )
 					var accepted_files = settings.get( 'audio', 'accepted_files', default_accepted_files );
 					for ( var i in accepted_files )
 						if ( url.match( accepted_files[i] ) )
-							return parseInfo( false, { title: url, url: url } );
+						{
+							var fn = url.split('/');
+							fn = fn[ fn.length - 1 ];
+							return parseInfo( false, { title: fn, url: url } );
+						}
 						
 					var youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls );
 					for ( var i in youtube_urls )
