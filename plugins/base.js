@@ -7,7 +7,7 @@ var _ = require( '../helper.js' );
 
 commands.register( {
 	category: 'base',
-	aliases: [ 'eval' ],
+	aliases: [ 'eval', 'ev' ],
 	help: 'eval some code',
 	flags: [ 'owner_only' ],
 	args: 'code*',

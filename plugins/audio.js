@@ -397,7 +397,7 @@ commands.register( {
 
 commands.register( {
 	category: 'audio',
-	aliases: [ 'stop', 's' ],
+	aliases: [ 'stop', 's', 'leave' ],
 	help: 'stop the currently playing audio',
 	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
@@ -410,7 +410,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'skip' ],
-	help: 'vote to skip the current song',
+	help: 'vote to skip the current song (force if admin)',
 	flags: [ 'no_pm' ],
 	args: '[force]',
 	callback: ( client, msg, args ) =>
@@ -597,7 +597,7 @@ commands.register( {
 
 commands.register( {
 	category: 'audio',
-	aliases: [ 'seek' ],
+	aliases: [ 'time', 'seek' ],
 	help: 'seek to a specific time',
 	flags: [ 'admin_only', 'no_pm' ],
 	args: 'time',
