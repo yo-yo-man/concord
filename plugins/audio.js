@@ -9,6 +9,7 @@ var fs = require( 'fs' );
 var path = require( 'path' );
 
 var ydl = require( 'youtube-dl' );
+var ytdl_core = require( 'ytdl-core' );
 var moment = require( 'moment' );
 require( 'moment-duration-format' );
 
@@ -241,11 +242,14 @@ function queryRemote( args )
 							}
 						}
 						
-						var streamurl = info.formats[0].url;
-						if ( info.formats[0].abr )
+						var streamurl = info.url;
+						if ( info.formats )
 						{
-							var formats = info.formats.sort( (a, b) => b.abr - a.abr );
-							streamurl = formats[0].url;
+							streamurl = info.formats[0].url;
+							if ( info.formats[0].abr )
+								streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url;
+							if ( info.formats[0].audioBitrate )
+								streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url;
 						}
 						
 						var seek = false;
@@ -274,8 +278,29 @@ function queryRemote( args )
 						else
 							resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
 					}
-				
-					ydl.getInfo( url, [], parseInfo );
+					
+					function parseInfoFast( err, info )
+					{
+						info.duration = moment.duration( parseInt( info.length_seconds ) * 1000 ).format( 'hh:mm:ss' );
+						parseInfo( err, info );
+					}
+					
+					var accepted_files = settings.get( 'audio', 'accepted_files', [] );
+					for ( var i in accepted_files )
+						if ( url.match( accepted_files[i] ) )
+							return parseInfo( false, { title: url, url: url } );
+						
+					var youtube_urls = settings.get( 'audio', 'youtube_urls', [] );
+					for ( var i in youtube_urls )
+						if ( url.match( youtube_urls[i] ) )
+							return ytdl_core.getInfo( url, parseInfoFast );
+						
+					var additional_urls = settings.get( 'audio', 'additional_urls', [] );
+					for ( var i in additional_urls )
+						if ( url.match( additional_urls[i] ) )
+							return ydl.getInfo( url, [], parseInfo );
+						
+					reject( 'could not find suitable query mode' );
 				};
 				
 			if ( quiet )
@@ -289,13 +314,21 @@ function queryRemote( args )
 
 function is_accepted_url( link )
 {
-	var acceptedURLs = settings.get( 'audio', 'accepted_urls',
+	var youtube_urls = settings.get( 'audio', 'youtube_urls',
 		[
-			"(https?\\:\\/\\/)?(www\\.)?(youtube\\.com|youtu\\.be)\\/.*",
+			"(https?\\:\\/\\/)?(www\\.)?(youtube\\.com|youtu\\.be)\\/.*"
+		]);
+	
+	var additional_urls = settings.get( 'audio', 'additional_urls',
+		[
 			"(https?\\:\\/\\/)?(www\\.)?soundcloud.com\\/.*",
 			"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/.*",
 			"(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*",
-			"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*",
+			"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*"
+		]);
+	
+	var accepted_files = settings.get( 'audio', 'accepted_files',
+		[
 			".*\\.mp3",
 			".*\\.ogg",
 			".*\\.wav",
@@ -305,6 +338,11 @@ function is_accepted_url( link )
 			".*\\.webm",
 			".*\\.mp4"
 		]);
+	
+	var acceptedURLs = [];
+	acceptedURLs.push.apply( acceptedURLs, youtube_urls );
+	acceptedURLs.push.apply( acceptedURLs, additional_urls );
+	acceptedURLs.push.apply( acceptedURLs, accepted_files );
 	
 	var found = false;
 	for ( var i in acceptedURLs )
