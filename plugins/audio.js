@@ -300,7 +300,8 @@ function queryRemote( args )
 						if ( url.match( additional_urls[i] ) )
 							return ydl.getInfo( url, [], parseInfo );
 						
-					reject( 'could not find suitable query mode' );
+					console.log( _.fmt( 'WARNING: could not find suitable query mode for <%s>', url ) );
+					return reject( 'could not find suitable query mode' );
 				};
 				
 			if ( quiet )
@@ -722,16 +723,16 @@ commands.register( {
 							{
 								var queue_empty = sessions[ id ].queue.length == 0;
 								sessions[ id ].queue.push.apply( sessions[ id ].queue, queueBuffer );
-								
-								tempMsg.delete();
-								if ( queue_empty )
-								{
-									msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
-									start_player( id );
-								}
-								else
-									msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
 							}
+							
+							tempMsg.delete();
+							if ( queue_empty )
+							{
+								msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
+								start_player( id );
+							}
+							else
+								msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
 						}
 						else
 							queryPlaylist( i+1 );
