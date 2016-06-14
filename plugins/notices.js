@@ -94,6 +94,7 @@ function cacheUsersConnected( guild )
 	}
 }
 
+var justSwitched = {};
 function processEvent( type, e )
 {
 	//console.log( type );
@@ -122,6 +123,8 @@ function processEvent( type, e )
 				if ( usersConnected[ e.guildId ] && usersConnected[ e.guildId ][ e.user.id ] )
 					delete usersConnected[ e.guildId ][ e.user.id ];
 			}
+			else if ( e.guildId == e.newGuildId )
+				justSwitched[ e.user.id ] = true;
 			break;
 			
 		case 'VOICE_CHANNEL_JOIN':
@@ -132,7 +135,14 @@ function processEvent( type, e )
 				usersConnected[ e.guildId ] = {};
 			usersConnected[ e.guildId ][ e.user.id ] = true;
 			
-			sendGuildNotice( e.guildId, _.fmt( '`%s` connected to `%s`', e.user.username, e.channel.name ) );
+			var action = 'connected';
+			if ( justSwitched[ e.user.id ] )
+			{
+				delete justSwitched[ e.user.id ];
+				action = 'switched';
+			}
+			
+			sendGuildNotice( e.guildId, _.fmt( '`%s` %s to `%s`', e.user.username, action, e.channel.name ) );
 			break;
 			
 		case 'VOICE_USER_SELF_MUTE':
