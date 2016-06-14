@@ -258,8 +258,8 @@ function queryRemote( args )
 							if ( length.substring( 0, 3 ) == '00:' )
 								length = length.substring( 3 );
 							
-							var max_length = settings.get( 'audio', 'max_length', 62 );
-							if ( length_seconds > max_length * 60 )
+							var max_length = settings.get( 'audio', 'max_length', 62 ) * 60;
+							if ( length_seconds > max_length )
 							{
 								var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
 								if ( tempMsg ) tempMsg.delete();
