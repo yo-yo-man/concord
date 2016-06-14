@@ -8,6 +8,7 @@ var _ = require( '../helper.js' );
 var fs = require( 'fs' );
 var path = require( 'path' );
 
+var request = require('request');
 var ydl = require( 'youtube-dl' );
 var ytdl_core = require( 'ytdl-core' );
 var moment = require( 'moment' );
@@ -317,7 +318,19 @@ function queryRemote( args )
 						{
 							var fn = url.split('/');
 							fn = fn[ fn.length - 1 ];
-							return parseInfo( false, { title: fn, url: url } );
+							
+							request( url, function( error, response, body )
+							{
+								if ( !error && response.statusCode == 200 )
+									parseInfo( false, { title: fn, url: url } );
+								else
+								{
+									if ( tempMsg ) tempMsg.delete();
+									reject( 'remote file does not exist' );
+								}
+							});
+							
+							return;
 						}
 						
 					var youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls );
@@ -330,6 +343,7 @@ function queryRemote( args )
 						if ( url.match( additional_urls[i] ) )
 							return ydl.getInfo( url, [], parseInfo );
 						
+					if ( tempMsg ) tempMsg.delete();
 					console.log( _.fmt( 'WARNING: could not find suitable query mode for <%s>', url ) );
 					return reject( 'could not find suitable query mode' );
 				};
