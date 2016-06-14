@@ -200,7 +200,7 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_DELETE':
 			// channelid, data
-			if ( e.channel.is_private ) return;
+			if ( e.data.is_private ) return;
 			var name = e.data.name;
 			if ( e.data.type == 'text' )
 				name = '#' + name;
