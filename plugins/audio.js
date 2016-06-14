@@ -442,7 +442,8 @@ commands.register( {
 			
 			var current_users = [];
 			for ( var i in channel.members )
-				current_users.push( channel.members[i].id );
+				if ( !channel.members[i].bot )
+					current_users.push( channel.members[i].id );
 			
 			var clean_votes = [];
 			for ( var i in sess.skipVotes )
