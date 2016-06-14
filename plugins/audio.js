@@ -741,6 +741,14 @@ commands.register( {
 				var queryPlaylist = function( i )
 					{
 						var song = data[i];
+						if ( !is_accepted_url( song.url ) )
+						{
+							errors += _.fmt( '<%s>: not an accepted url\n', song.url );
+							numErrors++;
+							checkLoaded( i );
+							return;
+						}
+						
 						queryRemote( { quiet: true, msg: msg, url: song.url, returnInfo: true } ).then( info =>
 							{
 								info.channel = msg.channel;
