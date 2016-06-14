@@ -601,7 +601,7 @@ commands.register( {
 	aliases: [ 'time', 'seek' ],
 	help: 'seek to a specific time',
 	flags: [ 'admin_only', 'no_pm' ],
-	args: 'time',
+	args: '[time]',
 	callback: ( client, msg, args ) =>
 	{		
 		var id = msg.guild.id;		
@@ -610,8 +610,19 @@ commands.register( {
 			var sess = sessions[id];
 			if ( !sess.playing ) return;
 			
-			sess.encoder.stop();
-			start_player( id, args );
+			if ( args )
+			{
+				sess.encoder.stop();
+				start_player( id, parse_seek(args) );
+			}
+			else
+			{
+				var currentSeek = moment.duration( Math.round(sess.time)*1000 ).format('hh:mm:ss');
+				if ( !currentSeek.match( ':' ) )
+					currentSeek = '00:' + currentSeek;
+	
+				msg.channel.sendMessage( _.fmt( 'current seek time: `%s / %s`', currentSeek, sess.queue[0].length ) );
+			}
 		}
 	}});
 
