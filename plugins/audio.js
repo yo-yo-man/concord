@@ -13,6 +13,31 @@ var ytdl_core = require( 'ytdl-core' );
 var moment = require( 'moment' );
 require( 'moment-duration-format' );
 
+var default_youtube_urls =
+	[
+		"(https?\\:\\/\\/)?(www\\.)?(youtube\\.com|youtu\\.be)\\/.*"
+	];
+	
+var default_additional_urls =
+	[
+		"(https?\\:\\/\\/)?(www\\.)?soundcloud.com\\/.*",
+		"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/.*",
+		"(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*",
+		"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*"
+	];
+	
+var default_accepted_files =
+	[
+		".*\\.mp3",
+		".*\\.ogg",
+		".*\\.wav",
+		".*\\.flac",
+		".*\\.m4a",
+		".*\\.aac",
+		".*\\.webm",
+		".*\\.mp4"
+	];
+
 var sessions = {};
 var guildSettings = {};
 
@@ -285,17 +310,17 @@ function queryRemote( args )
 						parseInfo( err, info );
 					}
 					
-					var accepted_files = settings.get( 'audio', 'accepted_files', [] );
+					var accepted_files = settings.get( 'audio', 'accepted_files', default_accepted_files );
 					for ( var i in accepted_files )
 						if ( url.match( accepted_files[i] ) )
 							return parseInfo( false, { title: url, url: url } );
 						
-					var youtube_urls = settings.get( 'audio', 'youtube_urls', [] );
+					var youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls );
 					for ( var i in youtube_urls )
 						if ( url.match( youtube_urls[i] ) )
 							return ytdl_core.getInfo( url, parseInfoFast );
 						
-					var additional_urls = settings.get( 'audio', 'additional_urls', [] );
+					var additional_urls = settings.get( 'audio', 'additional_urls', default_additional_urls );
 					for ( var i in additional_urls )
 						if ( url.match( additional_urls[i] ) )
 							return ydl.getInfo( url, [], parseInfo );
@@ -315,30 +340,9 @@ function queryRemote( args )
 
 function is_accepted_url( link )
 {
-	var youtube_urls = settings.get( 'audio', 'youtube_urls',
-		[
-			"(https?\\:\\/\\/)?(www\\.)?(youtube\\.com|youtu\\.be)\\/.*"
-		]);
-	
-	var additional_urls = settings.get( 'audio', 'additional_urls',
-		[
-			"(https?\\:\\/\\/)?(www\\.)?soundcloud.com\\/.*",
-			"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/.*",
-			"(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*",
-			"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*"
-		]);
-	
-	var accepted_files = settings.get( 'audio', 'accepted_files',
-		[
-			".*\\.mp3",
-			".*\\.ogg",
-			".*\\.wav",
-			".*\\.flac",
-			".*\\.m4a",
-			".*\\.aac",
-			".*\\.webm",
-			".*\\.mp4"
-		]);
+	var youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls );
+	var additional_urls = settings.get( 'audio', 'additional_urls', default_additional_urls );
+	var accepted_files = settings.get( 'audio', 'accepted_files', default_accepted_files );
 	
 	var acceptedURLs = [];
 	acceptedURLs.push.apply( acceptedURLs, youtube_urls );
