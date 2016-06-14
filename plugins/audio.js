@@ -306,7 +306,8 @@ function queryRemote( args )
 					
 					function parseInfoFast( err, info )
 					{
-						info.duration = moment.duration( parseInt( info.length_seconds ) * 1000 ).format( 'hh:mm:ss' );
+						if ( info )
+							info.duration = moment.duration( parseInt( info.length_seconds ) * 1000 ).format( 'hh:mm:ss' );
 						parseInfo( err, info );
 					}
 					
