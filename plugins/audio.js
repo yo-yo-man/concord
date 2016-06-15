@@ -819,9 +819,9 @@ commands.register( {
 				{
 					if ( !file.endsWith( '.json' ) ) return;
 					if ( !file.startsWith( msg.guild.id + '_' ) ) return;
-					list += file.replace( '.json', '' ).replace( msg.guild.id + '_', '' ) + '\n';
+					list += file.replace( '.json', '' ).replace( msg.guild.id + '_', '' ) + ', ';
 				});
-			list = '--- playlists ---\n' + list;
+			list = '--- playlists ---\n' + list.substring( 0, list.length-2 );
 		}
 		else
 		{
