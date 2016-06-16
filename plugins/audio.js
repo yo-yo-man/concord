@@ -272,10 +272,32 @@ function queryRemote( args )
 						if ( info.formats )
 						{
 							streamurl = info.formats[0].url;
-							if ( info.formats[0].abr )
-								streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url;
-							if ( info.formats[0].audioBitrate )
-								streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url;
+							
+							var desired_bitrate = settings.get( 'audio', 'desired_bitrate', false );
+							if ( desired_bitrate )
+							{
+								var closest = info.formats[0];
+								var diff = 9999;
+								for ( var i in info.formats )
+								{
+									var format = info.formats[i];
+									var abr = format.abr || format.audioBitrate;
+									var d = Math.abs( desired_bitrate - abr );
+									if ( d < diff )
+									{
+										closest = format;
+										diff = d;
+									}
+								}
+								streamurl = closest.url;
+							}
+							else
+							{
+								if ( info.formats[0].abr )
+									streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url;
+								if ( info.formats[0].audioBitrate )
+									streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url;
+							}
 						}
 						
 						var seek = false;
