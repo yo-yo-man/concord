@@ -50,5 +50,10 @@ client.Dispatcher.on( 'GATEWAY_READY', e =>
 client.Dispatcher.onAny( ( type, e ) =>
 	{
 		if ( [ 'GATEWAY_RESUMED', 'DISCONNECTED', 'GUILD_UNAVAILABLE', 'GUILD_CREATE', 'GUILD_DELETE' ].indexOf( type ) != -1 )
-			return _.log('<' + type + '> ' + (e.error || e.guildId || e.guild.id || '') );
+		{
+			var message = e.error || e.guildId || '';
+			if ( e.guild )
+				message = e.guild.id;
+			return _.log('<' + type + '> ' + message );
+		}
 	});
