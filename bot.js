@@ -27,8 +27,12 @@ else
 	client.connect( { token: token } );
 
 
+var initialized = false;
 client.Dispatcher.on( 'GATEWAY_READY', e =>
 	{
+		if ( initialized ) return;
+		initialized = true;
+		
 		_.log( _.fmt( 'logged in as %s <@%s>', client.User.username, client.User.id ) );
 		require('./permissions.js').init( client );
 		require('./commands.js').init( client );
