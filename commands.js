@@ -13,6 +13,16 @@ commands.register = function( params )
 		commands.commandList.push( params );
 	}
 	
+commands.getCMD = function( alias )
+	{
+		for ( var i in commands.commandList )
+		{
+			var cmd = commands.commandList[i];
+			if ( cmd.aliases.indexOf( alias ) != -1 )
+				return cmd;
+		}
+	};
+	
 commands.generateHelp = function( cmd )
 	{
 		var help = settings.get( 'config', 'command_prefix', '!' );

@@ -70,7 +70,7 @@ commands.register( {
 	callback: ( client, msg, args ) =>
 	{
 		if ( !args )
-			return msg.channel.sendMessage( '`' + commands.generateHelp( 'clear' ) + '`' );
+			return msg.channel.sendMessage( '`' + commands.generateHelp( commands.getCMD( 'clear' ) ) + '`' );
 		
 		var split = args.split( ' ' );
 		var limit = split[0] || 100;
