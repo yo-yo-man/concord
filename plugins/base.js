@@ -69,6 +69,9 @@ commands.register( {
 	args: '[limit=100] [user]',
 	callback: ( client, msg, args ) =>
 	{
+		if ( !args )
+			return msg.channel.sendMessage( '`' + commands.generateHelp( 'clear' ) + '`' );
+		
 		var split = args.split( ' ' );
 		var limit = split[0] || 100;
 		var target = split[1] || false;
