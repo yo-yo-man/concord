@@ -238,8 +238,8 @@ function queryRemote( args )
 						{
 							console.log( _.filterlinks( err ) );
 							if ( !quiet )
-								tempMsg.delete().then( () => setTimeout( () => process.exit( 1 ), 1000 ) ); // wait a second before exiting
-							return reject( 'error querying info' );
+								tempMsg.delete();
+							return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) );
 						}
 						
 						var title = info.title;
@@ -426,7 +426,7 @@ commands.register( {
 				if ( res.isnew )
 					create_session( res.conn, msg );
 				
-				queryRemote( { msg: msg, url: args } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( s ) );
+				queryRemote( { msg: msg, url: args } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( '```' + s + '```' ) );
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ); } );
 	}});
@@ -726,7 +726,7 @@ commands.register( {
 				fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' );
 				msg.channel.sendMessage( _.fmt( '`%s` added `%s [%s]` to `%s`', msg.author.username, info.title, info.length, name ) );
 			})
-			.catch( s => msg.channel.sendMessage( s ) );
+			.catch( s => msg.channel.sendMessage( '```' + s + '```' ) );
 	}});
 
 commands.register( {
