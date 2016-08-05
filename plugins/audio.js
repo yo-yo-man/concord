@@ -109,7 +109,8 @@ function leave_channel( id )
 		sess.encoder.stop();
 		sess.encoder.destroy();
 	}
-	sess.conn.channel.leave();
+	if ( sess.conn.channel )
+		sess.conn.channel.leave();
 	delete sessions[id];
 }
 
@@ -242,6 +243,10 @@ function queryRemote( args )
 							return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) );
 						}
 						
+						var id = msg.guild.id;
+						if ( !sessions[ id ] )
+							return reject( 'invalid audio session' );
+						
 						var title = info.title;
 						
 						var length = '??:??';
@@ -314,7 +319,6 @@ function queryRemote( args )
 						// never return this
 						songInfo.channel = msg.channel;
 						
-						var id = msg.guild.id;
 						var queue_empty = sessions[ id ].queue.length == 0;
 						sessions[ id ].queue.push( songInfo );
 						
