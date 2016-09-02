@@ -127,14 +127,14 @@ commands.register( {
 								
 								toDelete[i].delete().then( () =>
 									{ setTimeout( function() { deleteQueue( i+1 ) }, 1000 )
-									}).catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing: %s`', e.message ) ); tempMsg.delete(); } );
+									}).catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error deleting message: %s`', e.message ) ); tempMsg.delete(); } );
 							};
 							
 						deleteQueue( 0 );
 					})
-					.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing: %s`', e.message ) ); tempMsg.delete(); } );
+					.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error fetching messages: %s`', e.message ) ); tempMsg.delete(); } );
 			})
-			.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing: %s`', e.message ) ); } );
+			.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing messages: %s`', e.message ) ); } );
 	}});
 
 commands.register( {
