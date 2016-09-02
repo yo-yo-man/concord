@@ -86,7 +86,7 @@ function join_channel( msg )
 				var sess = sessions[ channel.guild.id ];
 				
 				var disposed = sess.conn.disposed;
-				var samechan = sess.channel == channel.id;
+				var samechan = sess.conn.channel == channel.id;
 				
 				if ( !disposed && !samechan )
 					return reject( 'already busy in another channel' );
@@ -464,7 +464,7 @@ commands.register( {
 				return msg.channel.sendMessage( 'not playing anything to skip' );
 			
 			var channel = msg.member.getVoiceChannel();
-			var samechan = sess.channel == channel.id;
+			var samechan = sess.conn.channel == channel.id;
 			if ( !samechan )
 				return msg.channel.sendMessage( "can't vote to skip from another channel" );
 			
