@@ -1,5 +1,7 @@
 'use strict';
 
+var Discordie = require( 'discordie' );
+
 var commands = require( '../commands.js' );
 var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
@@ -201,7 +203,7 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_CREATE':
 			// channel
-			if ( e.channel.is_private ) return;
+			if ( e.channel.isPrivate ) return;
 			var name = e.channel.mention;
 			if ( !name )
 				name = '`' + e.channel.name + '`';
@@ -210,9 +212,9 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_DELETE':
 			// channelid, data
-			if ( e.data.is_private ) return;
+			if ( e.data.isPrivate ) return;
 			var name = e.data.name;
-			if ( e.data.type == 'text' )
+			if ( e.data.type == Discordie.ChannelTypes.GUILD_TEXT )
 				name = '#' + name;
 			sendGuildNotice( e.data.guild_id, _.fmt( '`%s` deleted', name ) );
 			break;
@@ -239,7 +241,7 @@ function processEvent( type, e )
 			
 		case 'CHANNEL_UPDATE':
 			// channel
-			if ( e.channel.is_private ) return;
+			if ( e.channel.isPrivate ) return;
 			var name = e.channel.mention;
 			if ( !name )
 				name = '`' + e.channel.name + '`';

@@ -1,5 +1,7 @@
 'use strict';
 
+var Discordie = require( 'discordie' );
+
 var commands = require( '../commands.js' );
 var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
@@ -87,7 +89,7 @@ commands.register( {
 		var listening = 0;
 		client.Channels.forEach( function( channel )
 			{
-				if ( channel.type == 'text' && !channel.is_private )
+				if ( channel.type == Discordie.ChannelTypes.GUILD_TEXT && !channel.isPrivate )
 				{
 					total++;
 					if ( client.User.can( permissions.discord.Text.READ_MESSAGES, channel ) )

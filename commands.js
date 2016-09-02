@@ -54,7 +54,7 @@ commands.findTarget = function( msg, str )
 		var matches = [];
 		str = str.toLowerCase();
 		
-		if ( msg.channel.is_private )
+		if ( msg.channel.isPrivate )
 		{
 			client.Users.forEach( function( user )
 			{
@@ -153,7 +153,7 @@ function onMessage( client, e )
 		var cmd = commands.commandList[i];
 		
 		if ( cmd.aliases.indexOf( command ) != -1 )
-			if ( cmd.flags && cmd.flags.indexOf( 'no_pm' ) != -1 && e.message.channel.is_private )
+			if ( cmd.flags && cmd.flags.indexOf( 'no_pm' ) != -1 && e.message.channel.isPrivate )
 				return e.message.channel.sendMessage( "can't use this command in private messages" );
 			else
 				if ( permissions.userHasCommand( e.message.author, cmd ) )
