@@ -244,8 +244,6 @@ function queryRemote( args )
 						}
 						
 						var id = msg.guild.id;
-						if ( !sessions[ id ] )
-							return reject( 'invalid audio session' );
 						
 						var title = info.title;
 						
@@ -318,6 +316,9 @@ function queryRemote( args )
 						
 						// never return this
 						songInfo.channel = msg.channel;
+						
+						if ( !sessions[ id ] )
+							return reject( 'invalid audio session' );
 						
 						var queue_empty = sessions[ id ].queue.length == 0;
 						sessions[ id ].queue.push( songInfo );
