@@ -22,7 +22,7 @@ var default_youtube_urls =
 var default_additional_urls =
 	[
 		"(https?\\:\\/\\/)?(www\\.)?soundcloud.com\\/.*",
-		"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/.*",
+		"(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/track/.*",
 		"(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*",
 		"(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*"
 	];
