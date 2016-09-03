@@ -276,6 +276,18 @@ function queryRemote( args )
 						{
 							streamurl = info.formats[0].url;
 							
+							// skip rtmp links (soundcloud)
+							if ( info.formats[0].protocol )
+							{
+								for ( var i in info.formats )
+								{
+									if ( info.formats[i].protocol == 'rtmp' )
+										continue;
+									streamurl = info.formats[i].url;
+									break;
+								}
+							}
+							
 							var desired_bitrate = settings.get( 'audio', 'desired_bitrate', false );
 							if ( desired_bitrate )
 							{
