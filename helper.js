@@ -17,6 +17,12 @@ _.pad = function( num, size )
 	    return s;
 	};
 _.rand = function( min, max ) { return Math.floor( ( Math.random() * max ) + min ) };
+_.round = function( num, places )
+	{
+		num = parseFloat( num );
+		places = places || 0;
+		return Number( Math.round( num + 'e' + places ) + 'e-' + places );
+	};
 _.matches = function( reg, str )
 	{
 		var matches, output = [];

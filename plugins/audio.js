@@ -256,7 +256,7 @@ function queryRemote( args )
 							if ( split.length == 2 )
 								split.unshift( '00' );
 							
-							length = _.fmt( '%s:%s:%s', _.pad( split[0], 2 ), _.pad( split[1], 2 ), _.pad( split[2], 2 ) )
+							length = _.fmt( '%s:%s:%s', _.pad( _.round(split[0]), 2 ), _.pad( _.round(split[1]), 2 ), _.pad( _.round(split[2]), 2 ) )
 							var length_seconds = moment.duration( length ).format( 'ss' );
 							
 							if ( length.substring( 0, 3 ) == '00:' )
