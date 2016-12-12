@@ -114,22 +114,6 @@ function leave_channel( id )
 	delete sessions[id];
 }
 
-function parse_seek( str )
-{
-	var time = 0;
-	if ( str.match( /(\d+)h/g ) )
-		time += parseInt( _.matches( /(\d+)h/g, str )[0] ) * 60 * 60;
-	if ( str.match( /(\d+)m/g ) )
-		time += parseInt( _.matches( /(\d+)m/g, str )[0] ) * 60;
-	if ( str.match( /(\d+)s/g ) )
-		time += parseInt( _.matches( /(\d+)s/g, str )[0] );
-	
-	if ( time == 0 && str.length != 0 )
-		time = parseInt( str );
-	
-	return time;
-}
-
 function rotate_queue( id )
 {
 	var sess = sessions[ id ];
@@ -317,7 +301,7 @@ function queryRemote( args )
 						
 						var seek = false;
 						if ( url.indexOf( 't=' ) != -1 )
-							seek = parse_seek( _.matches( /t=(.*)/g, url )[0] );
+							seek = _.parsetime( _.matches( /t=(.*)/g, url )[0] );
 						
 						if ( tempMsg ) tempMsg.delete();
 						var songInfo = { url: url, title: title, length: length, seek: seek, length_seconds: length_seconds };
@@ -669,7 +653,7 @@ commands.register( {
 			if ( args )
 			{
 				sess.encoder.stop();
-				start_player( id, parse_seek(args) );
+				start_player( id, _.parsetime(args) );
 			}
 			else
 			{

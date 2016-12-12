@@ -23,12 +23,51 @@ _.round = function( num, places )
 		places = places || 0;
 		return Number( Math.round( num + 'e' + places ) + 'e-' + places );
 	};
+_.sanesplit = function( str, del, limit )
+	{
+		var arr = str.split( del );
+		var res = arr.splice( 0, limit );
+		res.push( arr.join( del ) );
+		return res;
+	};
 _.matches = function( reg, str )
 	{
 		var matches, output = [];
 		while ( matches = reg.exec( str ) )
 			output.push( matches[1] );
 		return output;
+	};
+_.parsetime = function( str )
+	{
+		str = str.replace( / /g, '' );
+		
+		str = str.replace( /min/g, 'm' );
+		str = str.replace( /mins/g, 'm' );
+		str = str.replace( /minute/g, 'm' );
+		str = str.replace( /minutes/g, 'm' );
+		
+		str = str.replace( /hr/g, 'h' );
+		str = str.replace( /hrs/g, 'h' );
+		str = str.replace( /hour/g, 'h' );
+		str = str.replace( /hours/g, 'h' );
+		
+		str = str.replace( /sec/g, 's' );
+		str = str.replace( /secs/g, 's' );
+		str = str.replace( /second/g, 's' );
+		str = str.replace( /seconds/g, 's' );
+		
+		var time = 0;
+		if ( str.match( /(\d+)h/g ) )
+			time += parseInt( _.matches( /(\d+)h/g, str )[0] ) * 60 * 60;
+		if ( str.match( /(\d+)m/g ) )
+			time += parseInt( _.matches( /(\d+)m/g, str )[0] ) * 60;
+		if ( str.match( /(\d+)s/g ) )
+			time += parseInt( _.matches( /(\d+)s/g, str )[0] );
+		
+		if ( time == 0 && str.length != 0 )
+			time = parseInt( str );
+		
+		return time;
 	};
 _.filterlinks = function( str )
 	{
