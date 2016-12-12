@@ -112,25 +112,15 @@ commands.register( {
 							toDelete.push( message );
 						}
 						
-						var deleteQueue = function( i )
+						client.Messages.deleteMessages( toDelete ).then( () =>
 							{
-								if ( i >= toDelete.length )
-								{
-									tempMsg.delete();
-									var byUser = '';
-									if ( target !== false )
-										byUser = _.fmt( ' by `%s`', _.nick( target ) );
-									var numCleared = toDelete.length-1; // subtract user's !clear command
-									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.member ), numCleared, byUser ) )
-									return;
-								}
-								
-								toDelete[i].delete().then( () =>
-									{ setTimeout( function() { deleteQueue( i+1 ) }, 1000 )
-									}).catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error deleting message: %s`', e.message ) ); tempMsg.delete(); } );
-							};
-							
-						deleteQueue( 0 );
+								tempMsg.delete();
+								var byUser = '';
+								if ( target !== false )
+									byUser = _.fmt( ' by `%s`', _.nick( target ) );
+								var numCleared = toDelete.length-1; // subtract user's !clear command
+								msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.member ), numCleared, byUser ) );
+							}).catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error deleting message: %s`', e.message ) ); tempMsg.delete(); } );
 					})
 					.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error fetching messages: %s`', e.message ) ); tempMsg.delete(); } );
 			})
