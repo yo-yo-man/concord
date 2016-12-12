@@ -79,9 +79,9 @@ commands.register( {
 	help: 'bot uptime and statistics',
 	callback: ( client, msg, args ) =>
 	{
-		var uptime = moment.duration( (_.time() - startTime)*1000 ).format( 'h:mm:ss' )
+		var uptime = moment.duration( (_.time() - startTime)*1000 );
 		
-		var stats = _.fmt( 'uptime: %s\n', uptime );
+		var stats = _.fmt( 'uptime: %s (%s)\n', uptime.humanize(), uptime.format( 'h:mm:ss' ) );
 		stats += _.fmt( 'commands since boot: %s\n', commands.numSinceBoot );
 		stats += _.fmt( 'servers connected: %s\n', client.Guilds.length );
 		
