@@ -15,12 +15,13 @@ function timedMessage( channel, msg, delay )
 commands.register( {
 	category: 'fun',
 	aliases: [ 'roll' ],
+	flags: [ 'no_pm' ],
 	help: 'roll an X sided dice',
 	args: '[sides=6]',
 	callback: ( client, msg, args ) =>
 	{
 		var max = args || 6;
-		msg.channel.sendMessage( _.fmt( '`%s` rolled a `%s`', msg.author.username, _.rand(1,max) ) );
+		msg.channel.sendMessage( _.fmt( '`%s` rolled a `%s`', _.nick( msg.member ), _.rand(1,max) ) );
 	}});
 
 commands.register( {
@@ -46,7 +47,7 @@ commands.register( {
 	help: 'clench your ass cheeks and pull the trigger',
 	callback: ( client, msg, args ) =>
 	{
-		msg.channel.sendMessage( _.fmt( '*`%s` pulls the trigger...*', msg.author.username ) );
+		msg.channel.sendMessage( _.fmt( '*`%s` pulls the trigger...*', _.nick( msg.member ) ) );
 		
 		var guildId = msg.guild.id;
 		if ( !rouletteCache[ guildId ] )

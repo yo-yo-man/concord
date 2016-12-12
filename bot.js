@@ -33,7 +33,7 @@ client.Dispatcher.on( 'GATEWAY_READY', e =>
 		if ( initialized ) return;
 		initialized = true;
 		
-		_.log( _.fmt( 'logged in as %s <@%s>', client.User.username, client.User.id ) );
+		_.log( _.fmt( 'logged in as %s#%s <@%s>', client.User.username, client.User.discriminator, client.User.id ) );
 		require('./permissions.js').init( client );
 		require('./commands.js').init( client );
 		require('./plugins.js').load( client );

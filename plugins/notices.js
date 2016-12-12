@@ -106,6 +106,10 @@ function processEvent( type, e )
 {
 	//console.log( type );
 	
+	var guild = e.guild;
+	if ( e.guildId )
+		guild = client.Guilds.get( e.guildId );
+	
 	switch ( type )
 	{
 		case 'PRESENCE_MEMBER_INFO_UPDATE':
@@ -136,7 +140,7 @@ function processEvent( type, e )
 			if ( e.user.bot ) return;
 			if ( e.newChannelId == null )
 			{
-				sendGuildNotice( e.guildId, _.fmt( '`%s` disconnected', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` disconnected', _.nick( e.user, guild ) ) );
 				
 				if ( usersConnected[ e.guildId ] && usersConnected[ e.guildId ][ e.user.id ] )
 					delete usersConnected[ e.guildId ][ e.user.id ];
@@ -160,7 +164,7 @@ function processEvent( type, e )
 				action = 'switched';
 			}
 			
-			sendGuildNotice( e.guildId, _.fmt( '`%s` %s to `%s`', e.user.username, action, e.channel.name ) );
+			sendGuildNotice( e.guildId, _.fmt( '`%s` %s to `%s`', _.nick( e.user, guild ), action, e.channel.name ) );
 			break;
 			
 		case 'VOICE_USER_SELF_MUTE':
@@ -168,9 +172,9 @@ function processEvent( type, e )
 			if ( settings.get( 'notices', 'hide_mute_events', true ) )
 				return;
 			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` muted', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` muted', _.nick( e.user, guild ) ) );
 			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` unmuted', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` unmuted', _.nick( e.user, guild ) ) );
 			break;
 		
 		case 'VOICE_USER_SELF_DEAF':
@@ -178,25 +182,25 @@ function processEvent( type, e )
 			if ( settings.get( 'notices', 'hide_deaf_events', false ) )
 				return;
 			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` deafened', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` deafened', _.nick( e.user, guild ) ) );
 			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` undeafened', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` undeafened', _.nick( e.user, guild ) ) );
 			break;
 		
 		case 'VOICE_USER_MUTE':
 			// user, channel, channelid, guildid, state
 			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was muted by the server', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` was muted by the server', _.nick( e.user, guild ) ) );
 			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was unmuted by the server', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` was unmuted by the server', _.nick( e.user, guild ) ) );
 			break;
 		
 		case 'VOICE_USER_DEAF':
 			// user, channel, channelid, guildid, state
 			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was deafened by the server', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` was deafened by the server', _.nick( e.user, guild ) ) );
 			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was undeafened by the server', e.user.username ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` was undeafened by the server', _.nick( e.user, guild ) ) );
 			break;
 			
 		case 'PRESENCE_UPDATE':
@@ -204,7 +208,7 @@ function processEvent( type, e )
 			if ( e.user.status == 'offline' && e.user.status != e.user.previousStatus )
 				if ( usersConnected[ e.guild.id ] && usersConnected[ e.guild.id ][ e.user.id ] )
 				{
-					sendGuildNotice( e.guild.id, _.fmt( '`%s` disconnected', e.user.username ) );
+					sendGuildNotice( e.guild.id, _.fmt( '`%s` disconnected', _.nick( e.user, guild ) ) );
 					delete usersConnected[ e.guild.id ][ e.user.id ];
 					return;
 				}
@@ -212,9 +216,9 @@ function processEvent( type, e )
 			if ( settings.get( 'notices', 'hide_game_events', true ) )
 				return;
 			if ( e.user.previousGameName != null )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` stopped playing `%s`', e.user.username, e.user.previousGameName ) );
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` stopped playing `%s`', _.nick( e.user, guild ), e.user.previousGameName ) );
 			if ( e.user.gameName != null )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` started playing `%s`', e.user.username, e.user.gameName ) );
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` started playing `%s`', _.nick( e.user, guild ), e.user.gameName ) );
 			break;
 			
 		case 'CHANNEL_CREATE':
@@ -237,22 +241,22 @@ function processEvent( type, e )
 			
 		case 'GUILD_MEMBER_ADD':
 			// guild, member
-			sendGuildNotice( e.guild.id, _.fmt( '`%s` joined the server, welcome!', e.member.username ) );
+			sendGuildNotice( e.guild.id, _.fmt( '`%s` joined the server, welcome!', _.nick( e.member ) ) );
 			break;
 			
 		case 'GUILD_MEMBER_REMOVE':
 			// guild, user, data, getCachedData
-			sendGuildNotice( e.guild.id, _.fmt( '`%s` left the server, bye :(', e.user.username ) );
+			sendGuildNotice( e.guild.id, _.fmt( '`%s` left the server, bye :(', _.nick( e.user, guild ) ) );
 			break;
 			
 		case 'GUILD_BAN_ADD':
 			// guild, user
-			sendGuildNotice( e.guild.id, _.fmt( '`%s` was banned', e.user.username ) );
+			sendGuildNotice( e.guild.id, _.fmt( '`%s` was banned', _.nick( e.user, guild ) ) );
 			break;
 			
 		case 'GUILD_BAN_REMOVE':
 			// guild, user
-			sendGuildNotice( e.guild.id, _.fmt( '`%s` was unbanned', e.user.username ) );
+			sendGuildNotice( e.guild.id, _.fmt( '`%s` was unbanned', _.nick( e.user, guild ) ) );
 			break;
 			
 		case 'CHANNEL_UPDATE':

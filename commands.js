@@ -167,7 +167,7 @@ function onMessage( client, e )
 					fullContent = _.filterlinks( fullContent );
 					
 					commands.numSinceBoot++;
-					_.log( _.fmt( '%s in #%s %s: %s', e.message.author.username, e.message.channel.name, guildname, fullContent ) );
+					_.log( _.fmt( '%s#%s in #%s %s: %s', e.message.author.username, e.message.author.discriminator, e.message.channel.name, guildname, fullContent ) );
 					
 					if ( checkArgs( cmd, args ) )
 						return cmd.callback( client, e.message, args );

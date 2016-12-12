@@ -119,9 +119,9 @@ commands.register( {
 									tempMsg.delete();
 									var byUser = '';
 									if ( target !== false )
-										byUser = _.fmt( ' by `%s`', target.username );
+										byUser = _.fmt( ' by `%s`', _.nick( target ) );
 									var numCleared = toDelete.length-1; // subtract user's !clear command
-									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages%s', msg.author.username, numCleared, byUser ) )
+									msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.member ), numCleared, byUser ) )
 									return;
 								}
 								

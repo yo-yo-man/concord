@@ -140,9 +140,9 @@ function rotate_queue( id )
 
 function get_queuedby_user( song )
 {
-	var by_user = client.Users.get( song.queuedby );
-	if ( !by_user ) by_user = '<unknown>';
-		else by_user = by_user.username;
+	var by_user = '<unknown>';
+	if ( song.queuedby )
+		by_user = _.nick( song.queuedby );
 	return by_user;
 }
 
@@ -320,9 +320,12 @@ function queryRemote( args )
 							seek = parse_seek( _.matches( /t=(.*)/g, url )[0] );
 						
 						if ( tempMsg ) tempMsg.delete();
-						var songInfo = { url: url, title: title, length: length, queuedby: msg.author.id, seek: seek, length_seconds: length_seconds };
+						var songInfo = { url: url, title: title, length: length, seek: seek, length_seconds: length_seconds };
 						if ( !forPlaylist )
+						{
 							songInfo.streamurl = streamurl;
+							songInfo.queuedby = msg.member;
+						}
 						if ( returnInfo )
 							return resolve( songInfo );
 						
@@ -337,11 +340,11 @@ function queryRemote( args )
 						
 						if ( queue_empty )
 						{
-							resolve( _.fmt( '`%s` started playing `%s [%s]`', msg.author.username, title, length ) );
+							resolve( _.fmt( '`%s` started playing `%s [%s]`', _.nick( msg.member ), title, length ) );
 							start_player( id, 0 );
 						}
 						else
-							resolve( _.fmt( '`%s` queued `%s [%s]`', msg.author.username, title, length ) );
+							resolve( _.fmt( '`%s` queued `%s [%s]`', _.nick( msg.member ), title, length ) );
 					}
 					
 					function parseInfoFast( err, info )
@@ -482,7 +485,7 @@ commands.register( {
 			
 			if ( args && permissions.hasAdmin( msg.author ) )
 			{
-				msg.channel.sendMessage( _.fmt( '`%s` force-skipped the song', msg.author.username ) );
+				msg.channel.sendMessage( _.fmt( '`%s` force-skipped the song', _.nick( msg.member ) ) );
 				rotate_queue( id );
 				return;
 			}
@@ -491,7 +494,7 @@ commands.register( {
 				sess.skipVotes = [];
 			
 			if ( sess.skipVotes.indexOf( msg.author.id ) != -1 )
-				return msg.channel.sendMessage( _.fmt( '`%s` has already voted to skip this song', msg.author.username ) );
+				return msg.channel.sendMessage( _.fmt( '`%s` has already voted to skip this song', _.nick( msg.member ) ) );
 			
 			var current_users = [];
 			for ( var i in channel.members )
@@ -514,7 +517,7 @@ commands.register( {
 				return rotate_queue( id );
 			}
 			else
-				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', msg.author.username, sess.skipVotes.length, votesNeeded ) );
+				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member ), sess.skipVotes.length, votesNeeded ) );
 		}
 		else
 			msg.channel.sendMessage( 'nothing is currently playing' );
@@ -540,7 +543,7 @@ commands.register( {
 			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', args ) );
 		
 		var vol = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
-		msg.channel.sendMessage( _.fmt( '`%s` changed volume to `%s`', msg.author.username, vol ) );
+		msg.channel.sendMessage( _.fmt( '`%s` changed volume to `%s`', _.nick( msg.member ), vol ) );
 		
 		setGuildSetting( id, 'volume', vol );
 		
@@ -741,7 +744,7 @@ commands.register( {
 			{
 				data.push( info );
 				fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' );
-				msg.channel.sendMessage( _.fmt( '`%s` added `%s [%s]` to `%s`', msg.author.username, info.title, info.length, name ) );
+				msg.channel.sendMessage( _.fmt( '`%s` added `%s [%s]` to `%s`', _.nick( msg.member ), info.title, info.length, name ) );
 			})
 			.catch( s => msg.channel.sendMessage( '```' + s + '```' ) );
 	}});
@@ -797,11 +800,11 @@ commands.register( {
 							tempMsg.delete();
 							if ( queue_empty )
 							{
-								msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
+								msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`%s', _.nick( msg.member ), name, data.length, errors ) );
 								start_player( id );
 							}
 							else
-								msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`%s', msg.author.username, name, data.length, errors ) );
+								msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`%s', _.nick( msg.member ), name, data.length, errors ) );
 						}
 						else
 							queryPlaylist( i+1 );
@@ -821,6 +824,7 @@ commands.register( {
 						queryRemote( { quiet: true, msg: msg, url: song.url, returnInfo: true } ).then( info =>
 							{
 								info.channel = msg.channel;
+								info.queuedby = msg.member;
 								queueBuffer.push( info );
 								checkLoaded( i );
 							})
@@ -878,10 +882,8 @@ commands.register( {
 			var data = JSON.parse( playlist );
 			for ( var i in data )
 			{
-				var song = data[i];
-				
-				var by_user = get_queuedby_user( song );					
-				list +=_.fmt( '%s. %s [%s] (%s)\n', parseInt(i)+1, song.title, song.length, by_user );
+				var song = data[i];				
+				list +=_.fmt( '%s. %s [%s]\n', parseInt(i)+1, song.title, song.length );
 			}
 		}
 		
