@@ -35,40 +35,35 @@ commands.register( {
 			if ( target === false )
 				return;
 		}
+		else
+			limit++; // clear the user's !clear command as well
 		
-		limit++; // clear the user's !clear command as well
 		var lookback = 100; // number of messages to look back into
-		msg.channel.sendMessage( 'clearing, please wait...' ).then( tempMsg =>
+		msg.channel.fetchMessages( lookback, msg ).then( () =>
 			{
-				msg.channel.fetchMessages( lookback, tempMsg ).then( () =>
-					{
-						var toDelete = [];
-						for ( var i = msg.channel.messages.length-1; i >= 0; i-- )
-						{
-							var message = msg.channel.messages[i];
-							
-							if ( message.deleted || message.id == tempMsg.id || ( target !== false && target.id != message.author.id ) )
-								continue;
-							
-							if ( toDelete.length >= limit )
-								break;
-								
-							toDelete.push( message );
-						}
+				var toDelete = [];
+				for ( var i = msg.channel.messages.length-1; i >= 0; i-- )
+				{
+					var message = msg.channel.messages[i];
+					
+					if ( message.deleted || ( target !== false && target.id != message.author.id ) )
+						continue;
+					
+					if ( toDelete.length >= limit )
+						break;
 						
-						client.Messages.deleteMessages( toDelete ).then( () =>
-							{
-								tempMsg.delete();
-								var byUser = '';
-								if ( target !== false )
-									byUser = _.fmt( ' by `%s`', _.nick( target ) );
-								var numCleared = toDelete.length-1; // subtract user's !clear command
-								msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.member ), numCleared, byUser ) );
-							}).catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error deleting message: %s`', e.message ) ); tempMsg.delete(); } );
-					})
-					.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error fetching messages: %s`', e.message ) ); tempMsg.delete(); } );
-			})
-			.catch( e => { console.log( e.stack ); msg.channel.sendMessage( _.fmt( '`error clearing messages: %s`', e.message ) ); } );
+					toDelete.push( message );
+				}
+				
+				client.Messages.deleteMessages( toDelete ).then( () =>
+					{
+						var byUser = '';
+						if ( target !== false )
+							byUser = _.fmt( ' by `%s`', _.nick( target ) );
+						var numCleared = toDelete.length-1; // subtract user's !clear command
+						msg.channel.sendMessage( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.member ), numCleared, byUser ) );
+					});
+			});
 	}});
 
 var client = null;
