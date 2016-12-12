@@ -267,7 +267,7 @@ function queryRemote( args )
 							{
 								var maxlen = moment.duration( max_length*1000 ).format( 'h:mm:ss' );
 								if ( tempMsg ) tempMsg.delete();
-								return reject( _.fmt( 'song exceeds max length: `%s` > `%s`', length, maxlen ) );
+								return reject( _.fmt( 'song exceeds max length: %s > %s', length, maxlen ) );
 							}
 						}
 						
