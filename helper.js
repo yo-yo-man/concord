@@ -50,5 +50,11 @@ _.log = function()
 		str = str.substring( 0, str.length-1 );
 		console.log( _.fmt( '[%s]  %s', moment().format( 'YYYY-MM-DD hh:mm:ss' ), str ) );
 	};
+_.nick = function( member )
+	{
+		if ( !member.nick )
+			return member.username;
+		return member.nick;
+	};
 
 module.exports = _;

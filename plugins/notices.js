@@ -59,7 +59,7 @@ function sendGuildNotice( guildId, message )
 	}
 }
 
-function sendGlobalUserNotice( userId, message )
+function execGlobalUserNotice( userId, callback )
 {
 	var user = client.Users.get( userId );
 	if ( !user )
@@ -77,8 +77,13 @@ function sendGlobalUserNotice( userId, message )
 			return;
 		}
 		
-		if ( user.memberOf( guild ) )		
-			sendGuildNotice( guildId, message );
+		var member = user.memberOf( guild );
+		if ( member )		
+		{
+			var message = callback( member );
+			if ( message )
+				sendGuildNotice( guildId, message );
+		}
 	}
 }
 
@@ -107,11 +112,22 @@ function processEvent( type, e )
 			// old, new
 			// username, avatar, discriminator
 			if ( e.old.username != e.new.username )
-				sendGlobalUserNotice( e.old.id, _.fmt( '`%s` changed their name to `%s`', e.old.username, e.new.username ) );
+				execGlobalUserNotice( e.old.id, 
+					member => 
+					{
+						if ( _.nick( member ) == e.new.username )
+							return _.fmt( '`%s` is now known as `%s`', e.old.username, e.new.username );
+					});
 			if ( e.old.avatar != e.new.avatar )
 			{
+				if ( settings.get( 'notices', 'hide_avatar_events', true ) )
+					return;
 				var avatarURL = client.Users.get( e.new.id ).avatarURL;
-				sendGlobalUserNotice( e.old.id, _.fmt( '`%s` changed their avatar to %s', e.new.username, avatarURL ) );
+				execGlobalUserNotice( e.old.id, 
+					member => 
+					{
+						return _.fmt( '`%s` changed their avatar to %s', _.nick( member ), avatarURL );
+					});
 			}
 			break;
 			
@@ -225,7 +241,7 @@ function processEvent( type, e )
 			break;
 			
 		case 'GUILD_MEMBER_REMOVE':
-			// guild, user
+			// guild, user, data, getCachedData
 			sendGuildNotice( e.guild.id, _.fmt( '`%s` left the server, bye :(', e.user.username ) );
 			break;
 			
@@ -240,17 +256,71 @@ function processEvent( type, e )
 			break;
 			
 		case 'CHANNEL_UPDATE':
-			// channel
+			// channel, getChanges
 			if ( e.channel.isPrivate ) return;
+			
 			var name = e.channel.mention;
 			if ( !name )
 				name = '`' + e.channel.name + '`';
-			sendGuildNotice( e.channel.guild.id, _.fmt( '%s updated', name ) );
+			
+			var explicitChange = false;
+			var ch = e.getChanges();
+			
+			if ( ch.before.name != ch.after.name )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.channel.guild.id, _.fmt( '`%s` renamed to %s', ch.before.name, name ) );
+			}
+			
+			if ( ch.before.topic != ch.after.topic )
+			{
+				explicitChange = true;
+				var topic = ch.after.topic || ' ';
+				sendGuildNotice( e.channel.guild.id, _.fmt( '%s topic changed to `%s`', name, topic ) );
+			}
+			
+			if ( ch.before.bitrate != ch.after.bitrate )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.channel.guild.id, _.fmt( '%s bitrate changed to `%skbps`', name, Math.round( ch.after.bitrate / 1000 ) ) );
+			}
+			
+			if ( JSON.stringify( ch.before.permission_overwrites ) != JSON.stringify( ch.after.permission_overwrites ) )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.channel.guild.id, _.fmt( '%s permissions changed', name ) );
+			}
+			
+			if ( !explicitChange && JSON.stringify( ch.before ) != JSON.stringify( ch.after ) )
+				sendGuildNotice( e.channel.guild.id, _.fmt( '%s updated', name ) );
 			break;
 			
 		case 'GUILD_UPDATE':
-			// guild
-			sendGuildNotice( e.guild.id, 'server settings updated' );
+			// guild, getChanges
+			
+			var explicitChange = false;
+			var ch = e.getChanges();
+			
+			if ( ch.before.name != ch.after.name )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.guild.id, _.fmt( 'server renamed to `%s`', ch.after.name ) );
+			}
+			
+			if ( ch.before.icon != ch.after.icon )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.guild.id, _.fmt( 'server icon changed' ) );
+			}
+			
+			if ( ch.before.region != ch.after.region )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.guild.id, _.fmt( 'server region changed to `%s`', ch.after.region ) );
+			}
+			
+			if ( !explicitChange && JSON.stringify( ch.before ) != JSON.stringify( ch.after ) )
+				sendGuildNotice( e.guild.id, _.fmt( 'server settings updated', name ) );
 			break;
 			
 		case 'GUILD_CREATE':
@@ -258,23 +328,94 @@ function processEvent( type, e )
 			cacheUsersConnected( e.guild );
 			break;
 			
+		// GUILD_DELETE
+			// guildid, data, getCachedData
+			
 		// MESSAGE_DELETE
 			// channelid, messageid, message
 			
 		// MESSAGE_UPDATE
 			// message, data
 			
-		// GUILD_MEMBER_UPDATE
-			// guild, member
+		case 'GUILD_MEMBER_UPDATE':
+			// guild, member, rolesAdded, rolesRemoved, previousNick, getChanges
+			if ( e.member.nick != e.previousNick )
+			{
+				var prev = e.previousNick || e.member.username;
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` is now known as `%s`', prev, _.nick( e.member ) ) );
+			}
+			for ( var i in e.rolesAdded )
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` added to `@%s`', _.nick( e.member ), e.rolesAdded[i].name ) );
+			for ( var i in e.rolesRemoved )
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` removed from `@%s`', _.nick( e.member ), e.rolesRemoved[i].name ) );
+			break;
 			
-		// GUILD_ROLE_CREATE
+		case 'GUILD_ROLE_CREATE':
 			// guild, role
+			sendGuildNotice( e.guild.id, _.fmt( '`@%s` created', e.role.name ) );
+			break;
 			
-		// GUILD_ROLE_UPDATE
-			// guild, role
+		case 'GUILD_ROLE_UPDATE':
+			// guild, role, getChanges
 			
-		// GUILD_ROLE_DELETE
-			// guild, roleid
+			var explicitChange = false;
+			var ch = e.getChanges();
+			
+			if ( ch.before.name != ch.after.name )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.guild.id, _.fmt( '`@%s` renamed to `@%s`', ch.before.name, ch.after.name ) );
+			}
+			
+			if ( ch.before.permissions != ch.after.permissions )
+			{
+				explicitChange = true;
+				sendGuildNotice( e.guild.id, _.fmt( '`@%s` permissions changed', role.name ) );
+			}
+			
+			if ( !explicitChange && JSON.stringify( ch.before ) != JSON.stringify( ch.after ) )
+				sendGuildNotice( e.guild.id, _.fmt( '`@%s` updated', role.name ) );
+			break;
+			
+		case 'GUILD_ROLE_DELETE':
+			// guild, roleid, getCachedData
+			sendGuildNotice( e.guild.id, _.fmt( '`@%s` deleted', e.getCachedData().name ) );
+			break;
+			
+		case 'GUILD_EMOJIS_UPDATE':
+			// guild, getChanges
+			
+			var ch = e.getChanges();
+			var before = {};
+			var after = {};
+			
+			for ( var i in ch.before )
+			{
+				var em = ch.before[i];
+				before[em.id] = em;
+			}
+			
+			for ( var i in ch.after )
+			{
+				var em = ch.after[i];
+				after[em.id] = em;
+			}
+			
+			for ( var i in before )
+			{
+				if ( !(i in after) )
+					sendGuildNotice( e.guild.id, _.fmt( '`:%s:` deleted', before[i].name ) );
+			}
+			
+			for ( var i in after )
+			{
+				if ( !(i in before) )
+					sendGuildNotice( e.guild.id, _.fmt( '<:%s:%s> created', after[i].name, after[i].id ) );
+				else if ( before[i].name != after[i].name )
+					sendGuildNotice( e.guild.id, _.fmt( '<:%s:%s> renamed', after[i].name, after[i].id ) );
+			}
+			
+			break;
 	}
 }
 
