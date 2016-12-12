@@ -560,7 +560,7 @@ commands.register( {
 
 commands.register( {
 	category: 'audio',
-	aliases: [ 'title', 'song', 'nowplaying' ],
+	aliases: [ 'title', 'song', 'nowplaying', 'np' ],
 	flags: [ 'no_pm' ],
 	help: "info about what's currently playing",
 	callback: ( client, msg, args ) =>
@@ -605,7 +605,7 @@ commands.register( {
 				var song = queue[i];
 				
 				var by_user = get_queuedby_user( song );
-				res += _.fmt( '%s. %s [%s] (%s)\n', parseInt(i)+1, song.title, song.length, by_user );
+				res += _.fmt( '%s. %s [%s] (%s) <%s>\n', parseInt(i)+1, song.title, song.length, by_user, song.url );
 			}
 			
 			msg.channel.sendMessage( '```\n' + res + '\n```' );
@@ -875,6 +875,9 @@ commands.register( {
 			var filename = msg.guild.id + '_' + name + '.json';
 			var filePath = path.join( __dirname, playlistDir, filename );
 			
+			if ( !fs.existsSync( filePath ) )
+				return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) );
+			
 			var playlist = fs.readFileSync( filePath, 'utf8' );
 			if ( !_.isjson( playlist ) )
 				return msg.channel.sendMessage( 'error in `%s`, please delete', name );
@@ -883,7 +886,7 @@ commands.register( {
 			for ( var i in data )
 			{
 				var song = data[i];				
-				list +=_.fmt( '%s. %s [%s]\n', parseInt(i)+1, song.title, song.length );
+				list += _.fmt( '%s. %s [%s] <%s>\n', parseInt(i)+1, song.title, song.length, song.url );
 			}
 		}
 		
