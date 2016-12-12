@@ -9,7 +9,7 @@ var moment = require( 'moment' );
 require( 'moment-duration-format' );
 
 var reminders = {};
-var reminderDelay = 1000;
+var reminderDelay = 5 * 1000;
 function updateReminders()
 {
 	for ( var uid in reminders )
