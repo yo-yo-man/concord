@@ -9,9 +9,17 @@ var moment = require( 'moment' );
 require( 'moment-duration-format' );
 
 var reminders = {};
+var remindersDirty = false;
 var reminderDelay = 5 * 1000;
 function updateReminders()
 {
+	var needsSave = false;
+	if ( remindersDirty )
+	{
+		remindersDirty = false;
+		needsSave = true;
+	}
+	
 	for ( var uid in reminders )
 	{
 		if ( _.time() > reminders[uid].time )
@@ -29,10 +37,14 @@ function updateReminders()
 				user.openDM().then( dm => sendReminder( dm, user, rem, uid ) );
 			else
 				sendReminder( client.Channels.get( rem.channel ), user, rem, uid );
+			
+			needsSave = true;
 		}
 	}
 	
-	settings.save( 'reminders', reminders );
+	if ( needsSave )
+		settings.save( 'reminders', reminders );
+	
 	setTimeout( updateReminders, reminderDelay );
 }
 
@@ -50,6 +62,7 @@ commands.register( {
 			{
 				delete reminders[msg.author.id];
 				msg.channel.sendMessage( 'Reminder has been cancelled.' );
+				remindersDirty = true;
 				return;
 			}
 			else
@@ -71,6 +84,7 @@ commands.register( {
 		
 		reminders[msg.author.id] = rem;
 		msg.channel.sendMessage( _.fmt( 'I will remind you in %s', moment.duration( (_.time() - rem.time)*1000 ).humanize() ) );
+		remindersDirty = true;
 	}});
 
 var client = null;
