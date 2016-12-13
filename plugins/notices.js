@@ -374,11 +374,11 @@ function processEvent( type, e )
 			if ( ch.before.permissions != ch.after.permissions )
 			{
 				explicitChange = true;
-				sendGuildNotice( e.guild.id, _.fmt( '`@%s` permissions changed', role.name ) );
+				sendGuildNotice( e.guild.id, _.fmt( '`@%s` permissions changed', e.role.name ) );
 			}
 			
 			if ( !explicitChange && JSON.stringify( ch.before ) != JSON.stringify( ch.after ) )
-				sendGuildNotice( e.guild.id, _.fmt( '`@%s` updated', role.name ) );
+				sendGuildNotice( e.guild.id, _.fmt( '`@%s` updated', e.role.name ) );
 			break;
 			
 		case 'GUILD_ROLE_DELETE':
