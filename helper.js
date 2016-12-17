@@ -60,6 +60,8 @@ _.parsetime = function( str )
 		str = str.replace( /(\d+):(\d+)/g, '$1m$2s' );
 		
 		var time = 0;
+		if ( str.match( /(\d+)d/g ) )
+			time += parseInt( _.matches( /(\d+)d/g, str )[0] ) * 60 * 60 * 24;
 		if ( str.match( /(\d+)h/g ) )
 			time += parseInt( _.matches( /(\d+)h/g, str )[0] ) * 60 * 60;
 		if ( str.match( /(\d+)m/g ) )
