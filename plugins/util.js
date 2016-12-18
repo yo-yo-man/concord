@@ -87,6 +87,26 @@ commands.register( {
 		remindersDirty = true;
 	}});
 
+commands.register( {
+	category: 'util',
+	aliases: [ 'migrate' ],
+	help: 'move everyone in your channel to another one',
+	args: 'channel',
+	flags: [ 'admin_only', 'no_pm' ],
+	callback: ( client, msg, args ) =>
+	{
+		var channel = msg.member.getVoiceChannel();
+		if ( !channel )
+			return msg.channel.sendMessage( 'you are not in a voice channel' );
+		
+		var target = commands.findVoiceChannel( msg, args );
+		if ( target === false )
+			return;
+		
+		for ( var i in channel.members )
+			channel.members[i].setChannel( target );	
+	}});
+
 var client = null;
 module.exports.setup = function( _cl )
 	{

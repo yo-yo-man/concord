@@ -106,6 +106,36 @@ commands.findTarget = function( msg, str )
 		return matches[0];
 	};
 	
+commands.findVoiceChannel = function( msg, str )
+	{
+		var matches = [];
+		str = str.toLowerCase();
+		
+		for ( var i in msg.guild.voiceChannels )
+		{
+			var ch = msg.guild.voiceChannels[i];
+			if ( ch.name.toLowerCase().indexOf( str ) != -1 )
+				if ( matches.indexOf( ch ) == -1 ) matches.push( ch );
+		}
+		
+		if ( matches.length == 0 )
+		{
+			msg.channel.sendMessage( _.fmt( 'could not find voice channel matching `%s`', str ) );
+			return false;
+		}
+		
+		if ( matches.length > 1 )
+		{
+			var matchesString = '';
+			for ( var i in matches )
+				matchesString += matches[i].name + '\n';
+			msg.channel.sendMessage( _.fmt( 'found %s matches for `%s`:\n```\n%s```', matches.length, str, matchesString ) );
+			return false;
+		}
+		
+		return matches[0];
+	};
+	
 function checkArgs( cmd, message )
 {	
 	message = message || '';
