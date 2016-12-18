@@ -191,7 +191,7 @@ commands.register( {
 				
 				notices.suppressNotice( msg.member.guild.id, 'GUILD_UPDATE' );
 				notices.sendGuildNotice( msg.member.guild.id, _.fmt( '`%s` changed server region to `%s`', _.nick( msg.member ), args ) );
-				guild.edit( null, null, args );
+				guild.edit( undefined, undefined, args );
 			});
 	}});
 
