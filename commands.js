@@ -6,6 +6,8 @@ var _ = require( './helper.js' );
 
 var commands = {};
 
+commands.blacklistedUsers = [];
+commands.tempBlacklist = [];
 commands.numSinceBoot = 0;
 commands.commandList = [];
 commands.register = function( params )
@@ -133,6 +135,8 @@ function checkArgs( cmd, message )
 	
 function onMessage( client, e )
 {
+	if ( commands.blacklistedUsers.indexOf( e.message.author.id ) != -1 ) return;
+	
 	var prefix = settings.get( 'config', 'command_prefix', '!' );
 	
 	var content = e.message.content;
@@ -153,6 +157,10 @@ function onMessage( client, e )
 		var cmd = commands.commandList[i];
 		
 		if ( cmd.aliases.indexOf( command ) != -1 )
+		{
+			require( './plugins/moderation.js' ).processCooldown( e.message.author );
+			if ( commands.tempBlacklist.indexOf( e.message.author.id ) != -1 ) return;
+			
 			if ( cmd.flags && cmd.flags.indexOf( 'no_pm' ) != -1 && e.message.channel.isPrivate )
 				return e.message.channel.sendMessage( "can't use this command in private messages" );
 			else
@@ -176,6 +184,7 @@ function onMessage( client, e )
 				}
 				else
 					return e.message.channel.sendMessage( 'insufficient permissions' );
+		}
 	}
 };
 
@@ -184,6 +193,7 @@ commands.init = function( _cl )
 	{
 		client = _cl;
 		_cl.Dispatcher.on( 'MESSAGE_CREATE', e => onMessage( _cl, e ) );
+		commands.blacklistedUsers = settings.get( 'blacklist', null, [] );
 		_.log( 'initialized commands' );
 	};
 	

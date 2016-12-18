@@ -195,9 +195,87 @@ commands.register( {
 			});
 	}});
 
+var tempBlacklists = {};
+var tempBlacklistDelay = 10 * 1000;
+function updateTempBlacklists()
+{
+	for ( var uid in tempBlacklists )
+	{
+		if ( _.time() > tempBlacklists[uid] )
+		{
+			delete tempBlacklists[uid];
+			
+			var index = commands.tempBlacklist.indexOf( uid );
+			commands.tempBlacklist.splice( index, 1 );
+		}
+	}
+	
+	setTimeout( updateTempBlacklists, tempBlacklistDelay );
+}
+
+var nextWarning = {};
+var eventAllowance = {};
+var lastEvent = {};
+function processCooldown( member )
+{	
+	var guild = member.guild;
+	
+	var timespan = settings.get( 'moderation', 'cooldown_timespan', 10 ) * 1000;
+	var warning = settings.get( 'moderation', 'cooldown_warning_ratio', 1.5 );
+	var rate = settings.get( 'moderation', 'cooldown_rate', 3.5 );
+	
+	if ( !eventAllowance[ member.id ] )
+		eventAllowance[ member.id ] = rate;
+	
+	if ( !lastEvent[ member.id ] )
+		lastEvent[ member.id ] = Date.now();
+	
+	var time_passed = Date.now() - lastEvent[ member.id ];
+	lastEvent[ member.id ] = Date.now();
+	eventAllowance[ member.id ] += time_passed * ( rate / timespan );
+	eventAllowance[ member.id ] -= 1;
+	
+	if ( eventAllowance[ member.id ] > rate )
+		eventAllowance[ member.id ] = rate;
+	
+	if ( eventAllowance[ member.id ] < 1 )
+	{	
+		delete eventAllowance[ member.id ];
+		
+		if ( guild )
+			kickMember( member, client.User, 'automatic spam detection' );
+		else
+		{
+			commands.tempBlacklist.push( member.id );
+			tempBlacklists[ member.id ] = _.time() + settings.get( 'moderation', 'cooldown_blacklist_time', 60 );
+			member.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been temporarily blacklisted due to excess spam' ) ) );
+			
+			var owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) );
+			if ( owner )
+				owner.openDM().then( d => d.sendMessage( _.fmt( '**NOTICE:** Automatically added `%s#%s` to temporary blacklist for spam', member.username, member.discriminator ) ) );
+		}
+	}
+	else if ( eventAllowance[ member.id ] <= warning )
+	{
+		if ( !nextWarning[ member.id ] || Date.now() >= nextWarning[ member.id ] )
+		{
+			nextWarning[ member.id ] = Date.now() + timespan / 2;
+			
+			if ( guild )
+				member.openDM().then( dm => dm.sendMessage( _.fmt( '**WARNING:** Potential spam detected. Please slow down or you will be automatically kicked from `%s`', guild.name ) ) );
+			else
+				member.openDM().then( dm => dm.sendMessage( _.fmt( '**WARNING:** Potential spam detected. Please slow down or you will be temporarily blacklisted' ) ) );
+		}
+	}
+	
+	//console.log( time_passed, lastEvent[ member.id ], eventAllowance[ member.id ] );
+}
+module.exports.processCooldown = processCooldown;
+
 var client = null;
 module.exports.setup = function( _cl )
 	{
 		client = _cl;
+		updateTempBlacklists();
 		_.log( 'loaded plugin: moderation' );
 	};

@@ -7,6 +7,8 @@ var permissions = require( '../permissions.js' );
 var settings = require( '../settings.js' );
 var _ = require( '../helper.js' );
 
+var moderation = require( './moderation.js' );
+
 var guildChannels = {};
 function initGuilds()
 {
@@ -37,7 +39,7 @@ commands.register( {
 		settings.set( 'notices', 'guild_channels', guildChannels );
 	}});
 
-function sendGuildNotice( guildId, message )
+function sendGuildNotice( guildId, message, member )
 {
 	if ( guildId in guildChannels )
 	{
@@ -51,6 +53,12 @@ function sendGuildNotice( guildId, message )
 		}
 		
 		channel.sendMessage( message );
+		
+		if ( member )
+		{
+			member = member.memberOf( channel.guild ) || member;
+			moderation.processCooldown( member );
+		}
 	}
 }
 module.exports.sendGuildNotice = sendGuildNotice;
@@ -78,7 +86,7 @@ function execGlobalUserNotice( userId, callback )
 		{
 			var message = callback( member );
 			if ( message )
-				sendGuildNotice( guildId, message );
+				sendGuildNotice( guildId, message, member );
 		}
 	}
 }
@@ -149,7 +157,7 @@ function processEvent( type, e )
 			// user, channel, channelid, guildid, newchannelid, newguildid
 			if ( e.user.bot ) return;
 			if ( e.newChannelId == null )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` disconnected', _.nick( e.user, guild ) ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` disconnected', _.nick( e.user, guild ) ), member );
 			else if ( e.guildId == e.newGuildId )
 				justSwitched[ e.user.id ] = true;
 			break;
@@ -165,7 +173,7 @@ function processEvent( type, e )
 				action = 'switched';
 			}
 			
-			sendGuildNotice( e.guildId, _.fmt( '`%s` %s to `%s`', _.nick( e.user, guild ), action, e.channel.name ) );
+			sendGuildNotice( e.guildId, _.fmt( '`%s` %s to `%s`', _.nick( e.user, guild ), action, e.channel.name ), member );
 			break;
 			
 		case 'VOICE_USER_SELF_MUTE':
@@ -173,9 +181,9 @@ function processEvent( type, e )
 			if ( settings.get( 'notices', 'hide_mute_events', true ) )
 				return;
 			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` muted', _.nick( e.user, guild ) ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` muted', _.nick( e.user, guild ) ), member );
 			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` unmuted', _.nick( e.user, guild ) ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` unmuted', _.nick( e.user, guild ) ), member );
 			break;
 		
 		case 'VOICE_USER_SELF_DEAF':
@@ -183,9 +191,9 @@ function processEvent( type, e )
 			if ( settings.get( 'notices', 'hide_deaf_events', false ) )
 				return;
 			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` deafened', _.nick( e.user, guild ) ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` deafened', _.nick( e.user, guild ) ), member );
 			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` undeafened', _.nick( e.user, guild ) ) );
+				sendGuildNotice( e.guildId, _.fmt( '`%s` undeafened', _.nick( e.user, guild ) ), member );
 			break;
 		
 		case 'VOICE_USER_MUTE':
@@ -209,9 +217,9 @@ function processEvent( type, e )
 			if ( settings.get( 'notices', 'hide_game_events', true ) )
 				return;
 			if ( e.user.previousGameName != null )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` stopped playing `%s`', _.nick( e.user, guild ), e.user.previousGameName ) );
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` stopped playing `%s`', _.nick( e.user, guild ), e.user.previousGameName ), member );
 			if ( e.user.gameName != null )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` started playing `%s`', _.nick( e.user, guild ), e.user.gameName ) );
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` started playing `%s`', _.nick( e.user, guild ), e.user.gameName ), member );
 			break;
 			
 		case 'CHANNEL_CREATE':
@@ -338,7 +346,7 @@ function processEvent( type, e )
 			if ( e.member.nick != e.previousNick )
 			{
 				var prev = e.previousNick || e.member.username;
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` is now known as `%s`', prev, _.nick( e.member ) ) );
+				sendGuildNotice( e.guild.id, _.fmt( '`%s` is now known as `%s`', prev, _.nick( e.member ) ), member );
 			}
 			for ( var i in e.rolesAdded )
 				sendGuildNotice( e.guild.id, _.fmt( '`%s` added to `@%s`', _.nick( e.member ), e.rolesAdded[i].name ) );
