@@ -44,32 +44,61 @@ commands.register( {
 		if ( target === false )
 			return;
 		
-		var roleList = [];
-		if ( target.roles )
+		var rows = [];
+		
+		rows.push( _.fmt( '%s#%s', target.username, target.discriminator ) );
+		if ( target.nick )
+			rows.push( _.fmt( 'AKA %s', target.nick ) );
+		else
+			rows.push( '---' );
+		
+		
+		if ( !msg.channel.isPrivate )
+		{
+			var roleList = [ 'everyone' ];
 			for ( var i in target.roles )
 				roleList.push( target.roles[i].name );
-		var roles = '';
-		if ( roleList.length > 0 )
-			roles = _.fmt( 'part of @everyone, %s\n', roleList.join( ', ' ) );
+			
+			rows.push( _.fmt( 'part of %s', roleList.join( ', ' ) ) );
+			rows.push( _.fmt( 'joined server %s', moment( target.joined_at ).fromNow() ) );
+		}
 		
-		var nick = '';
-		if ( target.nick )
-			nick = '(' + target.nick + ') ';
-		
-		var who = _.fmt( '```%s\n\n%s#%s %s\n<@\u200b%s>\n%s', target.avatarURL, target.username, target.discriminator, nick, target.id, roles );		
-		if ( target.joined_at )
-			who += _.fmt( 'joined server %s\n', moment( target.joined_at ).fromNow() );
 		
 		var timestamp = 0;
 		if ( target.id in lastSeen )
 			timestamp = lastSeen[ target.id ];
-		who += _.fmt( 'last seen %s', moment.unix( timestamp ).fromNow() );
+		rows.push( _.fmt( 'last seen %s', moment.unix( timestamp ).fromNow() ) );
 		
 		if ( target.id in idleTime )
-			who += _.fmt( '\nwent idle %s', moment.unix( idleTime[ target.id ] ).fromNow() );
+			rows.push( _.fmt( 'went idle %s', moment.unix( idleTime[ target.id ] ).fromNow() ) );
+		else
+			rows.push( '---' );
 		
-		who += '```';		
-		msg.channel.sendMessage( who );
+		
+		var fields = [];
+		for ( var i=0; i < rows.length; i++ )
+		{
+			var f = {};
+			f.name = rows[i];
+			f.value = rows[i+1];
+			fields.push( f );
+			i++;
+		}
+		
+		var colour = 0x43b581;
+		if ( target.status == 'idle' )
+			colour = 0xfaa61a;
+		else if ( target.status == 'offline' )
+			colour = 0x8a8a8a;
+		
+		msg.channel.sendMessage( '', false,
+			{
+				color: colour,
+				fields: fields,
+				footer: { text: _.fmt( 'ID: %s', target.id ) },
+				thumbnail: { url: target.avatarURL }
+			});
+		
 	}});
 
 var startTime = 0;
