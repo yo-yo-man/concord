@@ -27,10 +27,13 @@ settings.get = function( file, param, def )
 		if ( !param )
 			val = jsonCache[file];
 		
-		if ( val == null && typeof def !== 'undefined' )
+		if ( val == null || ( typeof val == 'object' && param == null && Object.getOwnPropertyNames(val).length == 0 ) )
 		{
-			settings.set( file, param, def );
-			val = def;
+			if ( typeof def !== 'undefined' )
+			{
+				settings.set( file, param, def );
+				val = def;
+			}
 		}
 		
 		return val;
