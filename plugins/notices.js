@@ -288,7 +288,7 @@ function processEvent( type, e )
 			}
 			
 			if ( !explicitChange && JSON.stringify( ch.before ) != JSON.stringify( ch.after ) )
-				sendGuildNotice( e.guild.id, _.fmt( 'server settings updated', name ) );
+				sendGuildNotice( e.guild.id, _.fmt( 'server settings updated' ) );
 			break;
 			
 		// GUILD_CREATE
