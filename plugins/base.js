@@ -90,6 +90,11 @@ commands.register( {
 		}
 		else
 		{
+			function flushHelp( help )
+			{
+				author.openDM().then( d => d.sendMessage( _.fmt( '```\n%s\n```', help ) ) );
+			}
+			
 			help = 'powered by concord <http://github.com/DougTy/concord>\n';
 			
 			var lastCat = '';
@@ -103,6 +108,11 @@ commands.register( {
 				if ( cmd.category != lastCat )
 				{
 					lastCat = cmd.category;
+					if ( help.length >= 1000 )
+					{
+						flushHelp( help );
+						help = '';
+					}
 					help += _.fmt( '\n--- %s ---\n', cmd.category );
 				}
 				
@@ -112,7 +122,7 @@ commands.register( {
 					help += '\n';
 			}
 			
-			author.openDM().then( d => d.sendMessage( _.fmt( '```\n%s\n```', help ) ) );
+			flushHelp( help );
 		}
 	}});
 
