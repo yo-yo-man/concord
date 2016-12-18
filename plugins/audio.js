@@ -583,16 +583,15 @@ commands.register( {
 			if ( queue.length == 0 )
 				return msg.channel.sendMessage( '```\nempty\n```' );
 			
-			var res = '';
+			var fields = [];
 			for ( var i in queue )
 			{
 				var song = queue[i];
-				
 				var by_user = get_queuedby_user( song );
-				res += _.fmt( '%s. %s [%s] (%s) <%s>\n', parseInt(i)+1, song.title, song.length, by_user, song.url );
+				fields.push( { name: _.fmt( '%s. %s [%s] (%s)', parseInt(i)+1, song.title, song.length, by_user ), value: song.url } );
 			}
 			
-			msg.channel.sendMessage( '```\n' + res + '\n```' );
+			msg.channel.sendMessage( '', false, { fields: fields } );
 		}
 		else
 			msg.channel.sendMessage( '```\nempty\n```' );
@@ -836,19 +835,18 @@ commands.register( {
 	flags: [ 'no_pm' ],
 	args: '[name]',
 	callback: ( client, msg, args ) =>
-	{
-		var list = '';
-		
+	{		
 		var normalizedPath = path.join( __dirname, playlistDir );
 		if ( !args )
 		{
+			var list = '';
 			fs.readdirSync( normalizedPath ).forEach( function( file )
 				{
 					if ( !file.endsWith( '.json' ) ) return;
 					if ( !file.startsWith( msg.guild.id + '_' ) ) return;
 					list += file.replace( '.json', '' ).replace( msg.guild.id + '_', '' ) + ', ';
 				});
-			list = '--- playlists ---\n' + list.substring( 0, list.length-2 );
+			msg.channel.sendMessage( '```--- playlists ---\n' + list.substring( 0, list.length-2 ) + '```' );
 		}
 		else
 		{
@@ -866,15 +864,16 @@ commands.register( {
 			if ( !_.isjson( playlist ) )
 				return msg.channel.sendMessage( 'error in `%s`, please delete', name );
 			
+			var fields = [];
 			var data = JSON.parse( playlist );
 			for ( var i in data )
 			{
-				var song = data[i];				
-				list += _.fmt( '%s. %s [%s] <%s>\n', parseInt(i)+1, song.title, song.length, song.url );
+				var song = data[i];
+				fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i)+1, song.title, song.length ), value: song.url } );
 			}
+			
+			msg.channel.sendMessage( '', false, { fields: fields } );
 		}
-		
-		msg.channel.sendMessage( '```\n' + list + '\n```' );
 	}});
 
 commands.register( {
