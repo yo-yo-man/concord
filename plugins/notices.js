@@ -53,6 +53,7 @@ function sendGuildNotice( guildId, message )
 		channel.sendMessage( message );
 	}
 }
+module.exports.sendGuildNotice = sendGuildNotice;
 
 function execGlobalUserNotice( userId, callback )
 {
@@ -81,6 +82,18 @@ function execGlobalUserNotice( userId, callback )
 		}
 	}
 }
+module.exports.execGlobalUserNotice = execGlobalUserNotice;
+
+var noticeSuppressions = [];
+function suppressNotice( guildId, type, memberId )
+{
+	var sup = {};
+	sup.guildId = guildId;
+	sup.memberId = memberId;
+	sup.type = type;
+	noticeSuppressions.push( sup );
+}
+module.exports.suppressNotice = suppressNotice;
 
 var justSwitched = {};
 function processEvent( type, e )
@@ -90,6 +103,22 @@ function processEvent( type, e )
 	var guild = e.guild;
 	if ( e.guildId )
 		guild = client.Guilds.get( e.guildId );
+	
+	var member = e.member;
+	if ( !member && e.user && guild )
+		member = e.user.memberOf( guild ) || e.user;
+	
+	if ( guild )
+		for ( var i in noticeSuppressions )
+			if ( noticeSuppressions[i].guildId == guild.id &&
+				 noticeSuppressions[i].type == type )
+			{
+				if ( member && noticeSuppressions[i].memberId && noticeSuppressions[i].memberId != member.id )
+					continue;
+				
+				delete noticeSuppressions[i];
+				return;
+			}
 	
 	switch ( type )
 	{
@@ -216,6 +245,7 @@ function processEvent( type, e )
 		case 'GUILD_BAN_ADD':
 			// guild, user
 			sendGuildNotice( e.guild.id, _.fmt( '`%s` was banned', _.nick( e.user, guild ) ) );
+			suppressNotice( e.guild.id, 'GUILD_MEMBER_REMOVE', e.user.id );
 			break;
 			
 		case 'GUILD_BAN_REMOVE':
