@@ -108,7 +108,7 @@ commands.register( {
 				if ( cmd.category != lastCat )
 				{
 					lastCat = cmd.category;
-					if ( help.length >= 1000 )
+					if ( help.length >= 1500 )
 					{
 						flushHelp( help );
 						help = '';
