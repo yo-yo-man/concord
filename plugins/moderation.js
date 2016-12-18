@@ -98,6 +98,8 @@ commands.register( {
 
 function kickMember( member, admin, reason )
 {
+	if ( permissions.hasAdmin( member ) ) return false;
+	
 	var guild = member.guild;
 	
 	reason = reason || '';
@@ -109,6 +111,7 @@ function kickMember( member, admin, reason )
 	member.kick();
 	
 	member.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been kicked from `%s` by `%s` %s', guild.name, _.nick( admin, guild ), reason ) ) );
+	return true;
 }
 module.exports.kickMember = kickMember;
 
@@ -128,11 +131,14 @@ commands.register( {
 		if ( target === false )
 			return;
 		
-		kickMember( target, msg.member, reason );
+		if ( !kickMember( target, msg.member, reason ) )
+			msg.channel.sendMessage( 'you cannot kick that member' );
 	}});
 
 function banMember( member, admin, reason )
 {
+	if ( permissions.hasAdmin( member ) ) return false;
+	
 	var guild = member.guild;
 	
 	reason = reason || '';
@@ -145,6 +151,7 @@ function banMember( member, admin, reason )
 	member.ban(0);
 	
 	member.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been banned from `%s` by `%s` %s', guild.name, _.nick( admin, guild ), reason ) ) );
+	return true;
 }
 module.exports.banMember = banMember;
 
@@ -164,7 +171,8 @@ commands.register( {
 		if ( target === false )
 			return;
 		
-		banMember( target, msg.member, reason );
+		if ( !banMember( target, msg.member, reason ) )
+			msg.channel.sendMessage( 'you cannot ban that member' );
 	}});
 
 commands.register( {
@@ -218,6 +226,8 @@ var eventAllowance = {};
 var lastEvent = {};
 function processCooldown( member )
 {	
+	if ( permissions.hasAdmin( member ) ) return;
+	
 	var guild = member.guild;
 	
 	var timespan = settings.get( 'moderation', 'cooldown_timespan', 10 ) * 1000;
