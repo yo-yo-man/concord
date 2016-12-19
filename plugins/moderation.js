@@ -226,7 +226,7 @@ var eventAllowance = {};
 var lastEvent = {};
 function processCooldown( member )
 {	
-	if ( permissions.hasAdmin( member ) ) return;
+	if ( permissions.hasAdmin( member ) && settings.get( 'moderation', 'cooldown_admin_immunity', false ) ) return;
 	
 	var guild = member.guild;
 	
