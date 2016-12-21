@@ -8,6 +8,8 @@ var _ = require( '../helper.js' );
 var moment = require( 'moment' );
 require( 'moment-duration-format' );
 
+var notices = require( './notices.js' );
+
 var reminders = {};
 var remindersDirty = false;
 var reminderDelay = 5 * 1000;
@@ -103,8 +105,16 @@ commands.register( {
 		if ( target === false )
 			return;
 		
+		var names = [];
 		for ( var i in channel.members )
-			channel.members[i].setChannel( target );	
+		{
+			names.push( '`' + _.nick( channel.members[i] ) + '`' );
+			notices.suppressNotice( channel.guild.id, 'VOICE_CHANNEL_LEAVE', channel.members[i].id );
+			notices.suppressNotice( channel.guild.id, 'VOICE_CHANNEL_JOIN', channel.members[i].id );
+			channel.members[i].setChannel( target );
+		}
+		
+		notices.sendGuildNotice( channel.guild.id, _.fmt( '%s moved to `%s` by `%s`', names.join( ', ' ), target.name, _.nick( msg.member ) ) );
 	}});
 
 var client = null;
