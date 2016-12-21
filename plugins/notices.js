@@ -297,6 +297,9 @@ function processEvent( type, e )
 				sendGuildNotice( e.channel.guild.id, _.fmt( '%s permissions changed', name ) );
 			}
 			
+			if ( ch.before.position != ch.after.position )
+				explicitChange = true;
+			
 			if ( !explicitChange && JSON.stringify( ch.before ) != JSON.stringify( ch.after ) )
 				sendGuildNotice( e.channel.guild.id, _.fmt( '%s updated', name ) );
 			break;
