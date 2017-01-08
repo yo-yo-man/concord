@@ -66,7 +66,7 @@ commands.register( {
 	aliases: [ 'blacklist' ],
 	help: 'blacklist a user from bot commands',
 	flags: [ 'owner_only' ],
-	args: '[target]',
+	args: '[target] [silent]',
 	callback: ( client, msg, args ) =>
 	{
 		if ( !args )
@@ -85,7 +85,8 @@ commands.register( {
 			return msg.channel.sendMessage( _.fmt( 'blacklisted users:\n```%s```', list.join( ', ' ).replace( /((?:[^, ]*\, ){3})/g, '$1\n' ) || 'none' ) );
 		}
 		
-		var target = commands.findTarget( msg, args );
+		var split = args.split( ' ' );
+		var target = commands.findTarget( msg, split[0] );
 		if ( target === false )
 			return;
 		
@@ -100,9 +101,10 @@ commands.register( {
 		
 		commands.blacklistedUsers.push( target.id );
 		settings.save( 'blacklist', commands.blacklistedUsers );
+		msg.channel.sendMessage( _.fmt( '`%s` added to blacklist %s', _.nick( target ), split[1] ? '(silently)' : '' ) );
 		
-		msg.channel.sendMessage( _.fmt( '`%s` added to blacklist', _.nick( target ) ) );
-		target.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been blacklisted, and will no longer be able to use bot commands' ) ) );
+		if ( !split[1] )
+			target.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been blacklisted, and will no longer be able to use bot commands' ) ) );
 	}});
 
 commands.register( {
