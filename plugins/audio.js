@@ -781,13 +781,19 @@ commands.register( {
 							}
 							
 							tempMsg.delete();
-							if ( queue_empty )
+							var verb = queue_empty ? 'loaded' : 'queued';
+							msg.channel.sendMessage( _.fmt( '`%s` %s `%s [%s song(s)]`%s', _.nick( msg.member ), verb, name, data.length, errors ) );							
+
+							var fields = [];
+							for ( var i in queueBuffer )
 							{
-								msg.channel.sendMessage( _.fmt( '`%s` loaded `%s [%s song(s)]`%s', _.nick( msg.member ), name, data.length, errors ) );
-								start_player( id );
+								var song = queueBuffer[i];
+								fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i)+1, song.title, song.length ), value: song.url } );
 							}
-							else
-								msg.channel.sendMessage( _.fmt( '`%s` queued `%s [%s song(s)]`%s', _.nick( msg.member ), name, data.length, errors ) );
+							msg.channel.sendMessage( '', false, { fields: fields } );
+
+							if ( queue_empty )
+								start_player( id );
 						}
 						else
 							queryPlaylist( i+1 );
