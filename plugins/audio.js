@@ -483,10 +483,10 @@ commands.register( {
 						name = split[1];
 						var filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' );
 						if ( fs.existsSync( filePath ) )
-							msg.channel.sendMessage( _.fmt( '`%s` already exists', name ) );
-						else
-							fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' );
+							return msg.channel.sendMessage( _.fmt( '`%s` already exists', name ) );
 						
+						msg.channel.sendMessage( _.fmt( 'saved `%s` songs under `%s`', data.length, name ) );
+						fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' );
 						return;
 					}
 
