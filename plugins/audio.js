@@ -448,6 +448,53 @@ commands.register( {
 	}});
 
 commands.register( {
+	category: 'audio playlists',
+	aliases: [ 'youtubeplaylist', 'ytpl' ],
+	help: 'queue up a youtube playlist & optionally save it',
+	flags: [ 'no_pm' ],
+	args: 'url [name]',
+	callback: ( client, msg, args ) =>
+	{
+		var split = args.split( ' ' );
+		if ( !is_accepted_url( split[0] ) )
+			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', split[0] ) );
+			
+		ydl.exec( split[0], [ '--flat-playlist', '-J' ], {},
+			( err, output ) =>
+				{
+					if ( err )
+					{
+						console.log( _.filterlinks( err ) );
+						return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) );
+					}
+
+					var data = [];
+					var playlist = JSON.parse( output ).entries;
+					for ( var i = 0; i < playlist.length; i++ )
+					{
+						var song = playlist[i];
+						var url = `https://www.youtube.com/watch?v=${song.url}`;
+						data.push( { url: url, title: song.title, length: '??:??' } );
+					}
+
+					var name = args;
+					if ( split[1] )
+					{
+						name = split[1];
+						var filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' );
+						if ( fs.existsSync( filePath ) )
+							msg.channel.sendMessage( _.fmt( '`%s` already exists', name ) );
+						else
+							fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' );
+						
+						return;
+					}
+
+					queueMultiple( data, msg, name );
+				});
+	}});
+
+commands.register( {
 	category: 'audio',
 	aliases: [ 'skip' ],
 	help: 'vote to skip the current song (force if admin)',
@@ -732,6 +779,89 @@ commands.register( {
 			.catch( s => msg.channel.sendMessage( '```' + s + '```' ) );
 	}});
 
+function queueMultiple( data, msg, name )
+{
+	join_channel( msg ).then( res =>
+	{
+		if ( res.isnew )
+			create_session( res.conn, msg );
+		
+		var id = msg.guild.id;
+		
+		var numSongs = data.length;
+		var numLoaded = 0;
+		var numErrors = 0;
+		var errors = '';
+		var tempMsg = null;
+		var queueBuffer = [];
+		var checkLoaded = function( i )
+			{
+				numLoaded++;
+				if ( numLoaded >= numSongs )
+				{
+					if ( numErrors > 0 )
+						errors = _.fmt( '\n```error loading %s song(s) in %s:\n%s```', numErrors, name, errors );
+					
+					if ( numErrors < numLoaded )
+					{
+						var queue_empty = sessions[ id ].queue.length == 0;
+						sessions[ id ].queue.push.apply( sessions[ id ].queue, queueBuffer );
+					}
+					
+					tempMsg.delete();
+					var verb = queue_empty ? 'loaded' : 'queued';
+					msg.channel.sendMessage( _.fmt( '`%s` %s `%s [%s song(s)]`%s', _.nick( msg.member ), verb, name, data.length, errors ) );							
+
+					var fields = [];
+					for ( var i in queueBuffer )
+					{
+						var song = queueBuffer[i];
+						fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i)+1, song.title, song.length ), value: song.url } );
+					}
+					msg.channel.sendMessage( '', false, { fields: fields } );
+
+					if ( queue_empty )
+						start_player( id );
+				}
+				else
+					queryPlaylist( i+1 );
+			};
+		
+		var queryPlaylist = function( i )
+			{
+				var song = data[i];
+				if ( !is_accepted_url( song.url ) )
+				{
+					errors += _.fmt( '<%s>: not an accepted url\n', song.url );
+					numErrors++;
+					checkLoaded( i );
+					return;
+				}
+				
+				queryRemote( { quiet: true, msg: msg, url: song.url, returnInfo: true } ).then( info =>
+					{
+						info.channel = msg.channel;
+						info.queuedby = msg.member;
+						queueBuffer.push( info );
+						checkLoaded( i );
+					})
+				.catch( s =>
+					{
+						errors += _.fmt( '<%s>: %s\n', song.url, s );
+						numErrors++;
+						checkLoaded( i );
+					});
+			};
+			
+		msg.channel.sendMessage( _.fmt( 'fetching info for `%s` song(s), please wait...', numSongs ) ).then( m =>
+			{
+				tempMsg = m;
+				queryPlaylist( 0 )
+			});
+	})
+	.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ); } );
+}
+
 commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'loadplaylist', 'lp' ],
@@ -753,85 +883,7 @@ commands.register( {
 			return msg.channel.sendMessage( 'error in `%s`, please delete', name );
 		var data = JSON.parse( playlist );
 		
-		join_channel( msg ).then( res =>
-			{
-				if ( res.isnew )
-					create_session( res.conn, msg );
-				
-				var id = msg.guild.id;
-				
-				var numSongs = data.length;
-				var numLoaded = 0;
-				var numErrors = 0;
-				var errors = '';
-				var tempMsg = null;
-				var queueBuffer = [];
-				var checkLoaded = function( i )
-					{
-						numLoaded++;
-						if ( numLoaded >= numSongs )
-						{
-							if ( numErrors > 0 )
-								errors = _.fmt( '\n```error loading %s song(s) in %s:\n%s```', numErrors, name, errors );
-							
-							if ( numErrors < numLoaded )
-							{
-								var queue_empty = sessions[ id ].queue.length == 0;
-								sessions[ id ].queue.push.apply( sessions[ id ].queue, queueBuffer );
-							}
-							
-							tempMsg.delete();
-							var verb = queue_empty ? 'loaded' : 'queued';
-							msg.channel.sendMessage( _.fmt( '`%s` %s `%s [%s song(s)]`%s', _.nick( msg.member ), verb, name, data.length, errors ) );							
-
-							var fields = [];
-							for ( var i in queueBuffer )
-							{
-								var song = queueBuffer[i];
-								fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i)+1, song.title, song.length ), value: song.url } );
-							}
-							msg.channel.sendMessage( '', false, { fields: fields } );
-
-							if ( queue_empty )
-								start_player( id );
-						}
-						else
-							queryPlaylist( i+1 );
-					};
-				
-				var queryPlaylist = function( i )
-					{
-						var song = data[i];
-						if ( !is_accepted_url( song.url ) )
-						{
-							errors += _.fmt( '<%s>: not an accepted url\n', song.url );
-							numErrors++;
-							checkLoaded( i );
-							return;
-						}
-						
-						queryRemote( { quiet: true, msg: msg, url: song.url, returnInfo: true } ).then( info =>
-							{
-								info.channel = msg.channel;
-								info.queuedby = msg.member;
-								queueBuffer.push( info );
-								checkLoaded( i );
-							})
-						.catch( s =>
-							{
-								errors += _.fmt( '<%s>: %s\n', song.url, s );
-								numErrors++;
-								checkLoaded( i );
-							});
-					};
-					
-				msg.channel.sendMessage( _.fmt( 'fetching info for `%s` song(s), please wait...', numSongs ) ).then( m =>
-					{
-						tempMsg = m;
-						queryPlaylist( 0 )
-					});
-			})
-			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ); } );
+		queueMultiple( data, msg, name );
 	}});
 
 commands.register( {
