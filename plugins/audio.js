@@ -458,10 +458,14 @@ commands.register( {
 		var split = args.split( ' ' );
 		if ( !is_accepted_url( split[0] ) )
 			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', split[0] ) );
-			
-		ydl.exec( split[0], [ '--flat-playlist', '-J' ], {},
+		
+		function playlistQuery( tempMsg )
+		{	
+			ydl.exec( split[0], [ '--flat-playlist', '-J' ], {},
 			( err, output ) =>
 				{
+					tempMsg.delete();
+					
 					if ( err )
 					{
 						console.log( _.filterlinks( err ) );
@@ -502,6 +506,9 @@ commands.register( {
 
 					queueMultiple( data, msg, name );
 				});
+		}
+		
+		msg.channel.sendMessage( 'fetching playlist info, please wait...' ).then( tempMsg => playlistQuery( tempMsg ) );
 	}});
 
 commands.register( {
