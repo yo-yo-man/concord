@@ -33,7 +33,7 @@ commands.register( {
 		else if ( args == 'off' )
 		{
 			delete guildChannels[ guildId ];
-			msg.channel.sendMessage( _.fmt( 'notices enabled for %s', msg.channel.mention ) );
+			msg.channel.sendMessage( _.fmt( 'notices disabled for %s', msg.channel.mention ) );
 		}
 		
 		settings.set( 'notices', 'guild_channels', guildChannels );
