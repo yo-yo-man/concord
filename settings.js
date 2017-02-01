@@ -35,6 +35,11 @@ settings.get = function( file, param, def )
 				val = def;
 			}
 		}
+
+		if ( val === 'true' )
+			return true;
+		if ( val === 'false' )
+			return false;
 		
 		return val;
 	};
