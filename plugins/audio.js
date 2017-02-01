@@ -648,15 +648,18 @@ commands.register( {
 			if ( queue.length == 0 )
 				return msg.channel.sendMessage( '```\nempty\n```' );
 			
+			var total_len = 0;
 			var fields = [];
 			for ( var i in queue )
 			{
 				var song = queue[i];
+				total_len += parseInt( song.length_seconds );
 				var by_user = get_queuedby_user( song );
 				fields.push( { name: _.fmt( '%s. %s [%s] (%s)', parseInt(i)+1, song.title, song.length, by_user ), value: song.url } );
 			}
 			
-			msg.channel.sendMessage( '', false, { fields: fields } );
+			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' );
+			msg.channel.sendMessage( '', false, { title: `${queue.length} songs [${total_len}]`, description: '-', fields: fields } );
 		}
 		else
 			msg.channel.sendMessage( '```\nempty\n```' );
@@ -832,15 +835,19 @@ function queueMultiple( data, msg, name )
 					
 					tempMsg.delete();
 					var verb = queue_empty ? 'loaded' : 'queued';
-					msg.channel.sendMessage( _.fmt( '`%s` %s `%s [%s song(s)]`%s', _.nick( msg.member ), verb, name, data.length, errors ) );							
+					msg.channel.sendMessage( _.fmt( '`%s` %s `%s`%s', _.nick( msg.member ), verb, name, errors ) );							
 
+					var total_len = 0;
 					var fields = [];
 					for ( var i in queueBuffer )
 					{
 						var song = queueBuffer[i];
+						total_len += parseInt( song.length_seconds );
 						fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i)+1, song.title, song.length ), value: song.url } );
 					}
-					msg.channel.sendMessage( '', false, { fields: fields } );
+
+					total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' );
+					msg.channel.sendMessage( '', false, { title: `${queueBuffer.length} songs [${total_len}]`, description: '-', fields: fields } );
 
 					if ( queue_empty )
 						start_player( id );
@@ -944,15 +951,18 @@ commands.register( {
 			if ( !_.isjson( playlist ) )
 				return msg.channel.sendMessage( 'error in `%s`, please delete', name );
 			
+			var total_len = 0;
 			var fields = [];
 			var data = JSON.parse( playlist );
 			for ( var i in data )
 			{
 				var song = data[i];
+				total_len += parseInt( song.length_seconds );
 				fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i)+1, song.title, song.length ), value: song.url } );
 			}
 			
-			msg.channel.sendMessage( '', false, { fields: fields } );
+			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' );
+			msg.channel.sendMessage( '', false, { title: `${data.length} songs [${total_len}]`, description: '-', fields: fields } );
 		}
 	}});
 
