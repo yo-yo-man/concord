@@ -133,6 +133,8 @@ function start_player( id, forceseek )
 	if ( song.channel && typeof forceseek === 'undefined' && !sess.loop )
 	{
 		var by_user = get_queuedby_user( song );
+		if ( sess.queue.length > 1 )
+			by_user += `, \+${sess.queue.length-1} in queue`;
 		song.channel.sendMessage( _.fmt( '`NOW PLAYING: %s [%s] (%s)`', song.title, song.length, by_user ) );
 	}
 	
@@ -625,7 +627,9 @@ commands.register( {
 				return msg.channel.sendMessage( 'nothing is currently playing' );
 			
 			var by_user = get_queuedby_user( song );
-			msg.channel.sendMessage( _.fmt( '`NOW PLAYING:\n%s [%s] (queued by %s)`\n<%s>', song.title, song.length, by_user, song.url ) );
+			if ( sess.queue.length > 1 )
+				by_user += `, \+${sess.queue.length-1} in queue`;
+			msg.channel.sendMessage( _.fmt( '`NOW PLAYING:\n%s [%s] (%s)`\n<%s>', song.title, song.length, by_user, song.url ) );
 		}
 		else
 			msg.channel.sendMessage( 'nothing is currently playing' );
