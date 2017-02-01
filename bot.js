@@ -42,11 +42,7 @@ client.Dispatcher.on( 'GATEWAY_READY', e =>
 		if ( fs.existsSync( './crash.log' ) )
 		{
 			var log = fs.readFileSync( './crash.log', 'utf8' );
-			var owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) );
-			if ( owner )
-				owner.openDM().then( d => d.sendMessage( _.fmt( '```\n%s\n```', log ) ) );
-			else
-				_.log( 'WARNING: no owner to send crash log to' );
+			sendOwnerMessage( 'CRASH LOG', log );
 			fs.unlinkSync( './crash.log' );
 		}
 	});
@@ -60,4 +56,27 @@ client.Dispatcher.onAny( ( type, e ) =>
 				message = e.guild.id;
 			return _.log('<' + type + '> ' + message );
 		}
+	});
+
+
+function sendOwnerMessage( type, msg )
+{
+	var owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) );
+	if ( owner )
+		owner.openDM().then( d => d.sendMessage( `***${type}***\n\`\`\`\n${msg}\n\`\`\`` ) );
+	else
+		_.log( 'WARNING: no owner to send error log to' );
+}
+
+process.on( 'uncaughtException', ( ex ) =>
+	{
+		sendOwnerMessage( 'uncaughtException', ex.stack );
+		console.log( ex.stack );
+	});
+
+process.on( 'unhandledRejection', ( reason, p ) =>
+	{
+		var err = `${p}\n${reason.stack}`;
+		sendOwnerMessage( 'unhandledRejection', err );
+		console.log( err );
 	});
