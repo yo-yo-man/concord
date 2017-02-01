@@ -192,7 +192,12 @@ function start_player( id, forceseek )
 	var encoderStream = encoder.play();
 	encoderStream.resetTimestamp();
 	encoderStream.removeAllListeners( 'timestamp' );
-	encoderStream.on( 'timestamp', time => sess.time = sess.starttime + time );
+	encoderStream.on( 'timestamp', time => 
+		{
+			sess.time = sess.starttime + time;
+			if ( sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
+				rotate_queue( id );
+		});
 }
 
 function queryRemote( args )
@@ -292,9 +297,15 @@ function queryRemote( args )
 						var seek = false;
 						if ( url.indexOf( 't=' ) != -1 )
 							seek = _.parsetime( _.matches( /t=(.*)/g, url )[0] );
+						if ( url.indexOf( 'start=' ) != -1 )
+							seek = _.parsetime( _.matches( /start=(.*)/g, url )[0] );
+
+						var endAt = false;
+						if ( url.indexOf( 'end=' ) != -1 )
+							endAt = _.parsetime( _.matches( /end=(.*)/g, url )[0] );
 						
 						if ( tempMsg ) tempMsg.delete();
-						var songInfo = { url: url, title: title, length: length, seek: seek, length_seconds: length_seconds };
+						var songInfo = { url: url, title: title, length: length, seek: seek, endAt: endAt, length_seconds: length_seconds };
 						if ( !forPlaylist )
 						{
 							songInfo.streamurl = streamurl;
