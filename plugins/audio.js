@@ -182,14 +182,24 @@ function start_player( id, forceseek )
 	
 	if ( sess.encoder )
 		delete sess.encoder;
-	
+
+	var normalization = '';
+	if ( settings.get( 'audio', 'normalize', true ) )
+	{
+		var I = settings.get( 'audio', 'norm_target', -16 );
+		var TP = settings.get( 'audio', 'norm_maxpeak', -2 );
+		var LRA = settings.get( 'audio', 'norm_range', 11 );
+
+		normalization = `, loudnorm=I=${I}:TP=${TP}:LRA=${LRA}`;
+	}
+
 	var encoder = sess.conn.createExternalEncoder(
 		{
 			type: 'ffmpeg',
 			source: song.streamurl,
 			format: 'opus',
 			inputArgs: inputArgs,
-			outputArgs: [ '-af', 'volume='+volume ]
+			outputArgs: [ '-af', `volume=${volume}${normalization}` ]
 		});
 		
 	if ( !encoder )
