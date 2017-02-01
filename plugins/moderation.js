@@ -193,7 +193,7 @@ commands.register( {
 				}
 				
 				if ( !args || regions.indexOf( args ) == -1 )
-					return msg.channel.sendMessage( _.fmt( 'available regions:\n```%s```', regions.join( ', ' ).replace( /((?:[^, ]*\, ){3})/g, '$1\n' ) ) );
+					return msg.channel.sendMessage( _.fmt( 'available regions:\n```%s```', _.wrap( regions, ', ', 3 ) ) );
 				
 				notices.suppressNotice( msg.member.guild.id, 'GUILD_UPDATE' );
 				notices.sendGuildNotice( msg.member.guild.id, _.fmt( '`%s` changed server region to `%s`', _.nick( msg.member ), args ) );

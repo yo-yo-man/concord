@@ -37,6 +37,11 @@ _.matches = function( reg, str )
 			output.push( matches[1] );
 		return output;
 	};
+_.wrap = function( array, delim, perline )
+	{
+		var regex = new RegExp( `((?:[^, ]*\, ){${perline}})`, 'g' );
+		return array.join( delim ).replace( regex, '$1\n' );
+	};
 _.parsetime = function( str )
 	{
 		str = str.replace( / /g, '' );

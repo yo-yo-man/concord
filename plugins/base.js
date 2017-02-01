@@ -36,16 +36,19 @@ commands.register( {
 
 commands.register( {
 	category: 'base',
-	aliases: [ 'setting' ],
+	aliases: [ 'setting', 'settings' ],
 	help: 'view or change settings',
 	flags: [ 'owner_only' ],
-	args: 'file param [value]',
+	args: 'file [param] [value]',
 	callback: ( client, msg, args ) =>
 	{
 		var split = args.split( ' ' );
 		var file = split[0];
 		var param = split[1];
 		var newVal = split[2];
+
+		if ( typeof param === 'undefined' )
+			return msg.channel.sendMessage( '```' + _.wrap( settings.list( file ), ', ', 3 ) + '```' );
 		
 		if ( typeof newVal !== 'undefined' )
 			settings.set( file, param, newVal );

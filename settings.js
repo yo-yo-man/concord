@@ -18,6 +18,14 @@ settings.exists = function( file, param )
 		return fs.existsSync( makefn( file ) );
 	};
 
+settings.list = function( file )
+	{
+		if ( !( file in jsonCache ) )
+			settings.reload( file );
+		
+		return Object.keys( jsonCache[file] );
+	};
+
 settings.get = function( file, param, def )
 	{
 		if ( !( file in jsonCache ) )
