@@ -40,32 +40,6 @@ var default_accepted_files =
 	];
 
 var sessions = {};
-var guildSettings = {};
-
-function restoreGuildSettings( id )
-{
-	if ( !(id in guildSettings) )
-		return;
-	
-	sessions[id].volume = guildSettings[id]['volume'];
-}
-
-function setGuildSetting( id, param, val )
-{
-	if ( !(id in guildSettings) )
-		guildSettings[id] = {};
-	
-	guildSettings[id][param] = val;
-	settings.set( 'audio', 'guild_settings', guildSettings );
-}
-
-function getGuildSetting( id, param )
-{
-	if ( !(id in guildSettings) )
-		guildSettings[id] = {};
-	
-	return guildSettings[id][param];
-}
 
 function join_channel( msg )
 {
@@ -420,7 +394,7 @@ function create_session( conn, msg )
 	sessions[ guild ] = { conn: conn.voiceConnection, channel: channel };
 	sessions[ guild ].queue = [];
 	
-	restoreGuildSettings( guild );
+	sessions[ guild ].volume = settings.get( 'audio', 'volume_default', 0.5 );
 }
 
 commands.register( {
@@ -589,7 +563,13 @@ commands.register( {
 		
 		if ( !args )
 		{
-			var vol = getGuildSetting( id, 'volume' ) || settings.get( 'audio', 'volume_default', 0.5 );
+			if ( !(id in sessions) )
+			{
+				var def = settings.get( 'audio', 'volume_default', 0.5 );
+				return msg.channel.sendMessage( _.fmt( 'no current audio session, default volume is `%s`', def ) );
+			}
+
+			var vol = sessions[id].volume;
 			return msg.channel.sendMessage( _.fmt( 'current volume is `%s`', vol ) );
 		}
 		
@@ -598,8 +578,6 @@ commands.register( {
 		
 		var vol = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) );
 		msg.channel.sendMessage( _.fmt( '`%s` changed volume to `%s`', _.nick( msg.member ), vol ) );
-		
-		setGuildSetting( id, 'volume', vol );
 		
 		if ( id in sessions )
 		{
@@ -1015,7 +993,6 @@ var client = null;
 module.exports.setup = function( _cl )
 	{
 		client = _cl;
-		guildSettings = settings.get( 'audio', 'guild_settings', {} );
 		_.log( 'loaded plugin: audio' );
 	};
 	
