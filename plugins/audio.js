@@ -488,10 +488,6 @@ commands.register( {
 					if ( !playlist )
 						return msg.channel.sendMessage( 'invalid remote playlist' );
 					
-					var max = settings.get( 'audio', 'max_remote_playlist', 20 );
-					if ( playlist.length > max )
-						return msg.channel.sendMessage( _.fmt( 'remote playlist exceeds max playlist length: `%s` > `%s`', playlist.length, max ) );
-					
 					for ( var i = 0; i < playlist.length; i++ )
 					{
 						var song = playlist[i];
@@ -808,6 +804,10 @@ commands.register( {
 
 function queueMultiple( data, msg, name )
 {
+	var max = settings.get( 'audio', 'max_playlist', 50 );
+	if ( data.length > max )
+		return msg.channel.sendMessage( _.fmt( 'playlist exceeds max playlist length: `%s` > `%s`', data.length, max ) );
+
 	join_channel( msg ).then( res =>
 	{
 		if ( res.isnew )
