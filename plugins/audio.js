@@ -260,12 +260,12 @@ function queryRemote( args )
 							// skip rtmp links (soundcloud)
 							if ( info.formats[0].protocol )
 							{
-								for ( var i in info.formats )
+								for ( var i = info.formats.length-1; i >= 0; i-- )
 								{
 									if ( info.formats[i].protocol == 'rtmp' )
-										continue;
-									streamurl = info.formats[i].url;
-									break;
+										info.formats.splice( i, 1 );
+									else
+										streamurl = info.formats[i].url;
 								}
 							}
 							
