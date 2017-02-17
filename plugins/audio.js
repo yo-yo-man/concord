@@ -197,7 +197,7 @@ function start_player( id, forceseek )
 	encoderStream.on( 'timestamp', time => 
 		{
 			sess.time = sess.starttime + time;
-			if ( sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
+			if ( sess.queue[0] && sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
 				rotate_queue( id );
 		});
 }
