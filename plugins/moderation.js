@@ -118,6 +118,9 @@ commands.register( {
 	args: 'target [reason]',
 	callback: ( client, msg, args ) =>
 	{
+		if ( !client.User.can( permissions.discord.General.KICK_MEMBERS, msg.guild ) )
+			return msg.channel.sendMessage( "invalid 'kick members' permission in this server" )
+
 		args = _.sanesplit( args, ' ', 1 )
 		let target = args[0]
 		const reason = args[1]
@@ -157,6 +160,9 @@ commands.register( {
 	args: 'target [reason]',
 	callback: ( client, msg, args ) =>
 	{
+		if ( !client.User.can( permissions.discord.General.BAN_MEMBERS, msg.guild ) )
+			return msg.channel.sendMessage( "invalid 'ban members' permission in this server" )
+
 		args = _.sanesplit( args, ' ', 1 )
 		let target = args[0]
 		const reason = args[1]
@@ -179,6 +185,9 @@ commands.register( {
 	args: '[region]',
 	callback: ( client, msg, args ) =>
 	{
+		if ( !client.User.can( permissions.discord.General.MANAGE_GUILD, msg.guild ) )
+			return msg.channel.sendMessage( "invalid 'manage guild' permission in this server" )
+
 		const guild = msg.guild
 		guild.fetchRegions().then( regionList =>
 			{
