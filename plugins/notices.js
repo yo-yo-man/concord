@@ -272,6 +272,7 @@ function processEvent( type, e )
 		{
 			// guild, user, data, getCachedData
 			sendGuildNotice( e.guild.id, _.fmt( '`%s` left the server, bye :(', _.nick( e.user, guild ) ) )
+			suppressNotice( e.guild.id, 'VOICE_CHANNEL_LEAVE', e.user.id )
 			break
 		}
 			
@@ -280,6 +281,7 @@ function processEvent( type, e )
 			// guild, user
 			sendGuildNotice( e.guild.id, _.fmt( '`%s` was banned', _.nick( e.user, guild ) ) )
 			suppressNotice( e.guild.id, 'GUILD_MEMBER_REMOVE', e.user.id )
+			suppressNotice( e.guild.id, 'VOICE_CHANNEL_LEAVE', e.user.id )
 			break
 		}
 			
