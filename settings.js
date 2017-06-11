@@ -28,7 +28,7 @@ settings.get = (file, param, def) => {
     if ( !param )
         val = jsonCache[file]
     
-    if ( val === null || ( typeof val === 'object' && param === null && Object.getOwnPropertyNames(val).length === 0 ) )
+    if ( val === null || typeof val === 'undefined' || ( typeof val === 'object' && param === null && Object.getOwnPropertyNames(val).length === 0 ) )
     {
         if ( typeof def !== 'undefined' )
         {
