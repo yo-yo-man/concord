@@ -59,7 +59,7 @@ function join_channel( msg )
 				const sess = sessions[ channel.guild.id ]
 				
 				const disposed = sess.conn.disposed
-				const samechan = sess.conn.channel === channel.id
+				const samechan = sess.conn.channel.id === channel.id
 				
 				if ( !disposed && !samechan )
 					return reject( 'already busy in another channel' )
@@ -116,8 +116,10 @@ function start_player( id, forceseek )
 	sess.lastActivity = _.time()
 	
 	const song = sess.queue[0]
+	let hideNP = false
 	if ( !song )
 	{
+		hideNP = true
 		const timeout = settings.get( 'audio', 'idle_timeout', 60 )
 		setTimeout( () =>
 			{
@@ -134,7 +136,9 @@ function start_player( id, forceseek )
 		let by_user = get_queuedby_user( song )
 		if ( sess.queue.length > 1 )
 			by_user += `, +${sess.queue.length - 1} in queue`
-		song.channel.sendMessage( _.fmt( '`NOW PLAYING: %s [%s] (%s)`', song.title, song.length, by_user ) )
+
+		if ( !hideNP )
+			song.channel.sendMessage( _.fmt( '`NOW PLAYING: %s [%s] (%s)`', song.title, song.length, by_user ) )
 	}
 	
 	const guildname = sess.conn.guild.name
@@ -835,7 +839,7 @@ function queueMultiple( data, msg, name )
                 
                 tempMsg.delete()
                 const verb = queue_empty ? 'loaded' : 'queued'
-                msg.channel.sendMessage( _.fmt( '`%s` %s `%s`%s', _.nick( msg.member ), verb, name, errors ) )
+                const confirmation = _.fmt( '`%s` %s `%s`%s', _.nick( msg.member ), verb, name, errors )
 
                 let total_len = 0
                 const fields = []
@@ -847,7 +851,7 @@ function queueMultiple( data, msg, name )
                 }
 
                 total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
-                msg.channel.sendMessage( '', false, { title: `${queueBuffer.length} songs [${total_len}]`, description: '-', fields } )
+                msg.channel.sendMessage( confirmation, false, { title: `${queueBuffer.length} songs [${total_len}]`, description: '-', fields } )
 
                 if ( queue_empty )
                     start_player( id )
