@@ -525,7 +525,7 @@ commands.register( {
 				return msg.channel.sendMessage( 'not playing anything to skip' )
 			
 			const channel = msg.member.getVoiceChannel()
-			const samechan = sess.conn.channel === channel.id
+			const samechan = sess.conn.channel.id === channel.id
 			if ( !samechan )
 				return msg.channel.sendMessage( "can't vote to skip from another channel" )
 			
