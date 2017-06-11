@@ -50,13 +50,14 @@ function sendGuildNotice( guildId, message, member )
 			return
 		}
 		
-		channel.sendMessage( message )
-		
 		if ( member )
 		{
 			member = member.memberOf( channel.guild ) || member
 			moderation.processCooldown( member )
+			if ( commands.tempBlacklist.includes(member.id) ) return
 		}
+
+		channel.sendMessage( message )
 	}
 }
 module.exports.sendGuildNotice = sendGuildNotice

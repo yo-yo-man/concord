@@ -257,29 +257,20 @@ function processCooldown( member )
 	{
 		delete eventAllowance[ member.id ]
 		
-		if ( guild )
-			kickMember( member, client.User, 'automatic spam detection' )
-		else
-		{
-			commands.tempBlacklist.push( member.id )
-			tempBlacklists[ member.id ] = _.time() + settings.get( 'moderation', 'cooldown_blacklist_time', 60 )
-			member.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been temporarily blacklisted due to excess spam' ) ) )
-			
-			const owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) )
-			if ( owner )
-				owner.openDM().then( d => d.sendMessage( _.fmt( '**NOTICE:** Automatically added `%s#%s` to temporary blacklist for spam', member.username, member.discriminator ) ) )
-		}
+		commands.tempBlacklist.push( member.id )
+		tempBlacklists[ member.id ] = _.time() + settings.get( 'moderation', 'cooldown_blacklist_time', 60 )
+		member.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been temporarily blacklisted due to excess spam' ) ) )
+		
+		const owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) )
+		if ( owner )
+			owner.openDM().then( d => d.sendMessage( _.fmt( '**NOTICE:** Automatically added `%s#%s` to temporary blacklist for spam', member.username, member.discriminator ) ) )
 	}
 	else if ( eventAllowance[ member.id ] <= warning )
 	{
 		if ( !nextWarning[ member.id ] || Date.now() >= nextWarning[ member.id ] )
 		{
 			nextWarning[ member.id ] = Date.now() + timespan / 2
-			
-			if ( guild )
-				member.openDM().then( dm => dm.sendMessage( _.fmt( '**WARNING:** Potential spam detected. Please slow down or you will be automatically kicked from `%s`', guild.name ) ) )
-			else
-				member.openDM().then( dm => dm.sendMessage( _.fmt( '**WARNING:** Potential spam detected. Please slow down or you will be temporarily blacklisted' ) ) )
+			member.openDM().then( dm => dm.sendMessage( _.fmt( '**WARNING:** Potential spam detected. Please slow down or you will be temporarily blacklisted' ) ) )
 		}
 	}
 	
