@@ -1,82 +1,80 @@
-'use strict';
+const Discordie = require( 'discordie' )
+const fs = require( 'fs' )
 
-var Discordie = require( 'discordie' );
-var fs = require( 'fs' );
-
-var settings = require( './settings.js' );
-var _ = require( './helper.js' );
+const settings = require( './settings.js' )
+const _ = require( './helper.js' )
 
 
-var client = new Discordie( { autoReconnect: true } );
+const client = new Discordie( { autoReconnect: true } )
 
-var token = settings.get( 'config', 'login_token' );
+const token = settings.get( 'config', 'login_token' )
 if ( !token )
 {
-	var config =
+	const config =
 		{
-			'login_token': '',
-			'admin_role': 'admin',
-			'owner_id': '',
-			'command_prefix': '!'
-		};
-	settings.save( 'config', config );
-	console.log( '\nBot has not been configured.\nPlease edit settings/config.json and restart.' );
-	process.exit( 8 );
+			login_token: '',
+			admin_role: 'admin',
+			owner_id: '',
+			command_prefix: '!',
+		}
+	settings.save( 'config', config )
+	console.log( '\nBot has not been configured.\nPlease edit settings/config.json and restart.' )
+	process.exit( 8 )
 }
 else
-	client.connect( { token: token } );
+	client.connect( { token } )
 
 
-var initialized = false;
+let initialized = false
 client.Dispatcher.on( 'GATEWAY_READY', e =>
 	{
-		if ( initialized ) return;
-		initialized = true;
+		if ( initialized ) return
+		initialized = true
 		
-		_.log( _.fmt( 'logged in as %s#%s <@%s>', client.User.username, client.User.discriminator, client.User.id ) );
-		require('./permissions.js').init( client );
-		require('./commands.js').init( client );
-		require('./plugins.js').load( client );
-		_.log( 'bot is ready!' );
+		_.log( _.fmt( 'logged in as %s#%s <@%s>', client.User.username, client.User.discriminator, client.User.id ) )
+		require('./permissions.js').init( client )
+		require('./commands.js').init( client )
+		require('./plugins.js').load( client )
+		_.log( 'bot is ready!' )
 		
 		if ( fs.existsSync( './crash.log' ) )
 		{
-			var log = fs.readFileSync( './crash.log', 'utf8' );
-			sendOwnerMessage( 'CRASH LOG', log );
-			fs.unlinkSync( './crash.log' );
+			const log = fs.readFileSync( './crash.log', 'utf8' )
+			sendOwnerMessage( 'CRASH LOG', log )
+			fs.unlinkSync( './crash.log' )
 		}
-	});
+	})
 
 client.Dispatcher.onAny( ( type, e ) =>
 	{
-		if ( [ 'GATEWAY_RESUMED', 'DISCONNECTED', 'GUILD_UNAVAILABLE', 'GUILD_CREATE', 'GUILD_DELETE' ].indexOf( type ) != -1 )
+		if ( [ 'GATEWAY_RESUMED', 'DISCONNECTED', 'GUILD_UNAVAILABLE', 'GUILD_CREATE', 'GUILD_DELETE' ].includes(type) )
 		{
-			var message = e.error || e.guildId || '';
+			let message = e.error || e.guildId || ''
 			if ( e.guild )
-				message = e.guild.id;
-			return _.log('<' + type + '> ' + message );
+				message = e.guild.id
+			return _.log('<' + type + '> ' + message )
 		}
-	});
+	})
 
 
 function sendOwnerMessage( type, msg )
 {
-	var owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) );
+	const owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) )
 	if ( owner )
-		owner.openDM().then( d => d.sendMessage( `***${type}***\n\`\`\`\n${msg}\n\`\`\`` ) );
+		owner.openDM().then( d => d.sendMessage( `***${type}***\n\`\`\`\n${msg}\n\`\`\`` ) )
 	else
-		_.log( 'WARNING: no owner to send error log to' );
+		_.log( 'WARNING: no owner to send error log to' )
 }
 
 process.on( 'uncaughtException', ( ex ) =>
 	{
-		sendOwnerMessage( 'uncaughtException', ex.stack );
-		console.log( ex.stack );
-	});
+		sendOwnerMessage( 'uncaughtException', ex.stack )
+		console.log( ex.stack )
+	})
 
 process.on( 'unhandledRejection', ( reason, p ) =>
 	{
-		var err = `${p}\n${reason.stack}`;
-		sendOwnerMessage( 'unhandledRejection', err );
-		console.log( err );
-	});
+		const err = `${p}\n${reason.stack}`
+		sendOwnerMessage( 'unhandledRejection', err )
+		console.log( err )
+	})
