@@ -220,7 +220,7 @@ function queryRemote( args )
                     if ( err )
                     {
                         console.log( _.filterlinks( err ) )
-                        if ( !quiet )
+                        if ( !quiet && tempMsg )
                             tempMsg.delete()
                         return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) )
                     }
@@ -380,8 +380,6 @@ function queryRemote( args )
 				
 			if ( quiet )
 				doQuery()
-			else
-				msg.channel.sendMessage( 'fetching info, please wait...' ).then( tempMsg => doQuery( tempMsg ) )
 		})
 		
 	return promise
@@ -837,7 +835,9 @@ function queueMultiple( data, msg, name )
                     sessions[ id ].queue.push(...queueBuffer)
                 }
                 
-                tempMsg.delete()
+				if ( tempMsg )
+               	 tempMsg.delete()
+
                 const verb = queue_empty ? 'loaded' : 'queued'
                 const confirmation = _.fmt( '`%s` %s `%s`%s', _.nick( msg.member ), verb, name, errors )
 
@@ -885,12 +885,17 @@ function queueMultiple( data, msg, name )
                     checkLoaded( i )
                 })
         }
-			
-		msg.channel.sendMessage( _.fmt( 'fetching info for `%s` song(s), please wait...', numSongs ) ).then( m =>
+		
+		if ( numSongs > 1 )
+		{
+			msg.channel.sendMessage( _.fmt( 'fetching info for `%s` song(s), please wait...', numSongs ) ).then( m =>
 			{
 				tempMsg = m
 				queryPlaylist( 0 )
 			})
+		}
+		else
+			queryPlaylist( 0 )
 	})
 	.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ) } )
 }
