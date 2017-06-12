@@ -220,8 +220,8 @@ function queryRemote( args )
                     if ( err )
                     {
                         console.log( _.filterlinks( err ) )
-                        if ( !quiet && tempMsg )
-                            tempMsg.delete()
+                        if ( !quiet )
+                        	if ( tempMsg ) tempMsg.delete()
                         return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) )
                     }
                     
@@ -377,9 +377,8 @@ function queryRemote( args )
                 console.log( _.fmt( 'WARNING: could not find suitable query mode for <%s>', url ) )
                 return reject( 'could not find suitable query mode' )
             }
-				
-			if ( quiet )
-				doQuery()
+			
+			doQuery()
 		})
 		
 	return promise
