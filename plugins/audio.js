@@ -116,10 +116,8 @@ function start_player( id, forceseek )
 	sess.lastActivity = _.time()
 	
 	const song = sess.queue[0]
-	let hideNP = false
 	if ( !song )
 	{
-		hideNP = true
 		const timeout = settings.get( 'audio', 'idle_timeout', 60 )
 		setTimeout( () =>
 			{
@@ -137,9 +135,10 @@ function start_player( id, forceseek )
 		if ( sess.queue.length > 1 )
 			by_user += `, +${sess.queue.length - 1} in queue`
 
-		if ( !hideNP )
+		if ( !sess.hideNP )
 			song.channel.sendMessage( _.fmt( '`NOW PLAYING: %s [%s] (%s)`', song.title, song.length, by_user ) )
 	}
+	sess.hideNP = false
 	
 	const guildname = sess.conn.guild.name
 	_.log( _.fmt( 'playing <%s> in (%s)', song.url, guildname ) )
@@ -330,7 +329,8 @@ function queryRemote( args )
                     if ( queue_empty )
                     {
                         resolve( _.fmt( '`%s` started playing `%s [%s]`', _.nick( msg.member ), title, length ) )
-                        start_player( id, 0 )
+						sessions[ id ].hideNP = true
+						start_player( id, 0 )
                     }
                     else
                         resolve( _.fmt( '`%s` queued `%s [%s]`', _.nick( msg.member ), title, length ) )
@@ -837,7 +837,10 @@ function queueMultiple( data, msg, name )
 				if ( tempMsg )
                	 tempMsg.delete()
 
-                const verb = queue_empty ? 'loaded' : 'queued'
+				if ( queue_empty )
+					sessions[ id ].hideNP = true
+
+                const verb = queue_empty ? 'started playing' : 'queued'
                 const confirmation = _.fmt( '`%s` %s `%s`%s', _.nick( msg.member ), verb, name, errors )
 
                 let total_len = 0
