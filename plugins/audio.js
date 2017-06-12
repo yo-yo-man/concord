@@ -182,7 +182,7 @@ function start_player( id, forceseek )
 			type: 'ffmpeg',
 			source: song.streamurl,
 			format: 'opus',
-			inputArgs,
+			inputArgs: inputArgs.concat( [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2' ] ),
 			outputArgs: [ '-af', filter ],
 		})
 		
