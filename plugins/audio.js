@@ -559,7 +559,7 @@ commands.register( {
 				sess.skipVotes = []
 				return rotate_queue( id )
 			}
-			else if ( numVotes % 2 === 1 )
+			else if ( numVotes % 3 === 1 )
 				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member ), numVotes, votesNeeded ) )
 		}
 		else
