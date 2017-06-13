@@ -536,7 +536,7 @@ commands.register( {
 				sess.skipVotes = []
 			
 			if ( sess.skipVotes.indexOf( msg.author.id ) !== -1 )
-				return msg.channel.sendMessage( _.fmt( '`%s` has already voted to skip this song', _.nick( msg.member ) ) )
+				return
 			
 			const current_users = []
 			for ( const i in channel.members )
@@ -551,14 +551,16 @@ commands.register( {
 			
 			const votesNeeded = Math.round( current_users.length * settings.get( 'audio', 'skip_percent', 0.6 ) )
 			sess.skipVotes.push( msg.author.id )
+
+			const numVotes = sess.skipVotes.length
 			
-			if ( sess.skipVotes.length >= votesNeeded )
+			if ( numVotes >= votesNeeded )
 			{
 				sess.skipVotes = []
 				return rotate_queue( id )
 			}
-			else
-				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member ), sess.skipVotes.length, votesNeeded ) )
+			else if ( numVotes % 2 === 1 )
+				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member ), numVotes, votesNeeded ) )
 		}
 		else
 			msg.channel.sendMessage( 'nothing is currently playing' )
