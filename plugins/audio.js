@@ -528,7 +528,6 @@ commands.register( {
 			
 			if ( args && permissions.hasAdmin( msg.author ) )
 			{
-				msg.channel.sendMessage( _.fmt( '`%s` force-skipped the song', _.nick( msg.member ) ) )
 				rotate_queue( id )
 				return
 			}
@@ -556,7 +555,6 @@ commands.register( {
 			if ( sess.skipVotes.length >= votesNeeded )
 			{
 				sess.skipVotes = []
-				msg.channel.sendMessage( 'vote skip passed' )
 				return rotate_queue( id )
 			}
 			else
