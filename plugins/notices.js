@@ -55,6 +55,7 @@ function sendGuildNotice( guildId, message, member )
 			member = member.memberOf( channel.guild ) || member
 			moderation.processCooldown( member )
 			if ( commands.tempBlacklist.includes(member.id) ) return
+			if ( commands.blacklistedUsers.includes(member.id) ) return
 		}
 
 		channel.sendMessage( message )
