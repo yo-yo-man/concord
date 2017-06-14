@@ -37,28 +37,41 @@ commands.register( {
 		settings.set( 'notices', 'guild_channels', guildChannels )
 	} })
 
-function sendGuildNotice( guildId, message, member )
+const guildNotices = {}
+let batchDelay = 5 * 1000
+function batchTick()
 {
-	if ( guildId in guildChannels )
+	for ( const guildId in guildNotices )
 	{
+		if ( guildNotices[ guildId ].length === 0 )
+			continue
+
 		const channel = client.Channels.get( guildChannels[ guildId ] )
 		if ( !channel )
 		{
 			delete guildChannels[ guildId ]
 			settings.set( 'notices', 'guild_channels', guildChannels )
 			_.log( _.fmt( 'WARNING: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], client.Guilds.get( guildId ).name ) )
-			return
-		}
-		
-		if ( member )
-		{
-			member = member.memberOf( channel.guild ) || member
-			moderation.processCooldown( member )
-			if ( commands.tempBlacklist.includes(member.id) ) return
-			if ( commands.blacklistedUsers.includes(member.id) ) return
+			continue
 		}
 
+		const message = guildNotices[ guildId ].join( '\n' )
 		channel.sendMessage( message )
+
+		guildNotices[ guildId ] = []
+	}
+
+	setTimeout( batchTick, batchDelay )
+}
+
+function sendGuildNotice( guildId, message, member )
+{
+	if ( guildId in guildChannels )
+	{
+		if ( !guildNotices[ guildId ] )
+			guildNotices[ guildId ] = []
+
+		guildNotices[ guildId ].push( message )
 	}
 }
 module.exports.sendGuildNotice = sendGuildNotice
@@ -475,6 +488,8 @@ var client = null
 module.exports.setup = _cl => {
     client = _cl
     initGuilds()
+	batchDelay = settings.get( 'notices', 'batch_freq', 5 ) * 1000
+	batchTick()
     client.Dispatcher.onAny( ( type, e ) => { processEvent( type, e ) } )
     _.log( 'loaded plugin: notices' )
 }
