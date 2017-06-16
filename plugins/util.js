@@ -155,6 +155,7 @@ commands.register( {
 	aliases: [ 'twitch' ],
 	help: 'notify when a twitch stream goes live',
 	args: '[channel] [mentions]',
+	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
 	{
 		if ( twitch_client_id === '' )
