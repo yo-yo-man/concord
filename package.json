@@ -3,26 +3,21 @@
 	"version": "1.0.0",
 	"author": "Doug Ty (https://github.com/DougTy)",
 	"description": "a multifunctional discord bot",
-	
-	"repository":
-	{
-		"type" : "git",
-		"url" : "https://github.com/DougTy/concord"
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DougTy/concord"
 	},
-	
-	"scripts":
-	{
+	"scripts": {
 		"start": "node index.js"
 	},
-	
-	"dependencies":
-	{
+	"dependencies": {
 		"discordie": "*",
-		"respawn": "*",
 		"moment": "*",
 		"moment-duration-format": "*",
+		"node-fetch": "^1.7.1",
+		"request": "*",
+		"respawn": "*",
 		"youtube-dl": "*",
-		"ytdl-core": "*",
-		"request": "*"
+		"ytdl-core": "*"
 	}
 }

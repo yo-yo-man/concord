@@ -6,6 +6,8 @@ const _ = require( '../helper.js' )
 const moment = require( 'moment' )
 require( 'moment-duration-format' )
 
+const fetch = require( 'node-fetch' )
+
 const notices = require( './notices.js' )
 
 let reminders = {}
@@ -116,10 +118,96 @@ commands.register( {
 		notices.sendGuildNotice( channel.guild.id, _.fmt( '%s moved to `%s` by `%s`', names.join( ', ' ), target.name, _.nick( msg.member ) ) )
 	} })
 
+let twitch = {}
+let twitchStatus = {}
+const twitchDelay = 5 * 60 * 1000
+let twitch_client_id = ''
+function checkTwitch()
+{
+	if ( twitch_client_id === '' )
+		return
+		
+	for ( const chan in twitch )
+	{
+		fetch( 'https://api.twitch.tv/kraken/streams/' + chan + '?client_id=' + twitch_client_id )
+		.then( ( response ) => {
+			return response.json()
+		}).then( ( json ) => {
+			if ( twitchStatus[ chan ] !== 'live' && json.stream !== null )
+			{
+				twitchStatus[ chan ] = 'live'
+				for ( const output in twitch[ chan ].outputs )
+				{
+					const out = client.Channels.get( twitch[ chan ].outputs[ output ].id )
+					out.sendMessage( twitch[ chan ].outputs[ output ].message )
+				}
+			}
+			else if ( twitchStatus[ chan ] === 'live' && json.stream === null )
+				twitchStatus[ chan ] = 'offline'
+		})
+	}
+
+	setTimeout( checkTwitch, twitchDelay )
+}
+
+commands.register( {
+	category: 'util',
+	aliases: [ 'twitch' ],
+	help: 'notify when a twitch stream goes live',
+	args: '[channel] [mentions]',
+	callback: ( client, msg, args ) =>
+	{
+		if ( twitch_client_id === '' )
+			return msg.channel.sendMessage( 'bot has not been configured for twitch API usage' )
+
+		if ( !args )
+		{
+			let streams = []
+			for ( const chan in twitch )
+				for ( const output in twitch[ chan ].outputs )
+					if ( twitch[ chan ].outputs[ output ].id === msg.channel.id )
+						streams.push( chan )
+
+			if ( streams.length === 0 )
+				msg.channel.sendMessage( 'there are no twitch streams configured for this channel' )
+			else
+				msg.channel.sendMessage( '```' + streams.join( '\n' ) + '```' )
+			return
+		}
+		
+		const chan = args.split( ' ' )[0]
+		const mentions = args.split( ' ' )[1] || ''
+		if ( !twitch[ chan ] )
+		{
+			const out = {}
+			out.id = msg.channel.id
+			out.message = 'https://twitch.tv/' + chan + ' has started streaming ' + mentions
+
+			twitch[ chan ] = {}
+			twitch[ chan ].outputs = []
+			twitch[ chan ].outputs.push( out )
+
+			msg.channel.sendMessage( _.fmt( '`%s` twitch notification enabled', chan ) )
+		}
+		else
+		{
+			delete twitch[ chan ]
+			msg.channel.sendMessage( _.fmt( '`%s` twitch notification disabled', chan ) )
+		}
+
+		settings.save( 'twitch', twitch )
+	} })
+
 var client = null
 module.exports.setup = _cl => {
     client = _cl
+
     reminders = settings.get( 'reminders', null, {} )
     updateReminders()
+
+	twitch_client_id = settings.get( 'config', 'twitch_client_id', '' )
+	twitch = settings.get( 'twitch', null, {} )
+	checkTwitch()
+
     _.log( 'loaded plugin: util' )
 }
