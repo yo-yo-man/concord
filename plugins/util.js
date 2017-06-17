@@ -125,32 +125,59 @@ function checkTwitch()
 {
 	if ( twitch_client_id === '' )
 		return
-		
+	
+	const channels = []
 	for ( const chan in twitch )
-	{
-		fetch( 'https://api.twitch.tv/kraken/streams/' + chan + '?client_id=' + twitch_client_id )
-		.then( ( response ) => {
-			return response.json()
-		}).then( ( json ) => {
-			if ( twitch[ chan ].status !== 'live' && json.stream !== null )
+		channels.push( chan )
+
+	const url = `https://api.twitch.tv/kraken/streams?client_id=${ twitch_client_id }&channel=${ channels }`
+	fetch( url )
+	.then( ( response ) => {
+		return response.json()
+	}).then( ( json ) => {
+		const streaming = {}
+		for ( const stream in json.streams )
+		{
+			const chan = json.streams[ stream ].channel.name
+			streaming[ chan ] = true
+		}
+
+		for ( const chan in twitch )
+		{
+			if ( twitch[ chan ].status !== 'live' && streaming[ chan ] )
 			{
 				twitch[ chan ].status = 'live'
-				for ( const output in twitch[ chan ].outputs )
+				for ( const sink in twitch[ chan ].sinks )
 				{
-					const out = client.Channels.get( twitch[ chan ].outputs[ output ].id )
-					out.sendMessage( twitch[ chan ].outputs[ output ].message ).then( msg => twitch[ chan ].notification = msg.id )
+					const out = client.Channels.get( twitch[ chan ].sinks[ sink ].id )
+					out.sendMessage( twitch[ chan ].sinks[ sink ].output ).then(
+						msg => {
+								twitch[ chan ].sinks[ sink ].message = msg.id
+							})
 				}
 			}
-			else if ( twitch[ chan ].status === 'live' && json.stream === null )
+			else if ( twitch[ chan ].status === 'live' && !streaming[ chan ] )
 			{
 				twitch[ chan ].status = 'offline'
-				client.Messages.get( twitch[ chan ].notification ).delete()
-			}
-		})
-	}
+				for ( const sink in twitch[ chan ].sinks )
+				{
+					const message = twitch[ chan ].sinks[ sink ].message
+					if ( !message )
+						continue
 
-	setTimeout( () => settings.save( 'twitch', twitch ), 15 * 1000 )
-	setTimeout( checkTwitch, twitchDelay )
+					const out = client.Channels.get( twitch[ chan ].sinks[ sink ].id )
+					out.fetchMessage( message ).then( (e) => {
+							client.Messages.get( message ).delete()
+						}).catch( e => {} )
+						
+					delete twitch[ chan ].sinks[ sink ].message
+				}
+			}
+		}
+
+		setTimeout( () => { settings.save( 'twitch', twitch ) }, 10 * 1000 )
+		setTimeout( checkTwitch, twitchDelay )
+	})
 }
 
 commands.register( {
@@ -168,8 +195,8 @@ commands.register( {
 		{
 			let streams = []
 			for ( const chan in twitch )
-				for ( const output in twitch[ chan ].outputs )
-					if ( twitch[ chan ].outputs[ output ].id === msg.channel.id )
+				for ( const sink in twitch[ chan ].sinks )
+					if ( twitch[ chan ].sinks[ sink ].id === msg.channel.id )
 						streams.push( chan )
 
 			if ( streams.length === 0 )
@@ -183,13 +210,13 @@ commands.register( {
 		const mentions = args.split( ' ' )[1] || ''
 		if ( !twitch[ chan ] )
 		{
-			const out = {}
-			out.id = msg.channel.id
-			out.message = 'https://twitch.tv/' + chan + ' is streaming ' + mentions
+			const sink = {}
+			sink.id = msg.channel.id
+			sink.output = 'https://twitch.tv/' + chan + ' is streaming ' + mentions
 
 			twitch[ chan ] = {}
-			twitch[ chan ].outputs = []
-			twitch[ chan ].outputs.push( out )
+			twitch[ chan ].sinks = []
+			twitch[ chan ].sinks.push( sink )
 
 			msg.channel.sendMessage( _.fmt( '`%s` twitch notification enabled', chan ) )
 		}

@@ -11,7 +11,7 @@
 		"start": "node index.js"
 	},
 	"dependencies": {
-		"discordie": "*",
+		"discordie": "git+https://github.com/qeled/discordie.git#dev",
 		"moment": "*",
 		"moment-duration-format": "*",
 		"node-fetch": "^1.7.1",
