@@ -139,13 +139,13 @@ function checkTwitch()
 				for ( const output in twitch[ chan ].outputs )
 				{
 					const out = client.Channels.get( twitch[ chan ].outputs[ output ].id )
-					out.sendMessage( twitch[ chan ].outputs[ output ].message ).then( msg => twitchStatus[ chan ].notification = msg )
+					out.sendMessage( twitch[ chan ].outputs[ output ].message ).then( msg => twitchStatus[ chan ].notification = msg.id )
 				}
 			}
 			else if ( twitchStatus[ chan ] === 'live' && json.stream === null )
 			{
 				twitchStatus[ chan ] = 'offline'
-				twitchStatus[ chan ].notification.delete()
+				client.Messages.get( twitchStatus[ chan ].notification ).delete()
 			}
 		})
 	}
