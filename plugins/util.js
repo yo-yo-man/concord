@@ -150,7 +150,7 @@ function checkTwitch()
 		})
 	}
 
-	settings.save( 'twitchStatus', twitchStatus )
+	setTimeout( () => settings.save( 'twitchStatus', twitchStatus ), 10 * 1000 )
 	setTimeout( checkTwitch, twitchDelay )
 }
 
