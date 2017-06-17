@@ -119,7 +119,6 @@ commands.register( {
 	} })
 
 let twitch = {}
-let twitchStatus = {}
 const twitchDelay = 5 * 60 * 1000
 let twitch_client_id = ''
 function checkTwitch()
@@ -133,24 +132,23 @@ function checkTwitch()
 		.then( ( response ) => {
 			return response.json()
 		}).then( ( json ) => {
-			if ( twitchStatus[ chan ] !== 'live' && json.stream !== null )
+			if ( twitch[ chan ].status !== 'live' && json.stream !== null )
 			{
-				twitchStatus[ chan ] = 'live'
+				twitch[ chan ].status = 'live'
 				for ( const output in twitch[ chan ].outputs )
 				{
 					const out = client.Channels.get( twitch[ chan ].outputs[ output ].id )
-					out.sendMessage( twitch[ chan ].outputs[ output ].message ).then( msg => twitchStatus[ chan ].notification = msg.id )
+					out.sendMessage( twitch[ chan ].outputs[ output ].message ).then( msg => twitch[ chan ].notification = msg.id )
 				}
 			}
-			else if ( twitchStatus[ chan ] === 'live' && json.stream === null )
+			else if ( twitch[ chan ].status === 'live' && json.stream === null )
 			{
-				twitchStatus[ chan ] = 'offline'
-				client.Messages.get( twitchStatus[ chan ].notification ).delete()
+				twitch[ chan ].status = 'offline'
+				client.Messages.get( twitch[ chan ].notification ).delete()
 			}
 		})
 	}
 
-	setTimeout( () => settings.save( 'twitchStatus', twitchStatus ), 10 * 1000 )
 	setTimeout( checkTwitch, twitchDelay )
 }
 
@@ -197,7 +195,6 @@ commands.register( {
 		else
 		{
 			delete twitch[ chan ]
-			delete twitchStatus[ chan ]
 			msg.channel.sendMessage( _.fmt( '`%s` twitch notification disabled', chan ) )
 		}
 
@@ -213,7 +210,6 @@ module.exports.setup = _cl => {
 
 	twitch_client_id = settings.get( 'config', 'twitch_client_id', '' )
 	twitch = settings.get( 'twitch', null, {} )
-	twitchStatus = settings.get( 'twitchStatus', null, {} )
 	checkTwitch()
 
     _.log( 'loaded plugin: util' )
