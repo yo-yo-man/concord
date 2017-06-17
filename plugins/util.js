@@ -139,14 +139,18 @@ function checkTwitch()
 				for ( const output in twitch[ chan ].outputs )
 				{
 					const out = client.Channels.get( twitch[ chan ].outputs[ output ].id )
-					out.sendMessage( twitch[ chan ].outputs[ output ].message )
+					out.sendMessage( twitch[ chan ].outputs[ output ].message ).then( msg => twitchStatus[ chan ].notification = msg )
 				}
 			}
 			else if ( twitchStatus[ chan ] === 'live' && json.stream === null )
+			{
 				twitchStatus[ chan ] = 'offline'
+				twitchStatus[ chan ].notification.delete()
+			}
 		})
 	}
 
+	settings.save( 'twitchStatus', twitchStatus )
 	setTimeout( checkTwitch, twitchDelay )
 }
 
@@ -182,7 +186,7 @@ commands.register( {
 		{
 			const out = {}
 			out.id = msg.channel.id
-			out.message = 'https://twitch.tv/' + chan + ' has started streaming ' + mentions
+			out.message = 'https://twitch.tv/' + chan + ' is streaming ' + mentions
 
 			twitch[ chan ] = {}
 			twitch[ chan ].outputs = []
@@ -193,6 +197,7 @@ commands.register( {
 		else
 		{
 			delete twitch[ chan ]
+			delete twitchStatus[ chan ]
 			msg.channel.sendMessage( _.fmt( '`%s` twitch notification disabled', chan ) )
 		}
 
@@ -208,6 +213,7 @@ module.exports.setup = _cl => {
 
 	twitch_client_id = settings.get( 'config', 'twitch_client_id', '' )
 	twitch = settings.get( 'twitch', null, {} )
+	twitchStatus = settings.get( 'twitchStatus', null, {} )
 	checkTwitch()
 
     _.log( 'loaded plugin: util' )
