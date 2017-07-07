@@ -214,7 +214,7 @@ commands.register( {
 		{
 			const sink = {}
 			sink.id = msg.channel.id
-			sink.output = 'https://twitch.tv/' + chan + ' is streaming ' + mentions
+			sink.output = '<https://twitch.tv/' + chan + '> is streaming ' + mentions
 
 			twitch[ chan ] = {}
 			twitch[ chan ].sinks = []
