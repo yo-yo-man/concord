@@ -289,6 +289,9 @@ function start_player( bot, forceseek )
 	}
 	
 	const volume = sess.volume || settings.get( 'audio', 'volume_default', 0.5 )
+
+	if ( settings.get( 'audio', 'native_fr', false ) )
+		inputArgs.push( '-re' )
 	
 	if ( sess.encoder )
 		delete sess.encoder
@@ -314,7 +317,7 @@ function start_player( bot, forceseek )
 			type: 'ffmpeg',
 			source: song.streamurl,
 			format: 'opus',
-			inputArgs: inputArgs.concat( [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2', '-re' ] ),
+			inputArgs: inputArgs.concat( [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2' ] ),
 			outputArgs: [ '-af', filter ],
 		})
 		
