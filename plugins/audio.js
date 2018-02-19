@@ -272,7 +272,8 @@ function start_player( bot, forceseek )
 	sess.hideNP = false
 	
 	const guildname = sess.conn.guild.name
-	_.log( _.fmt( 'playing <%s> in (%s)', song.url, guildname ) )
+	const channelname = sess.conn.channel.name
+	_.log( _.fmt( 'playing <%s> in (%s/%s)', song.url, guildname, channelname ) )
 	module.exports.songsSinceBoot++
 	
 	sess.skipVotes = []
