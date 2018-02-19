@@ -156,6 +156,9 @@ function create_session( bot, channel, conn )
 	bot.concord_audioSessions[ gid ].queue = []
 	bot.concord_audioSessions[ gid ].volume = settings.get( 'audio', 'volume_default', 0.5 )
 
+	bot.concord_audioSessions[ gid ].guild = gid
+	bot.concord_audioSessions[ gid ].bot = bot
+
 	return bot.concord_audioSessions[ gid ]
 }
 
@@ -220,7 +223,8 @@ function leave_channel( sess )
 	if ( sess.conn.channel )
 		sess.conn.channel.leave()
 
-	delete sess
+	const bot = sess.bot
+	delete bot.concord_audioSessions[ sess.guild ]
 }
 
 function rotate_queue( sess )
