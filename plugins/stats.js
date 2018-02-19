@@ -166,7 +166,6 @@ commands.register( {
 			{
 				color: colour,
 				fields,
-				footer: { text: _.fmt( 'ID: %s', target.id ) },
 				thumbnail: { url: target.avatarURL },
 			})
 	} })
