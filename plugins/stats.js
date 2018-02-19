@@ -9,13 +9,51 @@ const moment = require( 'moment' )
 require( 'moment-duration-format' )
 
 let lastSeen = {}
+let seenWith = {}
+
 const idleTime = {}
-const lastSeenDelay = 60 * 1000
-function updateLastSeen()
+const updateDelay = 60 * 1000
+function updateUserStats()
 {
-	client.Users.forEach( ( user ) => {
+	client.Users.forEach( ( user ) =>
+		{
 			if ( user.status !== 'offline' )
+			{
 				lastSeen[ user.id ] = _.time()
+
+				client.Guilds.forEach( ( guild ) =>
+					{
+						if ( user.memberOf( guild ) )
+						{
+							const vc = user.getVoiceChannel( guild )
+							if ( vc )
+							{
+								if ( !seenIn[ user.id ] )
+									seenIn[ user.id ] = {}
+
+								if ( !seenIn[ user.id ][ guild.id ] )
+									seenIn[ user.id ][ guild.id ] = 1
+								else
+									seenIn[ user.id ][ guild.id ]++
+
+
+								if ( !seenWith[ user.id ] )
+									seenWith[ user.id ] = {}
+								
+								for ( const i in vc.members )
+								{
+									const member = vc.members[i]
+									if ( member.id === user.id ) continue
+									if ( !seenWith[ user.id ][ member.id ] )
+										seenWith[ user.id ][ member.id ] = 1
+									else
+										seenWith[ user.id ][ member.id ]++
+								}
+							}
+						}
+					})
+			}
+
 			if ( user.status === 'idle' )
 			{
 				if ( !( user.id in idleTime ) )
@@ -25,9 +63,10 @@ function updateLastSeen()
 				if ( user.id in idleTime )
 					delete idleTime[ user.id ]
 		})
-		
+	
+	settings.save( 'seenwith', seenWith )
 	settings.save( 'lastseen', lastSeen )
-	setTimeout( updateLastSeen, lastSeenDelay )
+	setTimeout( updateUserStats, updateDelay )
 }
 
 commands.register( {
@@ -43,33 +82,68 @@ commands.register( {
 		
 		const rows = []
 		
+		// bold
 		rows.push( _.fmt( '%s#%s', target.username, target.discriminator ) )
 		if ( target.nick )
-			rows.push( _.fmt( 'AKA %s', target.nick ) )
+			rows[0] += _.fmt( 'AKA %s', target.nick )
+		
+		// normal
+		if ( target.status == 'offline' )
+		{
+			let timestamp = 0
+			if ( target.id in lastSeen )
+				timestamp = lastSeen[ target.id ]
+			rows.push( _.fmt( 'last seen %s', moment.unix( timestamp ).fromNow() ) )
+		}
+		else if ( target.id in idleTime )
+			rows.push( _.fmt( 'went idle %s', moment.unix( idleTime[ target.id ] ).fromNow() ) )
 		else
-			rows.push( '---' )
+			rows.push( 'online right now' )
 		
-		
+		// separate block
 		if ( !msg.channel.isPrivate )
 		{
 			const roleList = [ 'everyone' ]
 			for ( const i in target.roles )
 				roleList.push( target.roles[i].name )
 			
+			// bold
 			rows.push( _.fmt( 'part of %s', roleList.join( ', ' ) ) )
+
+			// normal
 			rows.push( _.fmt( 'joined server %s', moment( target.joined_at ).fromNow() ) )
 		}
 		
-		
-		let timestamp = 0
-		if ( target.id in lastSeen )
-			timestamp = lastSeen[ target.id ]
-		rows.push( _.fmt( 'last seen %s', moment.unix( timestamp ).fromNow() ) )
-		
-		if ( target.id in idleTime )
-			rows.push( _.fmt( 'went idle %s', moment.unix( idleTime[ target.id ] ).fromNow() ) )
-		else
-			rows.push( '---' )
+		// bold
+		if ( seenIn[ target.id ] )
+		{
+			const top5 = []
+			for ( const gid in seenIn[ target.id ] )
+			{
+				if ( top5.length > 5 ) break
+
+				const gname = client.Guilds.get( gid ).name
+				top5.push( gname )
+			}
+			rows.push( 'frequently seen in ' + top5.join( ', ' ) )
+		}
+
+		// normal
+		if ( seenWith[ target.id ] )
+		{
+			const top5 = []
+			for ( const member in seenWith[ target.id ] )
+			{
+				if ( top5.length > 5 ) break
+
+				const mem = client.Users.get( member )
+				if ( msg.channel.isPrivate )
+					top5.push( _.nick( mem ) )
+				else
+					top5.push( _.nick( mem, msg.guild ) )
+			}
+			rows.push( 'frequently seen with ' + top5.join( ', ' ) )
+		}
 		
 		
 		const fields = []
@@ -77,7 +151,7 @@ commands.register( {
 		{
 			const f = {}
 			f.name = rows[i]
-			f.value = rows[i + 1]
+			f.value = rows[i + 1] || '---'
 			fields.push( f )
 			i++
 		}
@@ -137,7 +211,9 @@ var client = null
 module.exports.setup = _cl => {
     client = _cl
     startTime = _.time()
-    lastSeen = settings.get( 'lastseen', null, {} )
-    updateLastSeen()
+	lastSeen = settings.get( 'lastseen', null, {} )
+	seenWith = settings.get( 'seenwith', null, {} )
+	seenIn = settings.get( 'seenin', null, {} )
+    updateUserStats()
     _.log( 'loaded plugin: stats' )
 }
