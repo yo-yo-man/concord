@@ -117,8 +117,14 @@ commands.register( {
 		// bold
 		if ( seenIn[ target.id ] )
 		{
+			const sorted = Object.keys( seenIn[ target.id ] ).sort(
+				(a, b) =>
+				{
+					return seenIn[ target.id ][a] < seenIn[ target.id ][b] ? 1 : 0
+				})
+
 			const top5 = []
-			for ( const gid in seenIn[ target.id ] )
+			for ( const gid of sorted )
 			{
 				if ( top5.length > 5 ) break
 
@@ -131,8 +137,14 @@ commands.register( {
 		// normal
 		if ( seenWith[ target.id ] )
 		{
+			const sorted = Object.keys( seenWith[ target.id ] ).sort(
+				(a, b) =>
+				{
+					return seenWith[ target.id ][a] < seenWith[ target.id ][b] ? 1 : 0
+				})
+
 			const top5 = []
-			for ( const member in seenWith[ target.id ] )
+			for ( const member of sorted )
 			{
 				if ( top5.length > 5 ) break
 
