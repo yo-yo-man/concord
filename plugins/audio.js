@@ -6,6 +6,7 @@ const _ = require( '../helper.js' )
 const fs = require( 'fs' )
 const path = require( 'path' )
 
+const Discordie = require( 'discordie' )
 const request = require('request')
 const ydl = require( 'youtube-dl' )
 const ytdl_core = require( 'ytdl-core' )
@@ -39,60 +40,146 @@ const default_accepted_files =
 		'.*\\.mp4',
 	]
 
-const sessions = {}
+const audioBots = []
+function initAudio()
+{
+	client.concord_audioSession = false
+	audioBots.push( client )
+
+	const tokens = settings.get( 'config', 'helper_tokens', [] )
+	for ( const i in tokens )
+	{
+		const tok = tokens[i]
+
+		const cl = new Discordie( { autoReconnect: true } )
+		cl.connect( { token: tok } )
+
+		cl.Dispatcher.on( 'GATEWAY_READY', e =>
+			{
+				_.log( _.fmt( 'connected helper bot %s#%s <@%s>', cl.User.username, cl.User.discriminator, cl.User.id ) )
+			})
+
+		cl.Dispatcher.onAny( ( type, e ) =>
+			{
+				if ( [ 'GATEWAY_RESUMED', 'DISCONNECTED', 'GUILD_UNAVAILABLE', 'GUILD_CREATE', 'GUILD_DELETE' ].includes(type) )
+				{
+					let message = e.error || e.guildId || ''
+					if ( e.guild )
+						message = e.guild.id
+					return _.log('helper-' + i + ': <' + type + '> ' + message )
+				}
+			})
+
+		cl.concord_audioSession = false
+		audioBots.push( cl )
+	}
+}
+
+function findBot( msg )
+{
+	const channel = msg.member.getVoiceChannel()
+	for ( const i in audioBots )
+	{
+		const bot = audioBots[i]
+		const sess = bot.concord_audioSession
+
+		if ( sess &&
+			sess.conn.guild == channel.guild.id &&
+			sess.conn.channel == channel.id )
+		{
+			return bot
+		}
+	}
+
+	return false
+}
+
+function create_session( bot, channel, conn )
+{
+	bot.concord_audioSession = {}
+	bot.concord_audioSession.conn = conn.voiceConnection
+
+	bot.concord_audioSession.queue = []
+	bot.concord_audioSession.volume = settings.get( 'audio', 'volume_default', 0.5 )
+
+	return bot
+}
 
 function join_channel( msg )
 {
-	const promise = new Promise( ( resolve, reject ) => {
+	const promise = new Promise( ( resolve, reject ) =>
+		{
 			const channel = msg.member.getVoiceChannel()
 				
 			if ( !channel )
 				return reject( 'you are not in a voice channel' )
 			
-			if ( !client.User.can( permissions.discord.Voice.CONNECT, channel ) ||
-				 !client.User.can( permissions.discord.Voice.SPEAK, channel ) ||
-				 !client.User.can( permissions.discord.Voice.USE_VAD, channel ) )
-					return reject( _.fmt( 'invalid permissions for `%s`', channel.name ) )
-				
-			if ( channel.guild.id in sessions )
+			let success = false
+			for ( const i in audioBots )
 			{
-				const sess = sessions[ channel.guild.id ]
-				
-				const disposed = sess.conn.disposed
-				const samechan = sess.conn.channel.id === channel.id
-				
-				if ( !disposed && !samechan )
-					return reject( 'already busy in another channel' )
-				else if ( !disposed && samechan )
-					return resolve( { isnew: false, conn: sess.conn } )
+				const bot = audioBots[i]
+				const sess = bot.concord_audioSession
+
+				if ( sess &&
+					sess.conn.guild == channel.guild.id &&
+					sess.conn.channel == channel.id )
+				{
+					return resolve( bot )
+				}
+				else if ( !sess )
+				{
+					if ( !bot.User.can( permissions.discord.Voice.CONNECT, channel ) ||
+						!bot.User.can( permissions.discord.Voice.SPEAK, channel ) ||
+						!bot.User.can( permissions.discord.Voice.USE_VAD, channel ) )
+							return reject( _.fmt( 'invalid permissions for `%s`', channel.name ) )
+
+					const guild = bot.Guilds.get( channel.guild.id )
+					for ( const c in guild.voiceChannels )
+					{
+						const chan = guild.voiceChannels[c]
+						if ( chan.id == channel.id )
+						{
+							chan.join().then( conn => resolve( create_session( bot, chan, conn ) ) )
+								.catch( e => reject( `error joining channel: \`${ e.message }\`` ) )
+							success = true
+							break
+						}
+					}
+
+					if ( success )
+						break
+				}
 			}
-			
-			msg.member.getVoiceChannel().join().then( conn => resolve( { isnew: true, conn } ) )
-				.catch( e => reject( e.message ) )
+
+			if ( !success )
+				return reject( 'all bots are currently busy in other channels' )
 		})
 	
 	return promise
 }
 
-function leave_channel( id )
+function leave_channel( bot )
 {
-	const sess = sessions[ id ]
+	const sess = bot.concord_audioSession
+
 	if ( sess.playing )
 	{
 		sess.encoder.stop()
 		sess.encoder.destroy()
 	}
+
 	if ( sess.conn.channel )
 		sess.conn.channel.leave()
-	delete sessions[id]
+
+	bot.concord_audioSession = false
 }
 
-function rotate_queue( id )
+function rotate_queue( bot )
 {
-	const sess = sessions[ id ]
+	const sess = bot.concord_audioSession
 	if ( typeof sess.loop === 'undefined' || !sess.loop )
 		sess.queue.shift()
-	start_player( id )
+	start_player( bot )
 }
 
 function get_queuedby_user( song )
@@ -103,9 +190,9 @@ function get_queuedby_user( song )
 	return by_user
 }
 
-function start_player( id, forceseek )
+function start_player( bot, forceseek )
 {
-	const sess = sessions[ id ]
+	const sess = bot.concord_audioSession
 	if ( sess.playing )
 	{
 		sess.encoder.stop()
@@ -118,13 +205,14 @@ function start_player( id, forceseek )
 	const song = sess.queue[0]
 	if ( !song )
 	{
+		// TO DO: run this every minute, and compare against lastActivity timestamp
 		const timeout = settings.get( 'audio', 'idle_timeout', 60 )
 		setTimeout( () =>
 			{
-				const sess = sessions[ id ]
+				const sess = bot.concord_audioSession
 				if ( !sess ) return
 				if ( !sess.playing && _.time() >= sess.lastActivity + timeout )
-					leave_channel( id )
+					leave_channel( bot )
 			}, timeout * 1000 )
 		return
 	}
@@ -165,7 +253,7 @@ function start_player( id, forceseek )
 	if ( settings.get( 'audio', 'normalize', true ) )
 	{
 		const I = settings.get( 'audio', 'norm_target', -24 )
-		const TP = settings.get( 'audio', 'norm_maxpeak', -2 )
+		const TP = settings.get( 'audio', 'https://www.youtube.com/watch?v=ocW3fBqPQkUnorm_maxpeak', -2 )
 		const LRA = settings.get( 'audio', 'norm_range', 7 )
 
 		let offset = 10 * Math.log( volume ) / Math.log( 2 )
@@ -191,7 +279,7 @@ function start_player( id, forceseek )
 	
 	sess.playing = true
 	sess.encoder = encoder
-	encoder.once( 'end', () => rotate_queue( id ) )
+	encoder.once( 'end', () => rotate_queue( bot ) )
 
 	const encoderStream = encoder.play()
 	encoderStream.resetTimestamp()
@@ -200,7 +288,7 @@ function start_player( id, forceseek )
 		{
 			sess.time = sess.starttime + time
 			if ( sess.queue[0] && sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
-				rotate_queue( id )
+				rotate_queue( bot )
 		})
 }
 
@@ -208,6 +296,7 @@ function queryRemote( args )
 {
 	const msg = args.msg
 	const url = args.url
+	const bot = args.bot
 	const returnInfo = args.returnInfo
 	const forPlaylist = args.forPlaylist
 	const quiet = args.quiet
@@ -223,8 +312,6 @@ function queryRemote( args )
                         	if ( tempMsg ) tempMsg.delete()
                         return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) )
                     }
-                    
-                    const id = msg.guild.id
                     
                     const title = info.title
                     
@@ -319,18 +406,19 @@ function queryRemote( args )
                     
                     // never return this
                     songInfo.channel = msg.channel
-                    
-                    if ( !sessions[ id ] )
+					
+					const sess = bot.concord_audioSession
+                    if ( !sess )
                         return reject( 'invalid audio session' )
                     
-                    const queue_empty = sessions[ id ].queue.length === 0
-                    sessions[ id ].queue.push( songInfo )
+                    const queue_empty = sess.queue.length === 0
+                    sess.queue.push( songInfo )
                     
                     if ( queue_empty )
                     {
                         resolve( _.fmt( '`%s` started playing `%s [%s]`', _.nick( msg.member ), title, length ) )
-						sessions[ id ].hideNP = true
-						start_player( id, 0 )
+						sess.hideNP = true
+						start_player( bot, 0 )
                     }
                     else
                         resolve( _.fmt( '`%s` queued `%s [%s]`', _.nick( msg.member ), title, length ) )
@@ -403,17 +491,6 @@ function is_accepted_url( link )
 	return found
 }
 
-function create_session( conn, msg )
-{
-	const channel = msg.member.getVoiceChannel().id
-	const guild = msg.guild.id
-	
-	sessions[ guild ] = { conn: conn.voiceConnection, channel }
-	sessions[ guild ].queue = []
-	
-	sessions[ guild ].volume = settings.get( 'audio', 'volume_default', 0.5 )
-}
-
 commands.register( {
 	category: 'audio',
 	aliases: [ 'play', 'p' ],
@@ -427,11 +504,8 @@ commands.register( {
 			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', args ) )
 		
 		join_channel( msg ).then( res =>
-			{
-				if ( res.isnew )
-					create_session( res.conn, msg )
-				
-				queryRemote( { msg, url: args } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( '```' + s + '```' ) )
+			{				
+				queryRemote( { msg, url: args, bot: res } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( '```' + s + '```' ) )
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ) } )
 	} })
@@ -443,9 +517,9 @@ commands.register( {
 	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
-			leave_channel( id )
+		const bot = findBot( msg )
+		if ( bot )
+			leave_channel( bot )
 	} })
 
 commands.register( {
@@ -508,16 +582,15 @@ commands.register( {
 
 commands.register( {
 	category: 'audio',
-	aliases: [ 'skip' ],
-	help: 'vote to skip the current song (force if admin)',
+	aliases: [ 'voteskip' ],
+	help: 'vote to skip the current song',
 	flags: [ 'no_pm' ],
-	args: '[force]',
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
+		const bot = findBot( msg )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			if ( !sess.playing )
 				return msg.channel.sendMessage( 'not playing anything to skip' )
 			
@@ -525,12 +598,6 @@ commands.register( {
 			const samechan = sess.conn.channel.id === channel.id
 			if ( !samechan )
 				return msg.channel.sendMessage( "can't vote to skip from another channel" )
-			
-			if ( args && permissions.hasAdmin( msg.author ) )
-			{
-				rotate_queue( id )
-				return
-			}
 			
 			if ( !sess.skipVotes )
 				sess.skipVotes = []
@@ -557,7 +624,7 @@ commands.register( {
 			if ( numVotes >= votesNeeded )
 			{
 				sess.skipVotes = []
-				return rotate_queue( id )
+				return rotate_queue( bot )
 			}
 			else if ( numVotes % 3 === 1 )
 				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member ), numVotes, votesNeeded ) )
@@ -573,18 +640,18 @@ commands.register( {
 	flags: [ 'admin_only', 'no_pm' ],
 	args: '[number=0-1]',
 	callback: ( client, msg, args ) =>
-	{
-		const id = msg.guild.id
-		
+	{		
+		const bot = findBot( msg )
+
 		if ( !args )
 		{
-			if ( !(id in sessions) )
+			if ( !bot )
 			{
 				const def = settings.get( 'audio', 'volume_default', 0.5 )
 				return msg.channel.sendMessage( _.fmt( 'no current audio session, default volume is `%s`', def ) )
 			}
 
-			const vol = sessions[id].volume
+			const vol = bot.concord_audioSession.volume
 			return msg.channel.sendMessage( _.fmt( 'current volume is `%s`', vol ) )
 		}
 		
@@ -594,14 +661,14 @@ commands.register( {
 		const vol = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) )
 		msg.channel.sendMessage( _.fmt( '`%s` changed volume to `%s`', _.nick( msg.member ), vol ) )
 		
-		if ( id in sessions )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			if ( !sess.playing ) return
 			
 			sess.volume = vol
 			sess.encoder.stop()
-			start_player( id, sess.time )
+			start_player( bot, sess.time )
 		}
 	} })
 
@@ -612,10 +679,10 @@ commands.register( {
 	help: "info about what's currently playing",
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
+		const bot = findBot( msg )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			if ( !sess.playing ) return msg.channel.sendMessage( 'nothing is currently playing' )
 			
 			const song = sess.queue[0]
@@ -638,10 +705,10 @@ commands.register( {
 	help: 'view the current audio queue',
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
+		const bot = findBot( msg )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			if ( !sess.playing ) return msg.channel.sendMessage( '```\nempty\n```' )
 			
 			const queue = sess.queue
@@ -672,10 +739,10 @@ commands.register( {
 	help: 'pauses the current song',
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
+		const bot = findBot( msg )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			if ( !sess.playing ) return
 			if ( sess.paused ) return
 			
@@ -691,15 +758,15 @@ commands.register( {
 	help: 'resumes the current song if paused',
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
+		const bot = findBot( msg )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			if ( !sess.playing ) return
 			if ( !sess.paused ) return
 			
 			sess.paused = false
-			start_player( id, sess.time )
+			start_player( bot, sess.time )
 		}
 	} })
 
@@ -711,16 +778,16 @@ commands.register( {
 	args: '[time]',
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
+		const bot = findBot( msg )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			if ( !sess.playing ) return
 			
 			if ( args )
 			{
 				sess.encoder.stop()
-				start_player( id, _.parsetime(args) )
+				start_player( bot, _.parsetime(args) )
 			}
 			else
 			{
@@ -740,10 +807,10 @@ commands.register( {
 	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
 	{
-		const id = msg.guild.id
-		if ( id in sessions )
+		const bot = findBot( msg )
+		if ( bot )
 		{
-			const sess = sessions[id]
+			const sess = bot.concord_audioSession
 			
 			sess.loop = !sess.loop
 			if ( sess.loop )
@@ -805,11 +872,9 @@ function queueMultiple( data, msg, name )
 	if ( data.length > max )
 		return msg.channel.sendMessage( _.fmt( 'playlist exceeds max playlist length: `%s` > `%s`', data.length, max ) )
 
+	// TO DO: repurpose into queryMultiple
 	join_channel( msg ).then( res =>
-	{
-		if ( res.isnew )
-			create_session( res.conn, msg )
-		
+	{		
 		const id = msg.guild.id
 		
 		const numSongs = data.length
@@ -1029,8 +1094,9 @@ commands.register( {
 var client = null
 module.exports.setup = _cl => {
     client = _cl
-    _.log( 'loaded plugin: audio' )
+	_.log( 'loaded plugin: audio' )
+	
+	initAudio()
 }
 
 module.exports.songsSinceBoot = 0
-module.exports.sessions = sessions
