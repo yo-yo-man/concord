@@ -142,7 +142,7 @@ function checkSessionActivity()
 		}
 	}
 
-	setTimeout( checkSessionActivity, 10 * 1000 )
+	setTimeout( checkSessionActivity, 30 * 1000 )
 }
 
 function create_session( bot, channel, conn )
