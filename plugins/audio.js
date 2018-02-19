@@ -166,9 +166,9 @@ function join_channel( msg )
 				return reject( 'you are not in a voice channel' )
 			
 			let success = false
-			for ( const i in audioBots )
+			const shuffledBots = _.shuffleArr( audioBots )
+			for ( const bot of shuffledBots )
 			{
-				const bot = audioBots[i]
 				const sess = bot.concord_audioSession
 
 				if ( sess &&
@@ -300,7 +300,7 @@ function start_player( bot, forceseek )
 	if ( settings.get( 'audio', 'normalize', true ) )
 	{
 		const I = settings.get( 'audio', 'norm_target', -24 )
-		const TP = settings.get( 'audio', 'https://www.youtube.com/watch?v=ocW3fBqPQkUnorm_maxpeak', -2 )
+		const TP = settings.get( 'audio', 'norm_maxpeak', -2 )
 		const LRA = settings.get( 'audio', 'norm_range', 7 )
 
 		let offset = 10 * Math.log( volume ) / Math.log( 2 )

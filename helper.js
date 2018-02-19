@@ -97,5 +97,23 @@ _.nick = (member, guild) => {
         return member.username
     return member.nick
 }
+_.shuffleArr = arr => {
+		var curr = arr.length
+		var temp = false
+		var rand = 0
+	  
+		while ( 0 !== curr )
+		{
+	  
+		  rand = Math.floor( Math.random() * curr )
+		  curr--
+	  
+		  temp = arr[ curr ]
+		  arr[ curr ] = arr[ rand ]
+		  arr[ rand ] = temp
+		}
+	  
+		return arr
+	}
 
 module.exports = _
