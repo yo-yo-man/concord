@@ -166,8 +166,10 @@ function join_channel( msg )
 				return reject( 'you are not in a voice channel' )
 			
 			let success = false
-			const shuffledBots = _.shuffleArr( audioBots )
-			for ( const bot of shuffledBots )
+			let botsArray = audioBots
+			if ( settings.get( 'audio', 'shuffle_bots', false ) )
+				botsArray = _.shuffleArr( audioBots )
+			for ( const bot of botsArray )
 			{
 				const sess = bot.concord_audioSession
 
