@@ -570,10 +570,7 @@ commands.register( {
 			{
 				const sess = res.concord_audioSession
 				if ( sess.playing )
-				{
-					sess.encoder.stop()
 					sess.queue = []
-				}
 
 				queryRemote( { msg, url: args, bot: res } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( '```' + s + '```' ) )
 			})
@@ -1218,19 +1215,20 @@ commands.register( {
 		if ( !gid in songTracking )
 			return msg.channel.sendMessage( 'no audio data found for this server' )
 
-		let topTen = ''
-		for ( const i in songTracking[ gid ] )
-		{
-			topTen
-		}
+		const sorted = Object.keys( songTracking[ gid ] ).sort(
+			(a, b) =>
+			{
+				return songTracking[ gid ][a].plays < songTracking[ gid ][b].plays ? 1 : 0
+			})
 
 		const fields = []
-		for ( const url in songTracking[ gid ] )
+		for ( const url of sorted )
 		{
 			if ( fields.length > 10 ) break
-			const plays = songTracking[ gid ][ url ].plays
-			const title = songTracking[ gid ][ url ].title
-			let playtime = songTracking[ gid ][ url ].length_seconds * plays
+			const song = songTracking[ gid ][ url ]
+			const plays = song.plays
+			const title = song.title
+			let playtime = song.length_seconds * plays
 			playtime = moment.duration( parseInt( playtime ) * 1000 ).format( 'hh:mm:ss' )
 			fields.push( { name: `${ fields.length+1 }. ${ title } - ${ plays } plays - ${ playtime } total play time`, value: url } )
 		}
