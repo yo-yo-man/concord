@@ -3,6 +3,9 @@ const permissions = require( '../permissions.js' )
 const settings = require( '../settings.js' )
 const _ = require( '../helper.js' )
 
+const request = require( 'request' )
+const fs = require( 'fs' )
+
 commands.register( {
 	category: 'base',
 	aliases: [ 'eval', 'ev' ],
@@ -106,6 +109,25 @@ commands.register( {
 		
 		if ( !split[1] )
 			target.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been blacklisted, and will no longer be able to use bot commands' ) ) )
+	} })
+
+commands.register( {
+	category: 'base',
+	aliases: [ 'avatar' ],
+	help: 'change bot avatar',
+	flags: [ 'owner_only' ],
+	args: 'file',
+	callback: ( client, msg, args ) =>
+	{
+		request( { url: args, encoding: 'binary' }, ( error, response, body ) => {
+				if ( !error && response.statusCode === 200 )
+				{
+					const tmp = 'temp/avatar.png'
+					fs.writeFileSync( tmp, body, 'binary' )
+					client.User.setAvatar( fs.readFileSync( tmp ) )
+					fs.unlinkSync( tmp )
+				}
+			})
 	} })
 
 commands.register( {

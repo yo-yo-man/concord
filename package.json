@@ -12,12 +12,12 @@
 	},
 	"dependencies": {
 		"discordie": "git+https://github.com/qeled/discordie.git#dev",
-		"moment": "*",
-		"moment-duration-format": "*",
-		"node-fetch": "^1.7.1",
-		"request": "*",
+		"moment": "^2.20.1",
+		"moment-duration-format": "^2.2.2",
+		"node-fetch": "^1.7.3",
+		"request": "^2.83.0",
 		"respawn": "*",
-		"youtube-dl": "*",
-		"ytdl-core": "*"
+		"youtube-dl": "^1.12.2",
+		"ytdl-core": "^0.20.1"
 	}
 }

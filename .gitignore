@@ -3,6 +3,8 @@ settings/*
 !settings/*.empty
 playlists/*
 !playlists/*.empty
+temp/*
+!temp/*.empty
 npm-debug.log
 screenlog.0
 crash.log
