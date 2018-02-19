@@ -224,7 +224,7 @@ function start_player( bot, forceseek )
 			by_user += `, +${sess.queue.length - 1} in queue`
 
 		if ( !sess.hideNP )
-			song.channel.sendMessage( _.fmt( '`NOW PLAYING: %s [%s] (%s)`', song.title, song.length, by_user ) )
+			song.channel.sendMessage( _.fmt( '`NOW PLAYING in %s: %s [%s] (%s)`', sess.conn.channel.name, song.title, song.length, by_user ) )
 	}
 	sess.hideNP = false
 	
@@ -692,7 +692,7 @@ commands.register( {
 			let by_user = get_queuedby_user( song )
 			if ( sess.queue.length > 1 )
 				by_user += `, +${sess.queue.length - 1} in queue`
-			msg.channel.sendMessage( _.fmt( '`NOW PLAYING:\n%s [%s] (%s)`\n<%s>', song.title, song.length, by_user, song.url ) )
+			msg.channel.sendMessage( _.fmt( '`NOW PLAYING in %s:\n%s [%s] (%s)`\n<%s>', sess.conn.channel.name, song.title, song.length, by_user, song.url ) )
 		}
 		else
 			msg.channel.sendMessage( 'nothing is currently playing' )
