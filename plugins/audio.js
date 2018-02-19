@@ -237,6 +237,8 @@ function start_player( bot, forceseek )
 	const song = sess.queue[0]
 	if ( !song )
 		return
+
+	sess.lastSong = song
 	
 	if ( song.channel && typeof forceseek === 'undefined' && !sess.loop )
 	{
@@ -878,7 +880,14 @@ commands.register( {
 			
 			sess.loop = !sess.loop
 			if ( sess.loop )
+			{
 				msg.channel.sendMessage( _.fmt( 'turned on looping, use `%sloop` again to toggle off', settings.get( 'config', 'command_prefix', '!' ) ) )
+				if ( sess.lastSong && !sess.playing )
+				{
+					sess.queue.push( sess.lastSong )
+					start_player( bot )
+				}
+			}
 			else
 				msg.channel.sendMessage( 'turned off looping, queue will proceed as normal' )
 		}
