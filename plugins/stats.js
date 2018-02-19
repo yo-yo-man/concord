@@ -10,6 +10,7 @@ require( 'moment-duration-format' )
 
 let lastSeen = {}
 let seenWith = {}
+let seenIn = {}
 
 const idleTime = {}
 const updateDelay = 60 * 1000
@@ -64,6 +65,7 @@ function updateUserStats()
 					delete idleTime[ user.id ]
 		})
 	
+	settings.save( 'seenin', seenIn )
 	settings.save( 'seenwith', seenWith )
 	settings.save( 'lastseen', lastSeen )
 	setTimeout( updateUserStats, updateDelay )
