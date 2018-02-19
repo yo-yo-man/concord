@@ -85,7 +85,7 @@ commands.register( {
 		// bold
 		rows.push( _.fmt( '%s#%s', target.username, target.discriminator ) )
 		if ( target.nick )
-			rows[0] += _.fmt( 'AKA %s', target.nick )
+			rows[0] += _.fmt( ' AKA %s', target.nick )
 		
 		// normal
 		if ( target.status == 'offline' )
