@@ -128,7 +128,6 @@ commands.register( {
 		{
 			const audio = require( './audio.js' )
 			stats += _.fmt( 'songs played since boot: %s\n', audio.songsSinceBoot )
-			stats += _.fmt( 'active music sessions: %s\n', Object.keys( audio.sessions ).length )
 		} catch (e) {}
 		
 		msg.channel.sendMessage( '```' + stats + '```' )
