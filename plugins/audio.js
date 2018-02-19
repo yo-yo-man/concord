@@ -314,7 +314,7 @@ function start_player( bot, forceseek )
 			type: 'ffmpeg',
 			source: song.streamurl,
 			format: 'opus',
-			inputArgs: inputArgs.concat( [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2' ] ),
+			inputArgs: inputArgs.concat( [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2', '-re' ] ),
 			outputArgs: [ '-af', filter ],
 		})
 		
