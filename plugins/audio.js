@@ -75,6 +75,25 @@ function initAudio()
 	}
 }
 
+songTracking = {}
+function trackSong( gid, song )
+{
+	if ( !songTracking[ gid]  )
+		songTracking[ gid ] = {}
+
+	if ( !songTracking[ gid ][ song.url ] )
+	{
+		songTracking[ gid ][ song.url ] = {}
+		songTracking[ gid ][ song.url ].plays = 1
+		songTracking[ gid ][ song.url ].title = song.title
+		songTracking[ gid ][ song.url ].length_seconds = song.length_seconds
+	}
+	else
+		songTracking[ gid ][ song.url ].plays++
+
+	settings.save( 'songtracking', songTracking )
+}
+
 function findBot( msg )
 {
 	const channel = msg.member.getVoiceChannel()
@@ -239,6 +258,7 @@ function start_player( bot, forceseek )
 		return
 
 	sess.lastSong = song
+	trackSong( sess.conn.guild.id, song )
 	
 	if ( song.channel && typeof forceseek === 'undefined' && !sess.loop )
 	{
@@ -1187,6 +1207,37 @@ commands.register( {
 		msg.channel.sendMessage( _.fmt( '`%s` deleted', name ) )
 	} })
 
+commands.register( {
+	category: 'audio',
+	aliases: [ 'audiostats' ],
+	help: 'display audio stats for this guild',
+	flags: [ 'admin_only', 'no_pm' ],
+	callback: ( client, msg, args ) =>
+	{
+		const gid = msg.guild.id
+		if ( !gid in songTracking )
+			return msg.channel.sendMessage( 'no audio data found for this server' )
+
+		let topTen = ''
+		for ( const i in songTracking[ gid ] )
+		{
+			topTen
+		}
+
+		const fields = []
+		for ( const url in songTracking[ gid ] )
+		{
+			if ( fields.length > 10 ) break
+			const plays = songTracking[ gid ][ url ].plays
+			const title = songTracking[ gid ][ url ].title
+			let playtime = songTracking[ gid ][ url ].length_seconds * plays
+			playtime = moment.duration( parseInt( playtime ) * 1000 ).format( 'hh:mm:ss' )
+			fields.push( { name: `${ fields.length+1 }. ${ title } - ${ plays } plays - ${ playtime } total play time`, value: url } )
+		}
+		
+		msg.channel.sendMessage( '', false, { title: `top 10 songs`, description: '-', fields } )
+	} })
+
 var client = null
 module.exports.setup = _cl => {
     client = _cl
@@ -1194,6 +1245,7 @@ module.exports.setup = _cl => {
 	
 	initAudio()
 	checkSessionActivity()
+	songTracking = settings.get( 'songtracking', null, {} )
 }
 
 module.exports.songsSinceBoot = 0
