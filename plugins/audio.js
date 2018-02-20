@@ -127,14 +127,11 @@ function checkSessionActivity()
 				continue
 			}
 
-			if ( sess.playing )
+			const numVoice = sess.conn.channel.members.size
+			if ( numVoice == 1 )
 			{
-				const numVoice = sess.conn.channel.members.length
-				if ( numVoice == 1 )
-				{
-					leave_channel( sess )
-					continue
-				}
+				leave_channel( sess )
+				continue
 			}
 		}
 	}
@@ -560,7 +557,7 @@ function queryRemote( msg, url )
 								if ( !error && response.statusCode === 200 )
 									parseFile( { msg, url, resolve, reject } )
 								else
-									reject( '`remote file error ${ response.statusCode }`' )
+									reject( `remote file error ${ error }` )
 							})
 
 						return
