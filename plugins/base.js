@@ -32,7 +32,7 @@ commands.register( {
 			res = '```\n' + res + '\n```'
 		else
 			res = '`' + res + '`'
-		msg.channel.sendMessage( res )
+		msg.channel.send( res )
 	} })
 
 commands.register( {
@@ -49,7 +49,7 @@ commands.register( {
 		const newVal = split[2]
 
 		if ( typeof param === 'undefined' )
-			return msg.channel.sendMessage( '```' + _.wrap( settings.list( file ), ', ', 3 ) + '```' )
+			return msg.channel.send( '```' + _.wrap( settings.list( file ), ', ', 3 ) + '```' )
 		
 		if ( typeof newVal !== 'undefined' )
 			settings.set( file, param, newVal )
@@ -62,7 +62,7 @@ commands.register( {
 			val = '```\n' + val + '\n```'
 		else
 			val = '`' + val + '`'
-		msg.channel.sendMessage( val )
+		msg.channel.send( val )
 	} })
 
 commands.register( {
@@ -78,15 +78,15 @@ commands.register( {
 			const list = []
 			for ( const i in commands.blacklistedUsers )
 			{
-				const u = client.Users.get( commands.blacklistedUsers[i] )
+				const u = client.users.find( 'id', commands.blacklistedUsers[i] )
 				list.push( _.fmt( '%s#%s', u.username, u.discriminator ) )
 			}
 			for ( const i in commands.tempBlacklist )
 			{
-				const u = client.Users.get( commands.tempBlacklist[i] )
+				const u = client.users.find( 'id', commands.tempBlacklist[i] )
 				list.push( _.fmt( '%s#%s (temp)', u.username, u.discriminator ) )
 			}
-			return msg.channel.sendMessage( _.fmt( 'blacklisted users:\n```%s```', list.join( ', ' ).replace( /((?:[^, ]*, ){3})/g, '$1\n' ) || 'none' ) )
+			return msg.channel.send( _.fmt( 'blacklisted users:\n```%s```', list.join( ', ' ).replace( /((?:[^, ]*, ){3})/g, '$1\n' ) || 'none' ) )
 		}
 		
 		const split = args.split( ' ' )
@@ -100,15 +100,15 @@ commands.register( {
 			commands.blacklistedUsers.splice( index, 1 )
 			settings.save( 'blacklist', commands.blacklistedUsers )
 			
-			return msg.channel.sendMessage( _.fmt( 'removed `%s` from blacklist', _.nick( target ) ) )
+			return msg.channel.send( _.fmt( 'removed `%s` from blacklist', _.nick( target ) ) )
 		}
 		
 		commands.blacklistedUsers.push( target.id )
 		settings.save( 'blacklist', commands.blacklistedUsers )
-		msg.channel.sendMessage( _.fmt( '`%s` added to blacklist %s', _.nick( target ), split[1] ? '(silently)' : '' ) )
+		msg.channel.send( _.fmt( '`%s` added to blacklist %s', _.nick( target ), split[1] ? '(silently)' : '' ) )
 		
 		if ( !split[1] )
-			target.openDM().then( dm => dm.sendMessage( _.fmt( '**NOTICE:** You have been blacklisted, and will no longer be able to use bot commands' ) ) )
+			target.createDM().then( dm => dm.send( _.fmt( '**NOTICE:** You have been blacklisted, and will no longer be able to use bot commands' ) ) )
 	} })
 
 commands.register( {
@@ -119,7 +119,8 @@ commands.register( {
 	args: 'file',
 	callback: ( client, msg, args ) =>
 	{
-		request( { url: args, encoding: 'binary' }, ( error, response, body ) => {
+		request( { url: args, encoding: 'binary' }, ( error, response, body ) =>
+			{
 				if ( !error && response.statusCode === 200 )
 				{
 					const tmp = 'temp/avatar.png'
@@ -143,9 +144,8 @@ commands.register( {
 		if ( args )
 		{
 			help = 'command not found'
-			for ( const i in commands.commandList )
+			for ( const cmd of commands.commandList )
 			{
-				const cmd = commands.commandList[i]
 				if ( cmd.aliases.indexOf( args ) !== -1 )
 				{
 					if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
@@ -155,22 +155,20 @@ commands.register( {
 					break
 				}
 			}
-			msg.channel.sendMessage( _.fmt( '```\n%s\n```', help ) )
+			msg.channel.send( _.fmt( '```\n%s\n```', help ) )
 		}
 		else
 		{
 			function flushHelp( help )
 			{
-				author.openDM().then( d => d.sendMessage( _.fmt( '```\n%s\n```', help ) ) )
+				author.createDM().then( d => d.send( _.fmt( '```\n%s\n```', help ) ) )
 			}
 			
 			help = 'powered by concord <http://github.com/DougTy/concord>\n'
 			
 			let lastCat = ''
-			for ( const i in commands.commandList )
-			{
-				const cmd = commands.commandList[i]
-				
+			for ( const cmd of commands.commandList )
+			{				
 				if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
 					continue
 				
@@ -196,7 +194,8 @@ commands.register( {
 	} })
 
 let client = null
-module.exports.setup = _cl => {
-    client = _cl
-    _.log( 'loaded plugin: base' )
-}
+module.exports.setup = _cl =>
+	{
+		client = _cl
+		_.log( 'loaded plugin: base' )
+	}

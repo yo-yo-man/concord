@@ -1,11 +1,11 @@
-const Discordie = require( 'discordie' )
+const Discord = require( 'discord.js' )
 const fs = require( 'fs' )
 
 const settings = require( './settings.js' )
 const _ = require( './helper.js' )
 
 
-const client = new Discordie( { autoReconnect: true } )
+const client = new Discord.Client()
 
 const token = settings.get( 'config', 'login_token' )
 if ( !token )
@@ -22,16 +22,20 @@ if ( !token )
 	process.exit( 8 )
 }
 else
-	client.connect( { token } )
+	client.login( token )
+		.catch( e => 
+		{
+			_.log( e )
+		})
 
 
 let initialized = false
-client.Dispatcher.on( 'GATEWAY_READY', e =>
+client.on( 'ready', e =>
 	{
 		if ( initialized ) return
 		initialized = true
 		
-		_.log( _.fmt( 'logged in as %s#%s <@%s>', client.User.username, client.User.discriminator, client.User.id ) )
+		_.log( `logged in as ${ client.user.tag }`)
 		require('./permissions.js').init( client )
 		require('./commands.js').init( client )
 		require('./plugins.js').load( client )
@@ -45,23 +49,22 @@ client.Dispatcher.on( 'GATEWAY_READY', e =>
 		}
 	})
 
-client.Dispatcher.onAny( ( type, e ) =>
-	{
-		if ( [ 'GATEWAY_RESUMED', 'DISCONNECTED', 'GUILD_UNAVAILABLE', 'GUILD_CREATE', 'GUILD_DELETE' ].includes(type) )
-		{
-			let message = e.error || e.guildId || ''
-			if ( e.guild )
-				message = e.guild.id
-			return _.log('<' + type + '> ' + message )
-		}
-	})
+function logEvent( type, e )
+{
+	const message = e.id || e || ''
+	return _.log('<' + type + '> ' + message )
+}
+client.on( 'disconnected', e => logEvent( 'disconnected', e ) )
+client.on( 'guildCreate', e => logEvent( 'guildCreate', e ) )
+client.on( 'guildDelete', e => logEvent( 'guildDelete', e ) )
+client.on( 'guildUnavailable', e => logEvent( 'guildUnavailable', e ) )
 
 
 function sendOwnerMessage( type, msg )
 {
-	const owner = client.Users.get( settings.get( 'config', 'owner_id', '' ) )
+	const owner = client.users.find( 'id', settings.get( 'config', 'owner_id', '' ) )
 	if ( owner )
-		owner.openDM().then( d => d.sendMessage( `***${type}***\n\`\`\`\n${msg}\n\`\`\`` ) )
+		owner.createDM().then( d => d.send( `***${type}***\n\`\`\`\n${msg}\n\`\`\`` ) )
 	else
 		_.log( 'WARNING: no owner to send error log to' )
 }

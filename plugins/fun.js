@@ -7,7 +7,7 @@ const request = require( 'request' )
 
 function timedMessage( channel, msg, delay )
 {
-	setTimeout( () => channel.sendMessage( msg ), delay )
+	setTimeout( () => channel.send( msg ), delay )
 }
 
 commands.register( {
@@ -19,7 +19,7 @@ commands.register( {
 	callback: ( client, msg, args ) =>
 	{
 		const max = args || 6
-		msg.channel.sendMessage( _.fmt( '`%s` rolled a `%s`', _.nick( msg.member ), _.rand(1, max) ) )
+		msg.channel.send( _.fmt( '`%s` rolled a `%s`', _.nick( msg.member ), _.rand( 1, max ) ) )
 	} })
 
 commands.register( {
@@ -28,13 +28,13 @@ commands.register( {
 	help: 'flip a coin, decide your fate',
 	callback: ( client, msg, args ) =>
 	{
-		msg.channel.sendMessage( '*flips a coin*' )
-		setTimeout( () => msg.channel.sendMessage( 'wait for it...' ), 1.5 * 1000 )
+		msg.channel.send( '*flips a coin*' )
+		timedMessage( msg.channel, 'wait for it...', 1.5 * 1000 )
 		
 		const rand = _.rand( 1, 2 )
 		const str = [ 'HEADS!', 'TAILS!' ]
 		
-		setTimeout( () => msg.channel.sendMessage( str[rand] ), 3 * 1000 )
+		timedMessage( msg.channel, str[rand], 3 * 1000 )
 	} })
 
 const rouletteCache = {}
@@ -45,7 +45,7 @@ commands.register( {
 	help: 'clench your ass cheeks and pull the trigger',
 	callback: ( client, msg, args ) =>
 	{
-		msg.channel.sendMessage( _.fmt( '*`%s` pulls the trigger...*', _.nick( msg.member ) ) )
+		msg.channel.send( _.fmt( '*`%s` pulls the trigger...*', _.nick( msg.member ) ) )
 		
 		const guildId = msg.guild.id
 		if ( !rouletteCache[ guildId ] )
@@ -60,10 +60,10 @@ commands.register( {
 		{
 			rouletteCache[ guildId ].chamber = 0
 			rouletteCache[ guildId ].bullet = _.rand( 1, 6 )
-			setTimeout( () => msg.channel.sendMessage( '*BANG!*' ), 2 * 1000 )
+			timedMessage( msg.channel, '*BANG!*', 2 * 1000 )
 		}
 		else
-			setTimeout( () => msg.channel.sendMessage( '*click.*' ), 2 * 1000 )
+			timedMessage( msg.channel, '*click.*', 2 * 1000 )
 	} })
 
 commands.register( {
@@ -72,11 +72,12 @@ commands.register( {
 	help: 'get insulted at how bad these insults are',
 	callback: ( client, msg, args ) =>
 	{
-		request( 'http://www.insultgenerator.org', ( error, response, body ) => {
-				if (!error && response.statusCode === 200)
+		request( 'http://www.insultgenerator.org', ( error, response, body ) =>
+			{
+				if ( !error && response.statusCode === 200 )
 				{
 					const text = _.matches( /<div class="wrap">\s+<br><br>(.+)<\/div>/g, body )[0]
-					msg.channel.sendMessage( '```\n' + text + '\n```' )
+					msg.channel.send( '```\n' + text + '\n```' )
 				}
 			})
 	} })
@@ -87,14 +88,15 @@ commands.register( {
 	help: 'provided by your dad, laughter not guaranteed',
 	callback: ( client, msg, args ) =>
 	{
-		request( 'http://www.jokes2go.com/cgi-bin/includejoke.cgi?type=o', ( error, response, body ) => {
-				if (!error && response.statusCode === 200)
+		request( 'http://www.jokes2go.com/cgi-bin/includejoke.cgi?type=o', ( error, response, body ) =>
+			{
+				if ( !error && response.statusCode === 200 )
 				{
 					let text = _.matches( /this.document.write\('(.*)'\);/g, body )[0]
 					text = text.replace( /\s{2,}/g, '' )
 					text = text.replace( /<\s?br\s?\/?>/g, '\n' )
 					text = text.replace( /\\/g, '' )
-					msg.channel.sendMessage( '```\n' + text + '\n```' )
+					msg.channel.send( '```\n' + text + '\n```' )
 				}
 			})
 	} })
@@ -112,7 +114,7 @@ commands.register( {
 			'My reply is no', 'My sources say no', 'Outlook not so good', 'Very doubtful' ] )
 		
 		const max = answers.length - 1
-		msg.channel.sendMessage( _.fmt( '`%s`', answers[ _.rand(0, max) ] ) )
+		msg.channel.send( _.fmt( '`%s`', answers[ _.rand(0, max) ] ) )
 	} })
 
 let client = null

@@ -1,4 +1,4 @@
-const Discordie = require( 'discordie' )
+const Discord = require( 'discord.js' )
 
 const commands = require( '../commands.js' )
 const permissions = require( '../permissions.js' )
@@ -26,12 +26,12 @@ commands.register( {
 		if ( args === 'on' )
 		{
 			guildChannels[ guildId ] = msg.channel.id
-			msg.channel.sendMessage( _.fmt( 'notices enabled for %s', msg.channel.mention ) )
+			msg.channel.send( _.fmt( 'notices enabled for %s', msg.channel.mention ) )
 		}
 		else if ( args === 'off' )
 		{
 			delete guildChannels[ guildId ]
-			msg.channel.sendMessage( _.fmt( 'notices disabled for %s', msg.channel.mention ) )
+			msg.channel.send( _.fmt( 'notices disabled for %s', msg.channel.mention ) )
 		}
 		
 		settings.set( 'notices', 'guild_channels', guildChannels )
@@ -46,17 +46,17 @@ function batchTick()
 		if ( guildNotices[ guildId ].length === 0 )
 			continue
 
-		const channel = client.Channels.get( guildChannels[ guildId ] )
+		const channel = client.channels.find( 'id', guildChannels[ guildId ] )
 		if ( !channel )
 		{
 			delete guildChannels[ guildId ]
 			settings.set( 'notices', 'guild_channels', guildChannels )
-			_.log( _.fmt( 'WARNING: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], client.Guilds.get( guildId ).name ) )
+			_.log( _.fmt( 'WARNING: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], client.guilds.find( 'id', guildId ).name ) )
 			continue
 		}
 
 		const message = guildNotices[ guildId ].join( '\n' )
-		channel.sendMessage( message )
+		channel.send( message )
 
 		guildNotices[ guildId ] = []
 	}
@@ -78,13 +78,13 @@ module.exports.sendGuildNotice = sendGuildNotice
 
 function execGlobalUserNotice( userId, callback )
 {
-	const user = client.Users.get( userId )
+	const user = client.users.find( 'id', userId )
 	if ( !user )
 		return _.log( _.fmt( 'WARNING: tried to send global notice about invalid user %s', userId ) )
 		
 	for ( const guildId in guildChannels )
 	{
-		const guild = client.Guilds.get( guildId )
+		const guild = client.guilds.find( 'id', guildId )
 		
 		if ( !guild )
 		{
@@ -94,7 +94,7 @@ function execGlobalUserNotice( userId, callback )
 			return
 		}
 		
-		const member = user.memberOf( guild )
+		const member = 	guild.members.find( 'id', user.id )
 		if ( member )
 		{
 			const message = callback( member )
@@ -117,17 +117,17 @@ function suppressNotice( guildId, type, memberId )
 module.exports.suppressNotice = suppressNotice
 
 const justSwitched = {}
+// TO DO: redo
+/*
 function processEvent( type, e )
-{
-	//console.log( type );
-	
+{	
 	let guild = e.guild
 	if ( e.guildId )
-		guild = client.Guilds.get( e.guildId )
+		guild = client.guilds.find( 'id', e.guildId )
 	
 	let member = e.member
 	if ( !member && e.user && guild )
-		member = e.user.memberOf( guild ) || e.user
+		member = guild.members.find( 'id', e.user.id ) || e.user
 	
 	if ( guild )
 		for ( const i in noticeSuppressions )
@@ -146,6 +146,8 @@ function processEvent( type, e )
 		default:
 			break
 			
+		// presenceUpdate
+		// oldMember, newMember
 		case 'PRESENCE_MEMBER_INFO_UPDATE':
 		{
 			// old, new
@@ -161,7 +163,7 @@ function processEvent( type, e )
 			{
 				if ( settings.get( 'notices', 'hide_avatar_events', true ) )
 					return
-				const avatarURL = client.Users.get( e.new.id ).avatarURL
+				const avatarURL = client.users.find( 'id', e.new.id ).avatarURL
 				execGlobalUserNotice( e.old.id,
 					member =>
 					{
@@ -170,7 +172,9 @@ function processEvent( type, e )
 			}
 			break
 		}
-			
+
+		// voiceStateUpdate
+		// oldMember, newMember
 		case 'VOICE_CHANNEL_LEAVE':
 		{
 			// user, channel, channelid, guildid, newchannelid, newguildid
@@ -198,79 +202,9 @@ function processEvent( type, e )
 			break
 		}
 			
-		case 'VOICE_USER_SELF_MUTE':
-		{
-			// user, channel, channelid, guildid, state
-			if ( settings.get( 'notices', 'hide_mute_events', true ) )
-				return
-			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` muted', _.nick( e.user, guild ) ), member )
-			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` unmuted', _.nick( e.user, guild ) ), member )
-			break
-		}
-		
-		case 'VOICE_USER_SELF_DEAF':
-		{
-			// user, channel, channelid, guildid, state
-			if ( settings.get( 'notices', 'hide_deaf_events', false ) )
-				return
-			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` deafened', _.nick( e.user, guild ) ), member )
-			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` undeafened', _.nick( e.user, guild ) ), member )
-			break
-		}
-		
-		case 'VOICE_USER_MUTE':
-		{
-			// user, channel, channelid, guildid, state
-			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was muted by the server', _.nick( e.user, guild ) ) )
-			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was unmuted by the server', _.nick( e.user, guild ) ) )
-			break
-		}
-		
-		case 'VOICE_USER_DEAF':
-		{
-			// user, channel, channelid, guildid, state
-			if ( e.state )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was deafened by the server', _.nick( e.user, guild ) ) )
-			else
-				sendGuildNotice( e.guildId, _.fmt( '`%s` was undeafened by the server', _.nick( e.user, guild ) ) )
-			break
-		}
-			
-		case 'PRESENCE_UPDATE':
-		{
-			// guild, user, member
-			if ( settings.get( 'notices', 'hide_game_events', true ) )
-				return
-			if ( e.user.previousGameName !== null )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` stopped playing `%s`', _.nick( e.user, guild ), e.user.previousGameName ), member )
-			if ( e.user.gameName !== null )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` started playing `%s`', _.nick( e.user, guild ), e.user.gameName ), member )
-			break
-		}
-			
-		case 'GUILD_BAN_ADD':
-		{
-			// guild, user
-			sendGuildNotice( e.guild.id, _.fmt( '`%s` was banned', _.nick( e.user, guild ) ) )
-			suppressNotice( e.guild.id, 'GUILD_MEMBER_REMOVE', e.user.id )
-			suppressNotice( e.guild.id, 'VOICE_CHANNEL_LEAVE', e.user.id )
-			break
-		}
-			
-		case 'GUILD_BAN_REMOVE':
-		{
-			// guild, user
-			sendGuildNotice( e.guild.id, _.fmt( '`%s` was unbanned', _.nick( e.user, guild ) ) )
-			break
-		}
-			
 		case 'GUILD_MEMBER_UPDATE':
+		// guildMemberUpdate
+		// oldMember, newMember
 		{
 			// guild, member, rolesAdded, rolesRemoved, previousNick, getChanges
 			if ( e.member.nick !== e.previousNick )
@@ -286,13 +220,15 @@ function processEvent( type, e )
 		}
 	}
 }
-
+*/
 var client = null
 module.exports.setup = _cl => {
     client = _cl
     initGuilds()
 	batchDelay = settings.get( 'notices', 'batch_freq', 5 ) * 1000
 	batchTick()
-    client.Dispatcher.onAny( ( type, e ) => { processEvent( type, e ) } )
+	
+	// TO DO: add events
+
     _.log( 'loaded plugin: notices' )
 }

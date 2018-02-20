@@ -16,7 +16,7 @@ const reminderDelay = 5 * 1000
 
 function sendReminder( channel, user, rem, uid )
 {
-	channel.sendMessage( _.fmt( '**%s [reminder]** `%s`', user.mention, rem.message ) )
+	channel.send( _.fmt( '**%s [reminder]** `%s`', user.mention, rem.message ) )
 	delete reminders[uid]
 }
 
@@ -34,12 +34,12 @@ function updateReminders()
 		if ( _.time() > reminders[uid].time )
 		{
 			const rem = reminders[uid]
-			const user = client.Users.get( rem.creator )
+			const user = client.users.find( 'id', rem.creator )
 			
 			if ( rem.private )
-				user.openDM().then( dm => sendReminder( dm, user, rem, uid ) )
+				user.createDM().then( dm => sendReminder( dm, user, rem, uid ) )
 			else
-				sendReminder( client.Channels.get( rem.channel ), user, rem, uid )
+				sendReminder( client.channels.find( 'id', rem.channel ), user, rem, uid )
 			
 			needsSave = true
 		}
@@ -64,19 +64,19 @@ commands.register( {
 			if ( args === 'cancel' )
 			{
 				delete reminders[msg.author.id]
-				msg.channel.sendMessage( 'Reminder has been cancelled.' )
+				msg.channel.send( 'Reminder has been cancelled.' )
 				remindersDirty = true
 				return
 			}
 			else
-				return msg.channel.sendMessage( _.fmt( 'Reminder pending in %s, use `%sreminder cancel` to cancel.', moment.duration( (_.time() - reminders[msg.author.id].time) * 1000 ).humanize(), prefix ) )
+				return msg.channel.send( _.fmt( 'Reminder pending in %s, use `%sreminder cancel` to cancel.', moment.duration( (_.time() - reminders[msg.author.id].time) * 1000 ).humanize(), prefix ) )
 		}
 		else if ( !args )
-			return msg.channel.sendMessage( 'I current do not have any reminders set for you.' )
+			return msg.channel.send( 'I current do not have any reminders set for you.' )
 		
 		args = _.sanesplit( args, ' ', 1 )
 		if ( args.length < 2 )
-			return msg.channel.sendMessage( '`' + commands.generateHelp( commands.getCMD( 'reminder' ) ) + '`' )
+			return msg.channel.send( '`' + commands.generateHelp( commands.getCMD( 'reminder' ) ) + '`' )
 		
 		const rem = {}
 		rem.time = _.time() + _.parsetime( args[0] )
@@ -86,7 +86,7 @@ commands.register( {
 		rem.channel = msg.channel.id
 		
 		reminders[msg.author.id] = rem
-		msg.channel.sendMessage( _.fmt( 'I will remind you in %s', moment.duration( (_.time() - rem.time) * 1000 ).humanize() ) )
+		msg.channel.send( _.fmt( 'I will remind you in %s', moment.duration( (_.time() - rem.time) * 1000 ).humanize() ) )
 		remindersDirty = true
 	} })
 
@@ -100,7 +100,7 @@ commands.register( {
 	{
 		const channel = msg.member.getVoiceChannel()
 		if ( !channel )
-			return msg.channel.sendMessage( 'you are not in a voice channel' )
+			return msg.channel.send( 'you are not in a voice channel' )
 		
 		const target = commands.findVoiceChannel( msg, args )
 		if ( target === false )
@@ -149,8 +149,8 @@ function checkTwitch()
 				twitch[ chan ].status = 'live'
 				for ( const sink in twitch[ chan ].sinks )
 				{
-					const out = client.Channels.get( twitch[ chan ].sinks[ sink ].id )
-					out.sendMessage( twitch[ chan ].sinks[ sink ].output ).then(
+					const out = client.channels.find( 'id', twitch[ chan ].sinks[ sink ].id )
+					out.send( twitch[ chan ].sinks[ sink ].output ).then(
 						msg => {
 								twitch[ chan ].sinks[ sink ].message = msg.id
 							})
@@ -165,7 +165,7 @@ function checkTwitch()
 					if ( !message )
 						continue
 
-					const out = client.Channels.get( twitch[ chan ].sinks[ sink ].id )
+					const out = client.channels.find( 'id', twitch[ chan ].sinks[ sink ].id )
 					out.fetchMessage( message ).then( (e) => {
 							client.Messages.get( message ).delete()
 						}).catch( e => {} )
@@ -191,7 +191,7 @@ commands.register( {
 	callback: ( client, msg, args ) =>
 	{
 		if ( twitch_client_id === '' )
-			return msg.channel.sendMessage( 'bot has not been configured for twitch API usage' )
+			return msg.channel.send( 'bot has not been configured for twitch API usage' )
 
 		if ( !args )
 		{
@@ -202,9 +202,9 @@ commands.register( {
 						streams.push( chan )
 
 			if ( streams.length === 0 )
-				msg.channel.sendMessage( 'there are no twitch streams configured for this channel' )
+				msg.channel.send( 'there are no twitch streams configured for this channel' )
 			else
-				msg.channel.sendMessage( '```' + streams.join( '\n' ) + '```' )
+				msg.channel.send( '```' + streams.join( '\n' ) + '```' )
 			return
 		}
 		
@@ -220,12 +220,12 @@ commands.register( {
 			twitch[ chan ].sinks = []
 			twitch[ chan ].sinks.push( sink )
 
-			msg.channel.sendMessage( _.fmt( '`%s` twitch notification enabled', chan ) )
+			msg.channel.send( _.fmt( '`%s` twitch notification enabled', chan ) )
 		}
 		else
 		{
 			delete twitch[ chan ]
-			msg.channel.sendMessage( _.fmt( '`%s` twitch notification disabled', chan ) )
+			msg.channel.send( _.fmt( '`%s` twitch notification disabled', chan ) )
 		}
 
 		settings.save( 'twitch', twitch )

@@ -90,12 +90,20 @@ _.log = (...args) => {
     str = str.substring( 0, str.length - 1 )
     console.log( _.fmt( '[%s]  %s', moment().format( 'YYYY-MM-DD hh:mm:ss' ), str ) )
 }
-_.nick = (member, guild) => {
-    if ( guild )
-        member = member.memberOf( guild ) || member
-    if ( !member.nick )
-        return member.username
-    return member.nick
+_.nick = ( user, guild ) => {
+	if ( guild )
+	{
+		let member = user
+		if ( !member.user )
+			member = guild.members.find( 'id', member.id )
+		if ( member )
+		{
+			if ( member.nickname )				
+				return member.nickname
+			return member.user.username
+		}
+	}
+    return user.username
 }
 _.shuffleArr = arr => {
 		var curr = arr.length
