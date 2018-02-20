@@ -165,9 +165,10 @@ function checkTwitch()
 						continue
 
 					const out = client.channels.find( 'id', twitch[ chan ].sinks[ sink ].id )
-					out.fetchMessage( message ).then( (e) => {
-							out.messages.find( 'id', message ).delete()
-						}).catch( e => {} )
+					out.fetchMessage( message ).then( m =>
+							{
+								m.delete()
+							}).catch( e => {} )
 						
 					delete twitch[ chan ].sinks[ sink ].message
 				}

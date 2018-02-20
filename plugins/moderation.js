@@ -5,61 +5,44 @@ const _ = require( '../helper.js' )
 
 const notices = require( './notices.js' )
 
-// TO DO: redo
 function clearMessages( msg, limit, target, after )
 {
 	if ( isNaN( limit ) )
 		return msg.channel.send( _.fmt( '`%s` is not a number', limit ) )
 	
-	if ( parseInt( limit ) > 100 )
-		return msg.channel.send( _.fmt( 'can only delete `100` messages at a time' ) )
-	
-	if ( !client.user.hasPermission( require( 'discord.js' ).Permissions.FLAGS.MANAGE_MESSAGES, msg.channel ) )
+	if ( !msg.channel.permissionsFor( client.user ).has( require( 'discord.js' ).Permissions.FLAGS.MANAGE_MESSAGES ) )
 		return msg.channel.send( "invalid 'manage messages' permission in this channel" )
-	
-	if ( target )
-	{
-		target = commands.findTarget( msg, target )
-		if ( target === false )
-			return
-	}
-	else if ( !after )
-		limit++ // clear the user's !clear command as well
-	
-	let before = msg
-	if ( after ) before = null
-	
-	limit = Math.min( limit, 100 )
-	const lookback = 100 // number of messages to look back into
-	msg.channel.fetchMessages( lookback, null, after ).then( () =>
-		{
-			const msglist = msg.channel.messages
-			if ( after ) msglist.reverse()
-			
-			const toDelete = []
-			for ( let i = msglist.length - 1; i >= 0; i-- )
+
+	msg.channel.fetchMessages(
 			{
-				const message = msglist[i]
-				
-				if ( message.deleted || ( target !== false && target.id !== message.author.id ) )
-					continue
-				
-				if ( toDelete.length >= limit )
-					break
-					
-				toDelete.push( message )
-			}
-			
-			client.Messages.deleteMessages( toDelete ).then( () =>
-				{
-					let byUser = ''
-					if ( target !== false )
-						byUser = _.fmt( ' by `%s`', _.nick( target ) )
-					let numCleared = toDelete.length
-					if ( !after ) numCleared -= 1  // subtract user's !clear command
-					msg.channel.send( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.author ), numCleared, byUser ) )
-				}).catch( e => msg.channel.send( _.fmt( 'error deleting messages: `%s`', e.message ) ) )
-		}).catch( e => msg.channel.send( _.fmt( 'error fetching messages: `%s`', e.message ) ) )
+				limit: 10,
+				after: after,
+			})
+		.then( messages => 
+			{
+				const toDelete = []
+				messages.forEach( m =>
+					{
+						if ( target && target.id !== message )
+							return
+						
+						if ( toDelete.length > limit )
+							return
+
+						toDelete.push( m )
+					})
+
+				msg.channel.bulkDelete( toDelete )
+					.then( deleted =>
+						{
+							let suffix = ''
+							if ( target )
+								suffix = ` by \`${ _.nick( target, msg.guild ) }\``
+							msg.channel.send( `\`${ _.nick( msg.member, msg.guild ) }\` cleared \`${ deleted.size }\` messages${ suffix }` )
+						})
+					.catch( e => msg.channel.send( _.fmt( 'error deleting messages: `%s`', e.message ) ) )
+			})
+		.catch( e => msg.channel.send( _.fmt( 'error fetching messages: `%s`', e.message ) ) )
 }
 
 commands.register( {
@@ -67,12 +50,19 @@ commands.register( {
 	aliases: [ 'clear' ],
 	help: 'clear messages',
 	flags: [ 'admin_only', 'no_pm' ],
-	args: 'limit=100 [user]',
+	args: 'limit [user]',
 	callback: ( client, msg, args ) =>
 	{
 		const split = args.split( ' ' )
-		const limit = split[0] || 99
-		const target = split[1] || false
+		const limit = split[0]
+		let target = split[1] || false
+
+		if ( target )
+		{
+			target = commands.findTarget( msg, target )
+			if ( !target )
+				return
+		}
 		
 		clearMessages( msg, limit, target, null )
 	} })
