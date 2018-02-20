@@ -181,7 +181,7 @@ function onMessage( msg )
 			require( './plugins/moderation.js' ).processCooldown( msg.author )
 			if ( commands.tempBlacklist.includes( msg.author.id ) ) return
 			
-			if ( cmd.flags && cmd.flags.includes( 'no_pm' ) && msg.channel.isPrivate )
+			if ( cmd.flags && cmd.flags.includes( 'no_pm' ) && msg.channel.type === 'dm' )
 				return msg.channel.send( "can't use this command in private messages" )
 			else
 				if ( permissions.userHasCommand( msg.author, cmd ) )

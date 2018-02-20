@@ -104,7 +104,7 @@ commands.register( {
 			rows.push( 'online right now' )
 		
 		// separate block
-		if ( !msg.guild )
+		if ( msg.guild )
 		{
 			const roleList = [ 'everyone' ]
 			target.roles.forEach( r =>
@@ -155,10 +155,7 @@ commands.register( {
 				if ( !member ) continue
 
 				const mem = client.users.find( 'id', member )
-				if ( msg.channel.isPrivate )
-					top5.push( _.nick( mem ) )
-				else
-					top5.push( _.nick( mem, msg.guild ) )
+				top5.push( _.nick( mem, msg.guild ) )
 			}
 			rows.push( 'frequently seen with ' + top5.join( ', ' ) )
 		}

@@ -22,7 +22,7 @@ commands.register( {
 			return msg.channel.send( `\`${ args }\` is not a number` )
 
 		const max = parseInt( args ) || 6
-		msg.channel.send( _.fmt( '`%s` rolled a `%s`', _.nick( msg.author ), _.rand( 1, max ) ) )
+		msg.channel.send( _.fmt( '`%s` rolled a `%s`', _.nick( msg.member, msg.guild ), _.rand( 1, max ) ) )
 	} })
 
 commands.register( {
@@ -48,7 +48,7 @@ commands.register( {
 	help: 'clench your ass cheeks and pull the trigger',
 	callback: ( client, msg, args ) =>
 	{
-		msg.channel.send( _.fmt( '*`%s` pulls the trigger...*', _.nick( msg.author ) ) )
+		msg.channel.send( _.fmt( '*`%s` pulls the trigger...*', _.nick( msg.member, msg.guild ) ) )
 		
 		const guildId = msg.guild.id
 		if ( !rouletteCache[ guildId ] )

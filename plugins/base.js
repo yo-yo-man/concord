@@ -100,12 +100,12 @@ commands.register( {
 			commands.blacklistedUsers.splice( index, 1 )
 			settings.save( 'blacklist', commands.blacklistedUsers )
 			
-			return msg.channel.send( _.fmt( 'removed `%s` from blacklist', _.nick( target ) ) )
+			return msg.channel.send( _.fmt( 'removed `%s` from blacklist', _.nick( target, msg.guild ) ) )
 		}
 		
 		commands.blacklistedUsers.push( target.id )
 		settings.save( 'blacklist', commands.blacklistedUsers )
-		msg.channel.send( _.fmt( '`%s` added to blacklist %s', _.nick( target ), split[1] ? '(silently)' : '' ) )
+		msg.channel.send( _.fmt( '`%s` added to blacklist %s', _.nick( target, msg.guild ), split[1] ? '(silently)' : '' ) )
 		
 		if ( !split[1] )
 			target.createDM().then( dm => dm.send( _.fmt( '**NOTICE:** You have been blacklisted, and will no longer be able to use bot commands' ) ) )
