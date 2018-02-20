@@ -200,7 +200,7 @@ commands.register( {
 		
 		let stats = _.fmt( 'uptime: %s (%s)\n', uptime.humanize(), uptime.format( 'h:mm:ss' ) )
 		stats += _.fmt( 'commands since boot: %s\n', commands.numSinceBoot )
-		stats += _.fmt( 'servers connected: %s\n', client.guilds.array().length )
+		stats += _.fmt( 'servers connected: %s\n', client.guilds.size )
 		
 		let total = 0
 		let listening = 0
@@ -215,7 +215,7 @@ commands.register( {
 			})
 			
 		stats += _.fmt( 'channels listening: %s / %s\n', listening, total )
-		stats += _.fmt( 'users seen / online: %s / %s\n', Object.keys( lastSeen ).length, client.users.array().length )
+		stats += _.fmt( 'users seen / online: %s / %s\n', Object.keys( lastSeen ).length, client.users.size )
 		
 		try
 		{
