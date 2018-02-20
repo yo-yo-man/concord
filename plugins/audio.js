@@ -884,7 +884,7 @@ commands.register( {
 			
 			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
 
-			const embed = new Discord.RichEmbed({
+			const embed = new Discord.MessageEmbed({
 				title: `${queue.length} songs [${total_len}]`,
 				description: '-',
 				fields: fields,
@@ -1232,7 +1232,7 @@ commands.register( {
 			
 			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
 
-			const embed = new Discord.RichEmbed({
+			const embed = new Discord.MessageEmbed({
 				title: `${data.length} songs [${total_len}]`,
 				description: '-',
 				fields: fields,
@@ -1320,7 +1320,7 @@ commands.register( {
 			fields.push( { name: `${ fields.length+1 }. ${ title } - ${ plays } plays - ${ playtime } total play time`, value: url } )
 		}
 
-		const embed = new Discord.RichEmbed({
+		const embed = new Discord.MessageEmbed({
 			title: `top 10 songs`,
 			description: '-',
 			fields: fields,

@@ -104,7 +104,7 @@ commands.register( {
 			rows.push( 'online right now' )
 		
 		// separate block
-		if ( msg.guild )
+		if ( msg.guild && target.roles )
 		{
 			const roleList = [ 'everyone' ]
 			target.roles.forEach( r =>
@@ -177,7 +177,7 @@ commands.register( {
 		else if ( target.status === 'offline' )
 			colour = 0x8a8a8a
 
-		const embed = new Discord.RichEmbed({
+		const embed = new Discord.MessageEmbed({
 							color: colour,
 							fields: fields,
 							thumbnail: { url: target.avatarURL },
