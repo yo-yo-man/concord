@@ -210,11 +210,14 @@ function join_channel( msg )
 
 function leave_channel( sess )
 {
+	if ( sess.ffmpeg )
+		sess.ffmpeg.kill( 'SIGKILL' )
+
 	if ( sess.timeInterval )
 		clearInterval( sess.timeInterval )
 
 	if ( sess.dispatch )
-		sess.dispatch.pause()
+		sess.dispatch.end()
 
 	if ( sess.conn.channel )
 		sess.conn.channel.leave()
@@ -223,29 +226,17 @@ function leave_channel( sess )
 	delete bot.concord_audioSessions[ sess.guild ]
 }
 
-function rotate_queue( sess )
-{
-	if ( typeof sess.loop === 'undefined' || !sess.loop )
-		sess.queue.shift()
-	start_player( sess )
-}
-
-function get_queuedby_user( song )
-{
-	let by_user = '<unknown>'
-	if ( song.queuedby )
-		by_user = _.nick( song.queuedby, song.channel.guild )
-	return by_user
-}
-
 function start_player( sess, forceseek )
 {
+	if ( sess.ffmpeg )
+		sess.ffmpeg.kill( 'SIGKILL' )
+
 	if ( sess.timeInterval )
 		clearInterval( sess.timeInterval )
 
 	if ( sess.playing )
 	{
-		sess.dispatch.pause()
+		sess.dispatch.end()
 		sess.playing = false
 	}
 	
@@ -313,14 +304,16 @@ function start_player( sess, forceseek )
 	params.push( '-f', 'opus' )
 	params.push( 'pipe:1' )
 
-	const ffmpeg = spawn( 'ffmpeg', params )
+	if ( sess.ffmpeg )
+		delete sess.ffmpeg
+
+	sess.ffmpeg = spawn( 'ffmpeg', params )
 
 	if ( sess.dispatch )
 		delete sess.dispatch
 
-	const streamOptions = { passes: 3 }
-	sess.dispatch = sess.conn.playStream( ffmpeg.stdout, streamOptions )
-
+	const streamOptions = { type: 'ogg/opus', passes: 3 }
+	sess.dispatch = sess.conn.play( sess.ffmpeg.stdout, streamOptions )
 
 	if ( !sess.dispatch )
 	{
@@ -330,15 +323,34 @@ function start_player( sess, forceseek )
 	}
 	
 	sess.playing = true
-	sess.dispatch.once( 'end', () => rotate_queue( sess ) )
+	sess.dispatch.once( 'end', () =>
+		{
+			sess.playing = false
+			rotate_queue( sess )
+		})
 
 	sess.timeInterval = setInterval( () =>
 		{
 			sess.lastActivity = _.time()
 			sess.time = sess.starttime + sess.dispatch.time
 			if ( sess.queue[0] && sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
-				rotate_queue( sess )
+				sess.dispatch.end()
 		}, 1000 )
+}
+
+function rotate_queue( sess )
+{
+	if ( typeof sess.loop === 'undefined' || !sess.loop )
+		sess.queue.shift()
+	start_player( sess )
+}
+
+function get_queuedby_user( song )
+{
+	let by_user = '<unknown>'
+	if ( song.queuedby )
+		by_user = _.nick( song.queuedby, song.channel.guild )
+	return by_user
 }
 
 function queryErr( err )
@@ -611,7 +623,7 @@ commands.register( {
 			{				
 				queryRemote( msg, args ).then( info =>
 					{
-						queueSong( msg, sess, info )
+						msg.channel.send( queueSong( msg, sess, info ) )
 					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
@@ -636,7 +648,7 @@ commands.register( {
 
 				queryRemote( msg, args ).then( info =>
 					{
-						queueSong( msg, sess, info )
+						msg.channel.send( queueSong( msg, sess, info ) )
 					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
@@ -759,7 +771,7 @@ commands.register( {
 			if ( numVotes >= votesNeeded )
 			{
 				sess.skipVotes = []
-				return rotate_queue( sess )
+				return sess.dispatch.end()
 			}
 			else if ( numVotes % 3 === 1 )
 				msg.channel.send( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member, msg.guild ), numVotes, votesNeeded ) )
@@ -777,7 +789,7 @@ commands.register( {
 	{		
 		const sess = findSession( msg )
 		if ( sess )
-			rotate_queue( sess )
+			sess.dispatch.end()
 	} })
 
 commands.register( {
@@ -813,7 +825,6 @@ commands.register( {
 			if ( !sess.playing ) return
 			
 			sess.volume = vol
-			sess.dispatch.pause()
 			start_player( sess, sess.time )
 		}
 	} })
@@ -870,7 +881,13 @@ commands.register( {
 			}
 			
 			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
-			msg.channel.send( '', false, { title: `${queue.length} songs [${total_len}]`, description: '-', fields } )
+
+			const embed = new Discord.RichEmbed({
+				title: `${queue.length} songs [${total_len}]`,
+				description: '-',
+				fields: fields,
+			})
+			msg.channel.send( '', embed )
 		}
 		else
 			msg.channel.send( '```\nempty\n```' )
@@ -890,7 +907,8 @@ commands.register( {
 			if ( sess.paused ) return
 			
 			sess.paused = true
-			sess.dispatch.pause()
+			sess.playing = false
+			sess.dispatch.end()
 		}
 	} })
 
@@ -926,10 +944,7 @@ commands.register( {
 			if ( !sess.playing ) return
 			
 			if ( args )
-			{
-				sess.dispatch.pause()
 				start_player( sess, _.parsetime(args) )
-			}
 			else
 			{
 				let currentSeek = moment.duration( Math.round(sess.time) * 1000 ).format('hh:mm:ss')
@@ -1135,7 +1150,7 @@ function queueMultiple( data, msg, name )
 		}
 		queryRemote( msg, data[0].url ).then( info =>
 			{
-				queueSong( msg, sess, info )
+				msg.channel.send( queueSong( msg, sess, info ) )
 				do_rest('')
 			}).catch( s => do_rest( s+'\n' ) )
 	})
@@ -1212,7 +1227,13 @@ commands.register( {
 			}
 			
 			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
-			msg.channel.send( '', false, { title: `${data.length} songs [${total_len}]`, description: '-', fields } )
+
+			const embed = new Discord.RichEmbed({
+				title: `${data.length} songs [${total_len}]`,
+				description: '-',
+				fields: fields,
+			})
+			msg.channel.send( '', embed )
 		}
 	} })
 
@@ -1294,8 +1315,13 @@ commands.register( {
 			playtime = moment.duration( parseInt( playtime ) * 1000 ).format( 'hh:mm:ss' )
 			fields.push( { name: `${ fields.length+1 }. ${ title } - ${ plays } plays - ${ playtime } total play time`, value: url } )
 		}
-		
-		msg.channel.send( '', false, { title: `top 10 songs`, description: '-', fields } )
+
+		const embed = new Discord.RichEmbed({
+			title: `top 10 songs`,
+			description: '-',
+			fields: fields,
+		})
+		msg.channel.send( '', embed )
 	} })
 
 var client = null
