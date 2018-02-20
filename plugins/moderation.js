@@ -57,7 +57,7 @@ function clearMessages( msg, limit, target, after )
 						byUser = _.fmt( ' by `%s`', _.nick( target ) )
 					let numCleared = toDelete.length
 					if ( !after ) numCleared -= 1  // subtract user's !clear command
-					msg.channel.send( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.member ), numCleared, byUser ) )
+					msg.channel.send( _.fmt( '`%s` cleared `%s` messages%s', _.nick( msg.author ), numCleared, byUser ) )
 				}).catch( e => msg.channel.send( _.fmt( 'error deleting messages: `%s`', e.message ) ) )
 		}).catch( e => msg.channel.send( _.fmt( 'error fetching messages: `%s`', e.message ) ) )
 }
@@ -123,43 +123,47 @@ function processCooldown( member )
 	if ( commands.blacklistedUsers.includes( member.id ) ) return
 	
 	const guild = member.guild
+
+	let user = member
+	if ( member.user )
+		user = member.user
 	
 	const timespan = settings.get( 'moderation', 'cooldown_timespan', 10 ) * 1000
 	const warning = settings.get( 'moderation', 'cooldown_warning_ratio', 1.5 )
 	const rate = settings.get( 'moderation', 'cooldown_rate', 3.5 )
 	
-	if ( !eventAllowance[ member.id ] )
-		eventAllowance[ member.id ] = rate
+	if ( !eventAllowance[ user.id ] )
+		eventAllowance[ user.id ] = rate
 	
-	if ( !lastEvent[ member.id ] )
-		lastEvent[ member.id ] = Date.now()
+	if ( !lastEvent[ user.id ] )
+		lastEvent[ user.id ] = Date.now()
 	
-	const time_passed = Date.now() - lastEvent[ member.id ]
-	lastEvent[ member.id ] = Date.now()
-	eventAllowance[ member.id ] += time_passed * ( rate / timespan )
-	eventAllowance[ member.id ] -= 1
+	const time_passed = Date.now() - lastEvent[ user.id ]
+	lastEvent[ user.id ] = Date.now()
+	eventAllowance[ user.id ] += time_passed * ( rate / timespan )
+	eventAllowance[ user.id ] -= 1
 	
-	if ( eventAllowance[ member.id ] > rate )
-		eventAllowance[ member.id ] = rate
+	if ( eventAllowance[ user.id ] > rate )
+		eventAllowance[ user.id ] = rate
 	
-	if ( eventAllowance[ member.id ] < 1 )
+	if ( eventAllowance[ user.id ] < 1 )
 	{
-		delete eventAllowance[ member.id ]
+		delete eventAllowance[ user.id ]
 		
-		commands.tempBlacklist.push( member.id )
-		tempBlacklists[ member.id ] = _.time() + settings.get( 'moderation', 'cooldown_blacklist_time', 60 )
-		member.createDM().then( dm => dm.send( _.fmt( '**NOTICE:** You have been temporarily blacklisted due to excess spam' ) ) )
+		commands.tempBlacklist.push( user.id )
+		tempBlacklists[ user.id ] = _.time() + settings.get( 'moderation', 'cooldown_blacklist_time', 60 )
+		user.createDM().then( dm => dm.send( _.fmt( '**NOTICE:** You have been temporarily blacklisted due to excess spam' ) ) )
 		
 		const owner = client.users.find( 'id', settings.get( 'config', 'owner_id', '' ) )
 		if ( owner )
-			owner.createDM().then( d => d.send( _.fmt( '**NOTICE:** Automatically added `%s#%s` to temporary blacklist for spam', member.username, member.discriminator ) ) )
+			owner.createDM().then( d => d.send( _.fmt( '**NOTICE:** Automatically added `%s#%s` to temporary blacklist for spam', user.username, user.discriminator ) ) )
 	}
-	else if ( eventAllowance[ member.id ] <= warning )
+	else if ( eventAllowance[ user.id ] <= warning )
 	{
-		if ( !nextWarning[ member.id ] || Date.now() >= nextWarning[ member.id ] )
+		if ( !nextWarning[ user.id ] || Date.now() >= nextWarning[ user.id ] )
 		{
-			nextWarning[ member.id ] = Date.now() + timespan / 2
-			member.createDM().then( dm => dm.send( _.fmt( '**WARNING:** Potential spam detected. Please slow down or you will be temporarily blacklisted' ) ) )
+			nextWarning[ user.id ] = Date.now() + timespan / 2
+			user.createDM().then( dm => dm.send( _.fmt( '**WARNING:** Potential spam detected. Please slow down or you will be temporarily blacklisted' ) ) )
 		}
 	}
 }

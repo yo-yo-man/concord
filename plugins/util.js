@@ -98,7 +98,7 @@ commands.register( {
 	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
 	{
-		const channel = msg.member.getVoiceChannel()
+		const channel = msg.member.voiceChannel
 		if ( !channel )
 			return msg.channel.send( 'you are not in a voice channel' )
 		
@@ -107,15 +107,14 @@ commands.register( {
 			return
 		
 		const names = []
-		for ( const i in channel.members )
-		{
-			names.push( '`' + _.nick( channel.members[i] ) + '`' )
-			notices.suppressNotice( channel.guild.id, 'VOICE_CHANNEL_LEAVE', channel.members[i].id )
-			notices.suppressNotice( channel.guild.id, 'VOICE_CHANNEL_JOIN', channel.members[i].id )
-			channel.members[i].setChannel( target )
-		}
+		channel.members.forEach( member =>
+			{
+				names.push( '`' + _.nick( member, channel.guild ) + '`' )
+				notices.suppressNotice( channel.guild.id, 'voiceStateUpdate', member.id )
+				member.setVoiceChannel( target )
+			})
 		
-		notices.sendGuildNotice( channel.guild.id, _.fmt( '%s moved to `%s` by `%s`', names.join( ', ' ), target.name, _.nick( msg.member ) ) )
+		notices.sendGuildNotice( channel.guild.id, _.fmt( '%s moved to `%s` by `%s`', names.join( ', ' ), target.name, _.nick( msg.author ) ) )
 	} })
 
 let twitch = {}
@@ -167,7 +166,7 @@ function checkTwitch()
 
 					const out = client.channels.find( 'id', twitch[ chan ].sinks[ sink ].id )
 					out.fetchMessage( message ).then( (e) => {
-							client.Messages.get( message ).delete()
+							out.messages.find( 'id', message ).delete()
 						}).catch( e => {} )
 						
 					delete twitch[ chan ].sinks[ sink ].message

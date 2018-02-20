@@ -26,12 +26,12 @@ commands.register( {
 		if ( args === 'on' )
 		{
 			guildChannels[ guildId ] = msg.channel.id
-			msg.channel.send( _.fmt( 'notices enabled for %s', msg.channel.mention ) )
+			msg.channel.send( _.fmt( 'notices enabled for %s', msg.channel.name ) )
 		}
 		else if ( args === 'off' )
 		{
 			delete guildChannels[ guildId ]
-			msg.channel.send( _.fmt( 'notices disabled for %s', msg.channel.mention ) )
+			msg.channel.send( _.fmt( 'notices disabled for %s', msg.channel.name ) )
 		}
 		
 		settings.set( 'notices', 'guild_channels', guildChannels )
@@ -116,19 +116,8 @@ function suppressNotice( guildId, type, memberId )
 }
 module.exports.suppressNotice = suppressNotice
 
-const justSwitched = {}
-// TO DO: redo
-/*
-function processEvent( type, e )
-{	
-	let guild = e.guild
-	if ( e.guildId )
-		guild = client.guilds.find( 'id', e.guildId )
-	
-	let member = e.member
-	if ( !member && e.user && guild )
-		member = guild.members.find( 'id', e.user.id ) || e.user
-	
+function isSuppressed( type, member, guild )
+{
 	if ( guild )
 		for ( const i in noticeSuppressions )
 			if ( noticeSuppressions[i].guildId === guild.id &&
@@ -138,89 +127,28 @@ function processEvent( type, e )
 					continue
 				
 				delete noticeSuppressions[i]
-				return
+				return true
 			}
-	
-	switch ( type )
-	{
-		default:
-			break
-			
-		// presenceUpdate
-		// oldMember, newMember
-		case 'PRESENCE_MEMBER_INFO_UPDATE':
-		{
-			// old, new
-			// username, avatar, discriminator
-			if ( e.old.username !== e.new.username )
-				execGlobalUserNotice( e.old.id,
-					member =>
-					{
-						if ( _.nick( member ) === e.new.username )
-							return _.fmt( '`%s` is now known as `%s`', e.old.username, e.new.username )
-					})
-			if ( e.old.avatar !== e.new.avatar )
-			{
-				if ( settings.get( 'notices', 'hide_avatar_events', true ) )
-					return
-				const avatarURL = client.users.find( 'id', e.new.id ).avatarURL
-				execGlobalUserNotice( e.old.id,
-					member =>
-					{
-						return _.fmt( '`%s` changed their avatar to %s', _.nick( member ), avatarURL )
-					})
-			}
-			break
-		}
 
-		// voiceStateUpdate
-		// oldMember, newMember
-		case 'VOICE_CHANNEL_LEAVE':
-		{
-			// user, channel, channelid, guildid, newchannelid, newguildid
-			if ( e.user.bot ) return
-			if ( e.newChannelId === null )
-				sendGuildNotice( e.guildId, _.fmt( '`%s` disconnected', _.nick( e.user, guild ) ), member )
-			else if ( e.guildId === e.newGuildId )
-				justSwitched[ e.user.id ] = true
-			break
-		}
-			
-		case 'VOICE_CHANNEL_JOIN':
-		{
-			// user, channel, channelid, guildid
-			if ( e.user.bot ) return
-			
-			let action = 'connected'
-			if ( justSwitched[ e.user.id ] )
-			{
-				delete justSwitched[ e.user.id ]
-				action = 'switched'
-			}
-			
-			sendGuildNotice( e.guildId, _.fmt( '`%s` %s to `%s`', _.nick( e.user, guild ), action, e.channel.name ), member )
-			break
-		}
-			
-		case 'GUILD_MEMBER_UPDATE':
-		// guildMemberUpdate
-		// oldMember, newMember
-		{
-			// guild, member, rolesAdded, rolesRemoved, previousNick, getChanges
-			if ( e.member.nick !== e.previousNick )
-			{
-				const prev = e.previousNick || e.member.username
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` is now known as `%s`', prev, _.nick( e.member ) ), member )
-			}
-			for ( const i in e.rolesAdded )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` added to `@%s`', _.nick( e.member ), e.rolesAdded[i].name ) )
-			for ( const i in e.rolesRemoved )
-				sendGuildNotice( e.guild.id, _.fmt( '`%s` removed from `@%s`', _.nick( e.member ), e.rolesRemoved[i].name ) )
-			break
-		}
-	}
+	return false
 }
-*/
+
+function voiceStateUpdate( oldMember, newMember )
+{
+	const guild = newMember.guild
+	if ( isSuppressed( 'voiceStateUpdate', newMember, guild ) )
+		return
+
+	if ( !oldMember.voiceChannel && newMember.voiceChannel )
+		sendGuildNotice( guild.id, `\`${ _.nick( newMember, guild ) }\` connected to \`${ newMember.voiceChannel.name }\``, newMember )
+
+	if ( oldMember.voiceChannel && newMember.voiceChannel )
+		sendGuildNotice( guild.id, `\`${ _.nick( newMember, guild ) }\` switched to \`${ newMember.voiceChannel.name }\``, newMember )
+
+	if ( oldMember.voiceChannel && !newMember.voiceChannel )
+		sendGuildNotice( guild.id, `\`${ _.nick( oldMember, guild ) }\` disconnedted`, oldMember )
+}
+
 var client = null
 module.exports.setup = _cl => {
     client = _cl
@@ -228,7 +156,7 @@ module.exports.setup = _cl => {
 	batchDelay = settings.get( 'notices', 'batch_freq', 5 ) * 1000
 	batchTick()
 	
-	// TO DO: add events
+	client.on( 'voiceStateUpdate', voiceStateUpdate )
 
     _.log( 'loaded plugin: notices' )
 }

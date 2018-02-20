@@ -125,7 +125,7 @@ commands.register( {
 				{
 					const tmp = 'temp/avatar.png'
 					fs.writeFileSync( tmp, body, 'binary' )
-					client.User.setAvatar( fs.readFileSync( tmp ) )
+					client.user.setAvatar( fs.readFileSync( tmp ) )
 					fs.unlinkSync( tmp )
 				}
 			})

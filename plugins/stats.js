@@ -206,16 +206,16 @@ commands.register( {
 		let listening = 0
 		client.channels.forEach( channel =>
 			{
-				if ( channel.type === Discordie.ChannelTypes.GUILD_TEXT && !channel.isPrivate )
+				if ( channel.type === 'text' && channel.guild )
 				{
 					total++
-					if ( client.User.can( permissions.discord.Text.READ_MESSAGES, channel ) )
+					if ( channel.permissionsFor( client.user ).has( require( 'discord.js' ).Permissions.FLAGS.MANAGE_MESSAGES ) )
 						listening++
 				}
 			})
 			
 		stats += _.fmt( 'channels listening: %s / %s\n', listening, total )
-		stats += _.fmt( 'users seen online: %s / %s\n', Object.keys( lastSeen ).length, client.users.array().length )
+		stats += _.fmt( 'users seen / online: %s / %s\n', Object.keys( lastSeen ).length, client.users.array().length )
 		
 		try
 		{

@@ -25,12 +25,8 @@ commands.getCMD = alias =>
 commands.generateHelp = cmd =>
 	{
 		let help = settings.get( 'config', 'command_prefix', '!' )
-		for ( const j in cmd.aliases )
-		{
-			help += cmd.aliases[j]
-			if ( j !== cmd.aliases.length - 1 )
-				help += '|'
-		}
+
+		help += cmd.aliases.join( '|' )
 		
 		if ( cmd.args )
 			help += _.fmt( ' %s', cmd.args )
@@ -52,27 +48,25 @@ commands.findTarget = ( msg, str ) =>
 	{
 		const matches = []
 		str = str.toLowerCase()
+
+		client.users.forEach( user =>
+			{
+				if ( user.username.toLowerCase().includes( str ) )
+					if ( !matches.includes( user ) ) matches.push( user )
+				if ( str === user.username.toLowerCase() + '#' + user.discriminator )
+					if ( !matches.includes( user ) ) matches.push( user )
+			})
 		
-		if ( !msg.guild )
-		{
-			client.users.forEach( user =>
-				{
-					if ( user.username.toLowerCase().includes( str ) )
-						if ( !matches.includes( user ) ) matches.push( user )
-					if ( str === user.username.toLowerCase() + '#' + user.discriminator )
-						if ( !matches.includes( user ) ) matches.push( user )
-				})
-		}
-		else
+		if ( msg.guild )
 		{
 			msg.guild.members.forEach( member =>
 				{
 					if ( member.nickname && member.nickname.toLowerCase().includes( str ) )
-						if ( !matches.includes( member ) ) matches.push( member )
+						if ( !matches.includes( member.user ) ) matches.push( member.user )
 					if ( member.user.username.toLowerCase().includes( str ) )
-						if ( !matches.includes( member) ) matches.push( member )
+						if ( !matches.includes( member.user ) ) matches.push( member.user )
 					if ( str === member.user.username.toLowerCase() + '#' + member.user.discriminator )
-						if ( !matches.includes( member ) ) matches.push( member )
+						if ( !matches.includes( member.user ) ) matches.push( member.user )
 				})
 		}
 		
@@ -109,7 +103,7 @@ commands.findVoiceChannel = ( msg, str ) =>
 		const matches = []
 		str = str.toLowerCase()
 		
-		for ( const ch of msg.guild.channels.find( 'type', 'voice' ) )
+		for ( const ch of msg.guild.channels.findAll( 'type', 'voice' ) )
 		{
 			if ( ch.name.toLowerCase().includes( str ) )
 				if ( !matches.includes( ch ) )

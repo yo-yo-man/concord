@@ -18,8 +18,11 @@ commands.register( {
 	args: '[sides=6]',
 	callback: ( client, msg, args ) =>
 	{
-		const max = args || 6
-		msg.channel.send( _.fmt( '`%s` rolled a `%s`', _.nick( msg.member ), _.rand( 1, max ) ) )
+		if ( isNaN( args ) )
+			return msg.channel.send( `\`${ args }\` is not a number` )
+
+		const max = parseInt( args ) || 6
+		msg.channel.send( _.fmt( '`%s` rolled a `%s`', _.nick( msg.author ), _.rand( 1, max ) ) )
 	} })
 
 commands.register( {
@@ -31,7 +34,7 @@ commands.register( {
 		msg.channel.send( '*flips a coin*' )
 		timedMessage( msg.channel, 'wait for it...', 1.5 * 1000 )
 		
-		const rand = _.rand( 1, 2 )
+		const rand = _.rand( 0, 1 )
 		const str = [ 'HEADS!', 'TAILS!' ]
 		
 		timedMessage( msg.channel, str[rand], 3 * 1000 )
@@ -45,7 +48,7 @@ commands.register( {
 	help: 'clench your ass cheeks and pull the trigger',
 	callback: ( client, msg, args ) =>
 	{
-		msg.channel.send( _.fmt( '*`%s` pulls the trigger...*', _.nick( msg.member ) ) )
+		msg.channel.send( _.fmt( '*`%s` pulls the trigger...*', _.nick( msg.author ) ) )
 		
 		const guildId = msg.guild.id
 		if ( !rouletteCache[ guildId ] )
@@ -64,22 +67,6 @@ commands.register( {
 		}
 		else
 			timedMessage( msg.channel, '*click.*', 2 * 1000 )
-	} })
-
-commands.register( {
-	category: 'fun',
-	aliases: [ 'insult' ],
-	help: 'get insulted at how bad these insults are',
-	callback: ( client, msg, args ) =>
-	{
-		request( 'http://www.insultgenerator.org', ( error, response, body ) =>
-			{
-				if ( !error && response.statusCode === 200 )
-				{
-					const text = _.matches( /<div class="wrap">\s+<br><br>(.+)<\/div>/g, body )[0]
-					msg.channel.send( '```\n' + text + '\n```' )
-				}
-			})
 	} })
 
 commands.register( {
@@ -114,7 +101,7 @@ commands.register( {
 			'My reply is no', 'My sources say no', 'Outlook not so good', 'Very doubtful' ] )
 		
 		const max = answers.length - 1
-		msg.channel.send( _.fmt( '`%s`', answers[ _.rand(0, max) ] ) )
+		msg.channel.send( _.fmt( '`%s`', answers[ _.rand( 0, max ) ] ) )
 	} })
 
 let client = null
