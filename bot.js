@@ -49,15 +49,10 @@ client.on( 'ready', e =>
 		}
 	})
 
-function logEvent( type, e )
-{
-	const message = e.id || e || ''
-	return _.log('<' + type + '> ' + message )
-}
-client.on( 'disconnected', e => logEvent( 'disconnected', e ) )
-client.on( 'guildCreate', e => logEvent( 'guildCreate', e ) )
-client.on( 'guildDelete', e => logEvent( 'guildDelete', e ) )
-client.on( 'guildUnavailable', e => logEvent( 'guildUnavailable', e ) )
+client.on( 'disconnected', e => _.logEvent( 'disconnected', e ) )
+client.on( 'guildCreate', e => _.logEvent( 'guildCreate', e ) )
+client.on( 'guildDelete', e => _.logEvent( 'guildDelete', e ) )
+client.on( 'guildUnavailable', e => _.logEvent( 'guildUnavailable', e ) )
 
 
 function sendOwnerMessage( type, msg )

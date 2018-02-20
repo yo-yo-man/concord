@@ -123,5 +123,10 @@ _.shuffleArr = arr => {
 	  
 		return arr
 	}
+_.logEvent = ( type, e ) =>
+	{
+		const message = e.id || e || ''
+		return _.log('<' + type + '> ' + message )
+	}
 
 module.exports = _

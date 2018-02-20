@@ -124,9 +124,5 @@ module.exports.setup = _cl => {
     reminders = settings.get( 'reminders', null, {} )
     updateReminders()
 
-	twitch_client_id = settings.get( 'config', 'twitch_client_id', '' )
-	twitch = settings.get( 'twitch', null, {} )
-	checkTwitch()
-
     _.log( 'loaded plugin: util' )
 }

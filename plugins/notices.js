@@ -135,6 +135,9 @@ function isSuppressed( type, member, guild )
 
 function voiceStateUpdate( oldMember, newMember )
 {
+	if ( oldMember.user.bot )
+		return
+
 	const guild = newMember.guild
 	if ( isSuppressed( 'voiceStateUpdate', newMember, guild ) )
 		return

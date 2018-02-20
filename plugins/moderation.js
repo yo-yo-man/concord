@@ -3,8 +3,6 @@ const permissions = require( '../permissions.js' )
 const settings = require( '../settings.js' )
 const _ = require( '../helper.js' )
 
-const notices = require( './notices.js' )
-
 const Discord = require( 'discord.js' )
 
 function clearMessages( msg, limit, target, after )
