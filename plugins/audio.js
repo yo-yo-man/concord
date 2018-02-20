@@ -288,7 +288,7 @@ function start_player( sess, forceseek )
 	
 	const volume = sess.volume || settings.get( 'audio', 'volume_default', 0.5 )
 
-	if ( settings.get( 'audio', 'native_fr', false ) )
+	if ( settings.get( 'audio', 'force_speed', false ) )
 		params.push( '-re' )
 
 	let filter = `volume=${volume}`
@@ -306,23 +306,21 @@ function start_player( sess, forceseek )
 
 		filter = `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:offset=${offset}`
 	}
-	params.push( '-af', filter )
 
 	params.push( '-i', song.streamurl )
+
+	params.push( '-af', filter )
+	params.push( '-f', 'opus' )
 	params.push( 'pipe:1' )
 
-	let ffmpeg = spawn( 'ffmpeg', params )
+	const ffmpeg = spawn( 'ffmpeg', params )
 
 	if ( sess.dispatch )
 		delete sess.dispatch
 
-	const streamOptions = {}
-	//sess.dispatch = sess.conn.playStream( ffmpeg.stdout, streamOptions )
+	const streamOptions = { passes: 3 }
+	sess.dispatch = sess.conn.playStream( ffmpeg.stdout, streamOptions )
 
-	sess.dispatch = sess.conn.playStream( ytdl_core( 'https://www.youtube.com/watch?v=ocW3fBqPQkU',
-										{ filter: 'audioonly' },
-										{ passes: 3 }
-									))
 
 	if ( !sess.dispatch )
 	{
@@ -343,177 +341,239 @@ function start_player( sess, forceseek )
 		}, 1000 )
 }
 
-function queryRemote( args )
+function queryErr( err )
+{
+	console.log( _.filterlinks( err ) )
+	return _.fmt( 'could not query youtube info (%s)', _.filterlinks( err ) )
+}
+
+function exceedsLength( length_seconds )
+{
+	const max_length = settings.get( 'audio', 'max_length', 62 ) * 60
+	if ( length_seconds > max_length )
+	{
+		const thislen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
+		const maxlen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
+		return _.fmt( 'song exceeds max length: %s > %s', thislen, maxlen )
+	}
+
+	return false
+}
+
+function parseVars( url )
+{
+	let songInfo = {}
+
+	songInfo.seek = false
+	if ( url.indexOf( 't=' ) !== -1 )
+		seek = _.parsetime( _.matches( /t=(.*)/g, url )[0] )
+	if ( url.indexOf( 'start=' ) !== -1 )
+		seek = _.parsetime( _.matches( /start=(.*)/g, url )[0] )
+
+	songInfo.endAt = false
+	if ( url.indexOf( 'end=' ) !== -1 )
+		endAt = _.parsetime( _.matches( /end=(.*)/g, url )[0] )
+
+	return songInfo
+}
+
+function parseYoutube( args )
 {
 	const msg = args.msg
 	const url = args.url
-	const sess = args.sess
-	const returnInfo = args.returnInfo
-	const forPlaylist = args.forPlaylist
-	const quiet = args.quiet
-	
-	const promise = new Promise( ( resolve, reject ) => {
-			const doQuery = () => {
-                function parseInfo( err, info )
-                {
-                    if ( err )
-                    {
-                        console.log( _.filterlinks( err ) )
-                        return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) )
-                    }
-                    
-                    const title = info.title
-                    
-					let length_seconds = 0
-                    let length = '??:??'
-                    if ( info.duration && info.duration !== 'NaN' )
-                    {
-                        const split = info.duration.split( ':' )
-                        if ( split.length === 1 )
-                            split.unshift( '00' )
-                        if ( split.length === 2 )
-                            split.unshift( '00' )
-                        
-                        length = _.fmt( '%s:%s:%s', _.pad( _.round(split[0]), 2 ), _.pad( _.round(split[1]), 2 ), _.pad( _.round(split[2]), 2 ) )
-                        length_seconds = moment.duration( length ).format( 'ss' )
-                        
-                        if ( length.substring( 0, 3 ) === '00:' )
-                            length = length.substring( 3 )
-                        
-                        const max_length = settings.get( 'audio', 'max_length', 62 ) * 60
-                        if ( length_seconds > max_length )
-                        {
-                            const maxlen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
-                            return reject( _.fmt( 'song exceeds max length: %s > %s', length, maxlen ) )
-                        }
-                    }
-                    
-                    let streamurl = info.url
-                    if ( info.formats )
-                    {
-                        streamurl = info.formats[0].url
-                        
-                        // skip rtmp links (soundcloud)
-                        if ( info.formats[0].protocol )
-                        {
-                            for ( let i = info.formats.length - 1; i >= 0; i-- )
-                            {
-                                if ( info.formats[i].protocol === 'rtmp' )
-                                    info.formats.splice( i, 1 )
-                                else
-                                    streamurl = info.formats[i].url
-                            }
-                        }
-                        
-                        const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
-                        if ( desired_bitrate )
-                        {
-                            let closest = info.formats[0]
-                            let diff = 9999
-                            for ( const i in info.formats )
-                            {
-                                const format = info.formats[i]
-                                const abr = format.abr || format.audioBitrate
-                                const d = Math.abs( desired_bitrate - abr )
-                                if ( d < diff )
-                                {
-                                    closest = format
-                                    diff = d
-                                }
-                            }
-                            streamurl = closest.url
-                        }
-                        else
-                        {
-                            if ( info.formats[0].abr )
-                                streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url
-                            if ( info.formats[0].audioBitrate )
-                                streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url
-                        }
-                    }
-                    
-                    let seek = false
-                    if ( url.indexOf( 't=' ) !== -1 )
-                        seek = _.parsetime( _.matches( /t=(.*)/g, url )[0] )
-                    if ( url.indexOf( 'start=' ) !== -1 )
-                        seek = _.parsetime( _.matches( /start=(.*)/g, url )[0] )
 
-                    let endAt = false
-                    if ( url.indexOf( 'end=' ) !== -1 )
-                        endAt = _.parsetime( _.matches( /end=(.*)/g, url )[0] )
-                    
-                    const songInfo = { url, title, length, seek, endAt, length_seconds }
-                    if ( !forPlaylist )
-                    {
-                        songInfo.streamurl = streamurl
-                        songInfo.queuedby = msg.member
-                    }
-                    if ( returnInfo )
-                        return resolve( songInfo )
-                    
-                    // never return this
-                    songInfo.channel = msg.channel
-					
-                    if ( !sess )
-                        return reject( 'invalid audio session' )
-                    
-                    const queue_empty = sess.queue.length === 0
-                    sess.queue.push( songInfo )
-                    
-                    if ( queue_empty )
-                    {
-                        resolve( _.fmt( '`%s` started playing `%s [%s]`', _.nick( msg.member, msg.guild ), title, length ) )
-						sess.hideNP = true
-						start_player( sess, 0 )
-                    }
-                    else
-                        resolve( _.fmt( '`%s` queued `%s [%s]`', _.nick( msg.member, msg.guild ), title, length ) )
-                }
-                
-                function parseInfoFast( err, info )
-                {
-                    if ( info )
-                        info.duration = moment.duration( parseInt( info.length_seconds ) * 1000 ).format( 'hh:mm:ss' )
-                    parseInfo( err, info )
-                }
-                
-                const accepted_files = settings.get( 'audio', 'accepted_files', default_accepted_files )
-                for ( const i in accepted_files )
-                    if ( url.match( accepted_files[i] ) )
-                    {
-                        let fn = url.split('/')
-                        fn = fn[ fn.length - 1 ]
-                        
-                        request( url, ( error, response, body ) => {
-                            if ( !error && response.statusCode === 200 )
-                                parseInfo( false, { title: fn, url } )
-                            else
-                            {
-                                reject( 'remote file does not exist' )
-                            }
-                        })
-                        
-                        return
-                    }
-                    
-                const youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls )
-                for ( const i in youtube_urls )
-                    if ( url.match( youtube_urls[i] ) )
-                        return ytdl_core.getInfo( url, parseInfoFast )
-                    
-                const additional_urls = settings.get( 'audio', 'additional_urls', default_additional_urls )
-                for ( const i in additional_urls )
-                    if ( url.match( additional_urls[i] ) )
-                        return ydl.getInfo( url, [], parseInfo )
-                    
-                console.log( _.fmt( 'WARNING: could not find suitable query mode for <%s>', url ) )
-                return reject( 'could not find suitable query mode' )
-            }
-			
-			doQuery()
-		})
+	const resolve = args.resolve
+	const reject = args.reject
+
+	const err = args.err
+	const info = args.info
+
+	if ( err )
+		return queryErr( err )
+
+	const len_err = exceedsLength( info.length_seconds )
+	if ( len_err !== false )
+		return reject( len_err )
+
+	let songInfo = {}
+	songInfo.url = url
+	songInfo.title = info.title
+	songInfo.length = moment.duration( info.length_seconds * 1000 ).format( 'h:mm:ss' )
+	songInfo.length_seconds = info.length_seconds
+
+	songInfo = Object.assign( parseVars( url ), songInfo )
+
+	songInfo.streamurl = info.url
+	if ( info.formats )
+	{
+		songInfo.streamurl = info.formats[0].url
 		
+		const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
+		if ( desired_bitrate )
+		{
+			format = ytdl.chooseFormat( info.formats, { quality: desired_bitrate } )
+			if ( format )
+				songInfo.streamurl = format.url
+		}
+	}
+
+	resolve( songInfo )
+}
+
+function parseGeneric( args )
+{
+	const msg = args.msg
+	const url = args.url
+
+	const resolve = args.resolve
+	const reject = args.reject
+
+	const err = args.err
+	const info = args.info
+
+	if ( err )
+		return queryErr( err )
+
+	const length_seconds = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + + time )
+
+	const len_err = exceedsLength( length_seconds )
+	if ( len_err !== false )
+		return reject( len_err )
+
+	let songInfo = {}
+	songInfo.url = url
+	songInfo.title = info.title
+	songInfo.length = moment.duration( length_seconds * 1000 ).format( 'h:mm:ss' )
+	songInfo.length_seconds = length_seconds
+
+	songInfo = Object.assign( parseVars( url ), songInfo )
+
+	songInfo.streamurl = info.url
+	if ( info.formats )
+	{
+		songInfo.streamurl = info.formats[0].url
+		
+		// skip rtmp links (soundcloud)
+		if ( info.formats[0].protocol )
+		{
+			for ( let i = info.formats.length - 1; i >= 0; i-- )
+			{
+				if ( info.formats[i].protocol === 'rtmp' )
+					info.formats.splice( i, 1 )
+				else
+					songInfo.streamurl = info.formats[i].url
+			}
+		}
+		
+		const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
+		if ( desired_bitrate )
+		{
+			let closest = info.formats[0]
+			let diff = 9999
+			for ( const i in info.formats )
+			{
+				const format = info.formats[i]
+				const abr = format.abr || format.audioBitrate
+				const d = Math.abs( desired_bitrate - abr )
+				if ( d < diff )
+				{
+					closest = format
+					diff = d
+				}
+			}
+			songInfo.streamurl = closest.url
+		}
+		else
+		{
+			if ( info.formats[0].abr )
+				songInfo.streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url
+			if ( info.formats[0].audioBitrate )
+				songInfo.streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url
+		}
+	}
+
+	resolve( songInfo )
+}
+
+function parseFile( args )
+{
+	const msg = args.msg
+	const url = args.url
+
+	const resolve = args.resolve
+	const reject = args.reject
+
+	let fn = url.split( '/' )
+	fn = fn[ fn.length - 1 ]
+
+	let songInfo = {}
+	songInfo.url = url
+	songInfo.title = fn
+	songInfo.length = '??:??'
+	songInfo.length_seconds = 0
+
+	songInfo = Object.assign( parseVars( url ), songInfo )
+
+	songInfo.streamurl = url
+
+	resolve( songInfo )
+}
+
+function queryRemote( msg, url )
+{
+	const promise = new Promise( ( resolve, reject ) =>
+		{		
+			const youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls )
+			for ( const i in youtube_urls )
+				if ( url.match( youtube_urls[i] ) )
+					return ytdl_core.getInfo( url, { filter: 'audioonly' }, ( err, info ) => parseYoutube( { msg, url, resolve, reject, err, info } ) )
+				
+			const additional_urls = settings.get( 'audio', 'additional_urls', default_additional_urls )
+			for ( const i in additional_urls )
+				if ( url.match( additional_urls[i] ) )
+					return ydl.getInfo( url, [], ( err, info ) => parseGeneric( { msg, url, resolve, reject, err, info } ) )
+
+			const accepted_files = settings.get( 'audio', 'accepted_files', default_accepted_files )
+				for ( const i in accepted_files )
+					if ( url.match( accepted_files[i] ) )
+					{						
+						request( { url: url, method: 'HEAD' }, ( error, response, body ) =>
+							{
+								if ( !error && response.statusCode === 200 )
+									parseFile( { msg, url, resolve, reject } )
+								else
+									reject( '`remote file error ${ response.statusCode }`' )
+							})
+
+						return
+					}
+				
+			console.log( _.fmt( 'ERROR: could not find suitable query mode for <%s>', url ) )
+			reject( '`ERROR: could not find suitable query mode`' )
+		})
+
 	return promise
+}
+
+function queueSong( msg, sess, info )
+{
+	info.channel = msg.channel
+	info.queuedby = msg.member
+
+	if ( !sess )
+		return '`invalid audio session`'
+	
+	const queue_empty = sess.queue.length === 0
+	sess.queue.push( info )
+	
+	if ( queue_empty )
+	{
+		sess.hideNP = true
+		start_player( sess )
+		return _.fmt( '`%s` started playing `%s [%s]`', _.nick( msg.member, msg.guild ), info.title, info.length )
+	}
+	else
+		return _.fmt( '`%s` queued `%s [%s]`', _.nick( msg.member, msg.guild ), info.title, info.length )
 }
 
 function is_accepted_url( link )
@@ -549,7 +609,10 @@ commands.register( {
 		
 		join_channel( msg ).then( sess =>
 			{				
-				queryRemote( { msg, url: args, sess: sess } ).then( s => msg.channel.send( s ) ).catch( s => msg.channel.send( '```' + s + '```' ) )
+				queryRemote( msg, args ).then( info =>
+					{
+						queueSong( msg, sess, info )
+					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
 	} })
@@ -571,7 +634,10 @@ commands.register( {
 				if ( sess.playing )
 					sess.queue = []
 
-				queryRemote( { msg, url: args, sess: sess } ).then( s => msg.channel.send( s ) ).catch( s => msg.channel.send( '```' + s + '```' ) )
+				queryRemote( msg, args ).then( info =>
+					{
+						queueSong( msg, sess, info )
+					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
 			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
 	} })
@@ -937,8 +1003,10 @@ commands.register( {
 			data = JSON.parse( playlist )
 		}
 		
-		queryRemote( { msg, url: link, returnInfo: true, forPlaylist: true } ).then( info =>
+		queryRemote( msg, link ).then( info =>
 			{
+				delete info.streamurl
+
 				data.push( info )
 				fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' )
 				msg.channel.send( _.fmt( '`%s` added `%s [%s]` to `%s`', _.nick( msg.member, msg.guild ), info.title, info.length, name ) )
@@ -992,10 +1060,11 @@ function queryMultiple( data, msg, name )
 				return
 			}
 			
-			queryRemote( { quiet: true, msg, url: song.url, returnInfo: true } ).then( info =>
+			queryRemote( msg, song.url ).then( info =>
 				{
 					info.channel = msg.channel
 					info.queuedby = msg.member
+
 					queueBuffer.push( info )
 					checkLoaded( i )
 				})
@@ -1064,7 +1133,11 @@ function queueMultiple( data, msg, name )
 					return msg.channel.send( errs )
 				})
 		}
-		queryRemote( { msg, url: data[0].url, sess: sess } ).then( do_rest('') ).catch( s => do_rest( s+'\n' ) )
+		queryRemote( msg, data[0].url ).then( info =>
+			{
+				queueSong( msg, sess, info )
+				do_rest('')
+			}).catch( s => do_rest( s+'\n' ) )
 	})
 	.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
 }
