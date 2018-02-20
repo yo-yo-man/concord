@@ -167,8 +167,10 @@ commands.register( {
 			help = 'powered by concord <http://github.com/DougTy/concord>\n'
 			
 			let lastCat = ''
-			for ( const cmd of commands.commandList )
+			for ( const i in commands.commandList )
 			{				
+				const cmd = commands.commandList[i]
+				
 				if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )
 					continue
 				
