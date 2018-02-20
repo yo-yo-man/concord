@@ -1,14 +1,17 @@
 const _ = require( './helper.js' )
 
+const path = require( 'path' )
+const fs = require( 'fs' )
+
 const plugins = {}
 
 plugins.load = ( client, decache ) =>
 	{
 		const pluginDir = './plugins'
-		const normalizedPath = require( 'path' ).join( __dirname, pluginDir )
-		require( 'fs' ).readdirSync( normalizedPath ).forEach( file =>
+		const normalizedPath = path.join( __dirname, pluginDir )
+		fs.readdirSync( normalizedPath ).forEach( file =>
 			{
-				const ext = require( 'path' ).extname( file )
+				const ext = path.extname( file )
 				if ( ext !== '.js' )
 					return
 

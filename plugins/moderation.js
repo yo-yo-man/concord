@@ -5,12 +5,14 @@ const _ = require( '../helper.js' )
 
 const notices = require( './notices.js' )
 
+const Discord = require( 'discord.js' )
+
 function clearMessages( msg, limit, target, after )
 {
 	if ( isNaN( limit ) )
 		return msg.channel.send( _.fmt( '`%s` is not a number', limit ) )
 	
-	if ( !msg.channel.permissionsFor( client.user ).has( require( 'discord.js' ).Permissions.FLAGS.MANAGE_MESSAGES ) )
+	if ( !msg.channel.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.MANAGE_MESSAGES ) )
 		return msg.channel.send( "invalid 'manage messages' permission in this channel" )
 
 	msg.channel.fetchMessages(

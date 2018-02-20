@@ -206,7 +206,7 @@ commands.register( {
 				if ( channel.type === 'text' && channel.guild )
 				{
 					total++
-					if ( channel.permissionsFor( client.user ).has( require( 'discord.js' ).Permissions.FLAGS.READ_MESSAGES ) )
+					if ( channel.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.READ_MESSAGES ) )
 						listening++
 				}
 			})

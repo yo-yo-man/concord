@@ -11,7 +11,7 @@ permissions.hasGlobalRole = ( user, roleName ) =>
 				if ( found )
 					return
 				
-				const member = 	guild.members.find( 'id', user.id )
+				const member = guild.members.find( 'id', user.id )
 				if ( !member )
 					return
 				

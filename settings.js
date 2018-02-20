@@ -1,11 +1,12 @@
 const fs = require( 'fs' )
+const path = require( 'path' )
 const _ = require( './helper.js' )
 
 const settings = {}
 const jsonCache = {}
 
 const settingsDir = 'settings'
-const normalizedPath = require( 'path' ).join( __dirname, settingsDir )
+const normalizedPath = path.join( __dirname, settingsDir )
 function makefn( file )
 {
 	return normalizedPath + '/' + file + '.json'
@@ -69,7 +70,7 @@ settings.reload = file =>
 	{
 		if ( settings.exists( file ) )
 		{
-			const contents = require( 'fs' ).readFileSync( makefn( file ), 'utf8' )
+			const contents = fs.readFileSync( makefn( file ), 'utf8' )
 			if ( _.isjson( contents ) )
 				jsonCache[file] = JSON.parse( contents )
 			else

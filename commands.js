@@ -2,6 +2,8 @@ const permissions = require( './permissions.js' )
 const settings = require( './settings.js' )
 const _ = require( './helper.js' )
 
+const moderation = require( './plugins/moderation.js' )
+
 const commands = {}
 
 commands.blacklistedUsers = []
@@ -178,7 +180,7 @@ function onMessage( msg )
 	{		
 		if ( cmd.aliases.includes( command ) )
 		{
-			require( './plugins/moderation.js' ).processCooldown( msg.author )
+			moderation.processCooldown( msg.author )
 			if ( commands.tempBlacklist.includes( msg.author.id ) ) return
 			
 			if ( cmd.flags && cmd.flags.includes( 'no_pm' ) && msg.channel.type === 'dm' )

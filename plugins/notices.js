@@ -94,7 +94,7 @@ function execGlobalUserNotice( userId, callback )
 			return
 		}
 		
-		const member = 	guild.members.find( 'id', user.id )
+		const member = guild.members.find( 'id', user.id )
 		if ( member )
 		{
 			const message = callback( member )
