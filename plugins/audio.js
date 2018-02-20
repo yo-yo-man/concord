@@ -210,6 +210,8 @@ function join_channel( msg )
 
 function leave_channel( sess )
 {
+	sess.closing = true
+
 	if ( sess.ffmpeg )
 		sess.ffmpeg.kill( 'SIGKILL' )
 
@@ -228,6 +230,8 @@ function leave_channel( sess )
 
 function start_player( sess, forceseek )
 {
+	if ( sess.closing ) return
+
 	if ( sess.ffmpeg )
 		sess.ffmpeg.kill( 'SIGKILL' )
 
@@ -332,7 +336,7 @@ function start_player( sess, forceseek )
 	sess.timeInterval = setInterval( () =>
 		{
 			sess.lastActivity = _.time()
-			sess.time = sess.starttime + sess.dispatch.time
+			sess.time = sess.starttime + ( sess.dispatch.streamTime / 1000 )
 			if ( sess.queue[0] && sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
 				sess.dispatch.end()
 		}, 1000 )
@@ -340,6 +344,8 @@ function start_player( sess, forceseek )
 
 function rotate_queue( sess )
 {
+	if ( sess.closing ) return
+
 	if ( typeof sess.loop === 'undefined' || !sess.loop )
 		sess.queue.shift()
 	start_player( sess )
@@ -669,18 +675,26 @@ commands.register( {
 commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'youtubeplaylist', 'ytpl' ],
-	help: 'queue up a youtube playlist & optionally save it',
+	help: 'save a youtube playlist for later',
 	flags: [ 'no_pm' ],
-	args: 'url [name]',
+	args: 'name url',
 	callback: ( client, msg, args ) =>
 	{
 		const split = args.split( ' ' )
-		if ( !is_accepted_url( split[0] ) )
-			return msg.channel.send( _.fmt( '`%s` is not an accepted url', split[0] ) )
+
+		const plname = split[0]
+		const plurl = split[1]
+
+		if ( !is_accepted_url( plurl ) )
+			return msg.channel.send( _.fmt( '`%s` is not an accepted url', plurl ) )
+
+		const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + plname + '.json' )
+		if ( fs.existsSync( filePath ) )
+			return msg.channel.send( _.fmt( '`%s` already exists', plname ) )
 		
 		function playlistQuery( tempMsg )
 		{
-			ydl.exec( split[0], [ '--flat-playlist', '-J' ], {},
+			ydl.exec( plurl, [ '--flat-playlist', '-J' ], {},
 			( err, output ) =>
 				{
                     tempMsg.delete()
@@ -704,24 +718,15 @@ commands.register( {
 							return msg.channel.send( _.fmt( 'malformed playlist, could not find song title for `%s`', song.url ) )
                         data.push( { url, title: song.title, length: '??:??' } )
                     }
-
-                    let name = args
-                    if ( split[1] )
-					{
-						name = split[1]
-						const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' )
-						if ( fs.existsSync( filePath ) )
-							return msg.channel.send( _.fmt( '`%s` already exists', name ) )
-						
-						queryMultiple( data, msg, name ).then( res =>
-							{
-								fs.writeFileSync( filePath, JSON.stringify( res.queue, null, 4 ), 'utf8' )
-								msg.channel.send( _.fmt( 'saved `%s` songs under `%s`%s', res.queue.length, name ), res.errors )
-							}).catch( errs =>
-							{
-								return msg.channel.send( errs )
-							})
-					}
+					
+					queryMultiple( data, msg, plname ).then( res =>
+						{
+							fs.writeFileSync( filePath, JSON.stringify( res.queue, null, 4 ), 'utf8' )
+							msg.channel.send( _.fmt( 'saved `%s` songs under `%s`%s', res.queue.length, plname, res.errors ) )
+						}).catch( errs =>
+						{
+							return msg.channel.send( errs.toString() )
+						})
                 })
 		}
 		
@@ -944,7 +949,9 @@ commands.register( {
 			if ( !sess.playing ) return
 			
 			if ( args )
+			{
 				start_player( sess, _.parsetime(args) )
+			}
 			else
 			{
 				let currentSeek = moment.duration( Math.round(sess.time) * 1000 ).format('hh:mm:ss')
@@ -1077,9 +1084,6 @@ function queryMultiple( data, msg, name )
 			
 			queryRemote( msg, song.url ).then( info =>
 				{
-					info.channel = msg.channel
-					info.queuedby = msg.member
-
 					queueBuffer.push( info )
 					checkLoaded( i )
 				})
@@ -1131,6 +1135,9 @@ function queueMultiple( data, msg, name )
 					for ( const i in queueBuffer )
 					{
 						const song = queueBuffer[i]
+						song.channel = msg.channel
+						song.queuedby = msg.member
+
 						total_len += parseInt( song.length_seconds )
 						fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i) + 1, song.title, song.length ), value: song.url } )
 					}
