@@ -1126,6 +1126,8 @@ function queueMultiple( data, msg, name )
 		function do_rest( firstSong, errors )
 		{
 			data.shift()
+			if ( data.length === 0 )
+				return
 			
 			queryMultiple( data, msg, name ).then( res =>
 				{
