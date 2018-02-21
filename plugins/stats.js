@@ -106,7 +106,7 @@ commands.register( {
 		// separate block
 		if ( msg.guild && target.roles )
 		{
-			const roleList = [ 'everyone' ]
+			const roleList = []
 			target.roles.forEach( r =>
 				{
 					roleList.push( r.name )
