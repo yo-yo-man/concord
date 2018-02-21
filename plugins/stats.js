@@ -137,7 +137,9 @@ commands.register( {
 				const gname = guild.name
 				top5.push( gname )
 			}
-			rows.push( 'frequently seen in ' + top5.join( ', ' ) )
+
+			if ( top5.length > 0 )
+				rows.push( 'frequently seen in ' + top5.join( ', ' ) )
 		}
 
 		// normal
@@ -157,7 +159,9 @@ commands.register( {
 
 				top5.push( _.nick( member, msg.guild ) )
 			}
-			rows.push( 'frequently seen with ' + top5.join( ', ' ) )
+
+			if ( top5.length > 0 )
+				rows.push( 'frequently seen with ' + top5.join( ', ' ) )
 		}
 		
 		
