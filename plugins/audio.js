@@ -417,6 +417,19 @@ function parseVars( url )
 	return songInfo
 }
 
+function findDesiredBitrate( formats )
+{
+	const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
+	if ( desired_bitrate )
+	{
+		const format = formats.filter( f => ( f.audioBitrate == desired_bitrate || f.abr == desired_bitrate ) )[0]
+		if ( format )
+			return format.url
+	}
+
+	return false
+}
+
 function parseYoutube( args )
 {
 	const msg = args.msg
@@ -447,14 +460,10 @@ function parseYoutube( args )
 	if ( info.formats )
 	{
 		songInfo.streamurl = info.formats[0].url
-		
-		const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
-		if ( desired_bitrate )
-		{
-			format = ytdl_core.chooseFormat( info.formats, { quality: desired_bitrate } )
-			if ( format )
-				songInfo.streamurl = format.url
-		}
+
+		const desiredStream = findDesiredBitrate( info.formats )
+		if ( desiredStream )
+			songInfo.streamurl = desiredStream
 	}
 
 	resolve( songInfo )
@@ -504,32 +513,10 @@ function parseGeneric( args )
 					songInfo.streamurl = info.formats[i].url
 			}
 		}
-		
-		const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
-		if ( desired_bitrate )
-		{
-			let closest = info.formats[0]
-			let diff = 9999
-			for ( const i in info.formats )
-			{
-				const format = info.formats[i]
-				const abr = format.abr || format.audioBitrate
-				const d = Math.abs( desired_bitrate - abr )
-				if ( d < diff )
-				{
-					closest = format
-					diff = d
-				}
-			}
-			songInfo.streamurl = closest.url
-		}
-		else
-		{
-			if ( info.formats[0].abr )
-				songInfo.streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url
-			if ( info.formats[0].audioBitrate )
-				songInfo.streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url
-		}
+
+		const desiredStream = findDesiredBitrate( info.formats )
+		if ( desiredStream )
+			songInfo.streamurl = desiredStream
 	}
 
 	resolve( songInfo )
