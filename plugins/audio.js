@@ -177,7 +177,7 @@ function join_channel( msg )
 				const sess = findSession( msg )
 				if ( sess )
 					return resolve( sess )
-				else if ( !sess )
+				else if ( !sess && !bot.concord_audioSessions[ channel.guild.id ] )
 				{
 					if ( !channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.CONNECT ) ||
 						!channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.SPEAK ) ||
