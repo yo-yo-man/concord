@@ -15,7 +15,7 @@ function clearMessages( msg, limit, target, after )
 
 	msg.channel.messages.fetch(
 			{
-				limit: 10,
+				limit: limit,
 				after: after,
 			})
 		.then( messages => 
