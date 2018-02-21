@@ -51,7 +51,7 @@ function batchTick()
 		{
 			delete guildChannels[ guildId ]
 			settings.set( 'notices', 'guild_channels', guildChannels )
-			_.log( _.fmt( 'WARNING: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], client.guilds.find( 'id', guildId ).name ) )
+			_.log( _.fmt( 'ERROR: tried to send notice to invalid channel %s in %s', guildChannels[ guildId ], guildId ) )
 			continue
 		}
 

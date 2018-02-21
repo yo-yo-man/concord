@@ -36,10 +36,15 @@ function updateReminders()
 			const rem = reminders[uid]
 			const user = client.users.find( 'id', rem.creator )
 			
-			if ( rem.private )
-				user.createDM().then( dm => sendReminder( dm, user, rem, uid ) )
-			else
-				sendReminder( client.channels.find( 'id', rem.channel ), user, rem, uid )
+			if ( user )
+				if ( rem.private )
+					user.createDM().then( dm => sendReminder( dm, user, rem, uid ) )
+				else
+				{
+					const chan = client.channels.find( 'id', rem.channel )
+					if ( chan )
+						sendReminder( chan, user, rem, uid )
+				}
 			
 			needsSave = true
 		}

@@ -185,17 +185,18 @@ function join_channel( msg )
 							return reject( _.fmt( 'invalid permissions for `%s`', channel.name ) )
 
 					const guild = bot.guilds.find( 'id', channel.guild.id )
-					guild.channels.findAll( 'type', 'voice' ).forEach( chan =>
-						{
-							if ( success ) return
-							if ( chan.id == channel.id )
+					if ( guild )
+						guild.channels.findAll( 'type', 'voice' ).forEach( chan =>
 							{
-								chan.join().then( conn => resolve( create_session( bot, chan, conn ) ) )
-									.catch( e => reject( `error joining channel: \`${ e.message }\`` ) )
-								success = true
-								return
-							}
-						})
+								if ( success ) return
+								if ( chan.id == channel.id )
+								{
+									chan.join().then( conn => resolve( create_session( bot, chan, conn ) ) )
+										.catch( e => reject( `error joining channel: \`${ e.message }\`` ) )
+									success = true
+									return
+								}
+							})
 
 					if ( success )
 						break
