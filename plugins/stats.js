@@ -1,3 +1,4 @@
+let client = null
 const Discord = require( 'discord.js' )
 
 const commands = require( '../commands.js' )
@@ -123,8 +124,8 @@ commands.register( {
 		// bold
 		if ( seenIn[ target.id ] )
 		{
-			let sorted = Object.keys( seenIn[ target.id ] ) 
-			sorted.sort( function(a, b) { return seenIn[ target.id ][b] - seenIn[ target.id ][a] } )
+			const sorted = Object.keys( seenIn[ target.id ] )
+			sorted.sort( (a, b) => { return seenIn[ target.id ][b] - seenIn[ target.id ][a] } )
 
 			const top5 = []
 			for ( const gid of sorted )
@@ -145,8 +146,8 @@ commands.register( {
 		// normal
 		if ( seenWith[ target.id ] )
 		{
-			let sorted = Object.keys( seenWith[ target.id ] ) 
-			sorted.sort( function(a, b) { return seenWith[ target.id ][b] - seenWith[ target.id ][a] } )
+			const sorted = Object.keys( seenWith[ target.id ] )
+			sorted.sort( (a, b) => { return seenWith[ target.id ][b] - seenWith[ target.id ][a] } )
 
 			const top5 = []
 			for ( const mid of sorted )
@@ -213,7 +214,6 @@ commands.register( {
 		msg.channel.send( '```' + stats + '```' )
 	} })
 
-var client = null
 module.exports.setup = _cl => {
     client = _cl
     startTime = _.time()

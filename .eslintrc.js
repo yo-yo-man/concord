@@ -94,7 +94,6 @@ module.exports =
 		"no-fallthrough": 2,
 		"no-func-assign": 2,
 		"no-global-assign": 2,
-		"no-loop-func": 2,
 		"no-new": 2,
 		"no-new-func": 2,
 		"no-new-require": 2,
@@ -165,6 +164,7 @@ module.exports =
 		"no-regex-spaces": 0,
 
 		// allow some mess
+		"no-loop-func": 0,
 		"consistent-return": 0,
 		"no-shadow": 0,
 		"no-unused-vars": 0,

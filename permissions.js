@@ -1,3 +1,5 @@
+let client = null
+
 const settings = require( './settings.js' )
 const _ = require( './helper.js' )
 
@@ -54,7 +56,6 @@ permissions.userHasCommand = ( user, command ) =>
 		return false
 	}
 
-var client = null
 permissions.init = _cl =>
 	{
 		client = _cl

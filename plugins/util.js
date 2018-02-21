@@ -1,3 +1,5 @@
+let client = null
+
 const commands = require( '../commands.js' )
 const permissions = require( '../permissions.js' )
 const settings = require( '../settings.js' )
@@ -122,7 +124,6 @@ commands.register( {
 		notices.sendGuildNotice( channel.guild.id, _.fmt( '%s moved to `%s` by `%s`', names.join( ', ' ), target.name, _.nick( msg.member, channel.guild ) ) )
 	} })
 
-var client = null
 module.exports.setup = _cl => {
     client = _cl
 

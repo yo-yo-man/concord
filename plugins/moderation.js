@@ -1,9 +1,10 @@
+let client = null
+const Discord = require( 'discord.js' )
+
 const commands = require( '../commands.js' )
 const permissions = require( '../permissions.js' )
 const settings = require( '../settings.js' )
 const _ = require( '../helper.js' )
-
-const Discord = require( 'discord.js' )
 
 function clearMessages( msg, limit, target, after )
 {
@@ -18,12 +19,12 @@ function clearMessages( msg, limit, target, after )
 				limit: limit,
 				after: after,
 			})
-		.then( messages => 
+		.then( messages =>
 			{
 				const toDelete = []
 				messages.forEach( m =>
 					{
-						if ( target && target.id !== message )
+						if ( target && target.id !== m.author.id )
 							return
 						
 						if ( toDelete.length > limit )
@@ -159,7 +160,6 @@ function processCooldown( member )
 }
 module.exports.processCooldown = processCooldown
 
-var client = null
 module.exports.setup = _cl => {
     client = _cl
     updateTempBlacklists()

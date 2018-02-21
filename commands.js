@@ -1,3 +1,5 @@
+let client = null
+
 const permissions = require( './permissions.js' )
 const settings = require( './settings.js' )
 const _ = require( './helper.js' )
@@ -94,10 +96,7 @@ commands.findTarget = ( msg, str ) =>
 			{
 				let nick = ''
 				if ( match.user )
-				{
 					nick = '(' + match.nickname + ')'
-					match = match.user
-				}
 				matchesString += _.fmt( '%s#%s %s\n', match.username, match.discriminator, nick )
 			}
 			const reply = _.fmt( 'found %s matches for `%s`:\n```\n%s```', matches.length, str, matchesString )
@@ -185,7 +184,7 @@ function onMessage( msg )
 		args = args.trim()
 	
 	for ( const cmd of commands.commandList )
-	{		
+	{
 		if ( cmd.aliases.includes( command ) )
 		{
 			require( './plugins/moderation.js' ).processCooldown( msg.author )
@@ -218,7 +217,6 @@ function onMessage( msg )
 	}
 }
 
-var client = null
 commands.init = _cl =>
 	{
 		client = _cl

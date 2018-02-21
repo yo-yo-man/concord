@@ -98,7 +98,7 @@ _.nick = ( user, guild ) => {
 			member = guild.members.find( 'id', member.id )
 		if ( member )
 		{
-			if ( member.nickname )				
+			if ( member.nickname )
 				return member.nickname
 			return member.user.username
 		}
@@ -106,13 +106,12 @@ _.nick = ( user, guild ) => {
     return user.username
 }
 _.shuffleArr = arr => {
-		var curr = arr.length
-		var temp = false
-		var rand = 0
+		let curr = arr.length
+		let temp = false
+		let rand = 0
 	  
-		while ( 0 !== curr )
+		while ( curr !== 0 )
 		{
-	  
 		  rand = Math.floor( Math.random() * curr )
 		  curr--
 	  

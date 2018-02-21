@@ -170,7 +170,7 @@ commands.register( {
 			
 			let lastCat = ''
 			for ( const i in commands.commandList )
-			{				
+			{
 				const cmd = commands.commandList[i]
 				
 				if ( !permissions.userHasCommand( author, cmd ) || !cmd.help )

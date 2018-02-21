@@ -1,3 +1,4 @@
+let client = null
 const Discord = require( 'discord.js' )
 
 const commands = require( '../commands.js' )
@@ -152,7 +153,6 @@ function voiceStateUpdate( oldMember, newMember )
 		sendGuildNotice( guild.id, `\`${ _.nick( oldMember, guild ) }\` disconnected`, oldMember )
 }
 
-var client = null
 module.exports.setup = _cl => {
     client = _cl
     initGuilds()

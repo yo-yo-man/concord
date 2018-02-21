@@ -23,7 +23,7 @@ if ( !token )
 }
 else
 	client.login( token )
-		.catch( e => 
+		.catch( e =>
 		{
 			_.log( e )
 		})
