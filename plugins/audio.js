@@ -77,15 +77,20 @@ function trackSong( gid, song )
 	if ( !songTracking[ gid]  )
 		songTracking[ gid ] = {}
 
-	if ( !songTracking[ gid ][ song.url ] )
+	let url = song.url
+	const regex = /^(.*)(?:&(?:t|v|start|end)=.*)/g.exec( url )
+	if ( regex )
+		url = regex[1]
+
+	if ( !songTracking[ gid ][ url ] )
 	{
-		songTracking[ gid ][ song.url ] = {}
-		songTracking[ gid ][ song.url ].plays = 1
-		songTracking[ gid ][ song.url ].title = song.title
-		songTracking[ gid ][ song.url ].length_seconds = song.length_seconds
+		songTracking[ gid ][ url ] = {}
+		songTracking[ gid ][ url ].plays = 1
+		songTracking[ gid ][ url ].title = song.title
+		songTracking[ gid ][ url ].length_seconds = song.length_seconds
 	}
 	else
-		songTracking[ gid ][ song.url ].plays++
+		songTracking[ gid ][ url ].plays++
 
 	settings.save( 'songtracking', songTracking )
 }
@@ -1336,6 +1341,8 @@ commands.register( {
 			{
 				return songTracking[ gid ][a].plays < songTracking[ gid ][b].plays ? 1 : 0
 			})
+
+		console.log( sorted )
 
 		const fields = []
 		for ( const url of sorted )
