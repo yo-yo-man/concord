@@ -1344,9 +1344,7 @@ commands.register( {
 			const song = songTracking[ gid ][ url ]
 			const plays = song.plays
 			const title = song.title
-			let playtime = song.length_seconds * plays
-			playtime = moment.duration( parseInt( playtime ) * 1000 ).format( 'hh:mm:ss' )
-			fields.push( { name: `${ fields.length+1 }. ${ title } - ${ plays } plays - ${ playtime } total play time`, value: url } )
+			fields.push( { name: `${ fields.length+1 }. [${ plays } plays] ${ title }`, value: url } )
 		}
 
 		const embed = new Discord.MessageEmbed({
