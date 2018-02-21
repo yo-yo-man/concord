@@ -451,7 +451,7 @@ function parseYoutube( args )
 		const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
 		if ( desired_bitrate )
 		{
-			format = ytdl.chooseFormat( info.formats, { quality: desired_bitrate } )
+			format = ytdl_core.chooseFormat( info.formats, { quality: desired_bitrate } )
 			if ( format )
 				songInfo.streamurl = format.url
 		}
