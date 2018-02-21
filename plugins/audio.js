@@ -5,8 +5,9 @@ const _ = require( '../helper.js' )
 
 const fs = require( 'fs' )
 const path = require( 'path' )
+const spawn = require('child_process').spawn
 
-const Discordie = require( 'discordie' )
+const Discord = require( 'discord.js' )
 const request = require('request')
 const ydl = require( 'youtube-dl' )
 const ytdl_core = require( 'ytdl-core' )
@@ -26,6 +27,7 @@ const default_additional_urls =
 		'(https?\\:\\/\\/)?(.*\\.)?bandcamp.com\\/track/.*',
 		'(https?\\:\\/\\/)?(www\\.)?vimeo.com\\/.*',
 		'(https?\\:\\/\\/)?(www\\.)?vine.co\\/v\\/.*',
+		'(https?\\:\\/\\/)?(.*\\.)?twitch.tv\\/.*'
 	]
 
 const default_accepted_files =
@@ -51,24 +53,18 @@ function initAudio()
 	{
 		const tok = tokens[i]
 
-		const cl = new Discordie( { autoReconnect: true } )
-		cl.connect( { token: tok } )
+		const cl = new Discord.Client()
+		cl.login( tok )
 
-		cl.Dispatcher.on( 'GATEWAY_READY', e =>
+		cl.on( 'ready', e =>
 			{
-				_.log( _.fmt( 'connected helper bot %s#%s <@%s>', cl.User.username, cl.User.discriminator, cl.User.id ) )
+				_.log( `connected helper as ${ cl.user.tag }`)
 			})
 
-		cl.Dispatcher.onAny( ( type, e ) =>
-			{
-				if ( [ 'GATEWAY_RESUMED', 'DISCONNECTED', 'GUILD_UNAVAILABLE', 'GUILD_CREATE', 'GUILD_DELETE' ].includes(type) )
-				{
-					let message = e.error || e.guildId || ''
-					if ( e.guild )
-						message = e.guild.id
-					return _.log('helper-' + i + ': <' + type + '> ' + message )
-				}
-			})
+		client.on( 'disconnected', e => _.logEvent( 'helper-disconnected', e ) )
+		client.on( 'guildCreate', e => _.logEvent( 'helper-guildCreate', e ) )
+		client.on( 'guildDelete', e => _.logEvent( 'helper-guildDelete', e ) )
+		client.on( 'guildUnavailable', e => _.logEvent( 'helper-guildUnavailable', e ) )
 
 		cl.concord_audioSessions = {}
 		audioBots.push( cl )
@@ -81,31 +77,35 @@ function trackSong( gid, song )
 	if ( !songTracking[ gid]  )
 		songTracking[ gid ] = {}
 
-	if ( !songTracking[ gid ][ song.url ] )
+	let url = song.url
+	const regex = /^(.*)(?:&(?:t|v|start|end)=.*)/g.exec( url )
+	if ( regex )
+		url = regex[1]
+
+	if ( !songTracking[ gid ][ url ] )
 	{
-		songTracking[ gid ][ song.url ] = {}
-		songTracking[ gid ][ song.url ].plays = 1
-		songTracking[ gid ][ song.url ].title = song.title
-		songTracking[ gid ][ song.url ].length_seconds = song.length_seconds
+		songTracking[ gid ][ url ] = {}
+		songTracking[ gid ][ url ].plays = 1
+		songTracking[ gid ][ url ].title = song.title
 	}
 	else
-		songTracking[ gid ][ song.url ].plays++
+		songTracking[ gid ][ url ].plays++
 
 	settings.save( 'songtracking', songTracking )
 }
 
 function findSession( msg )
 {
-	const channel = msg.member.getVoiceChannel()
+	const channel = msg.member.voiceChannel
+	if ( !channel )
+		return false
+
 	for ( const bot of audioBots )
 	{
 		const sess = bot.concord_audioSessions[ channel.guild.id ]
 
-		if ( sess &&
-			sess.conn.channel == channel.id )
-		{
+		if ( sess && sess.conn.channel.id == channel.id )
 			return sess
-		}
 	}
 
 	return false
@@ -131,14 +131,11 @@ function checkSessionActivity()
 				continue
 			}
 
-			if ( sess.playing )
+			const numVoice = sess.conn.channel.members.size
+			if ( numVoice == 1 )
 			{
-				const numVoice = sess.conn.channel.members.length
-				if ( numVoice == 1 )
-				{
-					leave_channel( sess )
-					continue
-				}
+				leave_channel( sess )
+				continue
 			}
 		}
 	}
@@ -151,7 +148,7 @@ function create_session( bot, channel, conn )
 	const gid = channel.guild.id
 
 	bot.concord_audioSessions[ gid ] = {}
-	bot.concord_audioSessions[ gid ].conn = conn.voiceConnection
+	bot.concord_audioSessions[ gid ].conn = conn
 
 	bot.concord_audioSessions[ gid ].queue = []
 	bot.concord_audioSessions[ gid ].volume = settings.get( 'audio', 'volume_default', 0.5 )
@@ -166,7 +163,7 @@ function join_channel( msg )
 {
 	const promise = new Promise( ( resolve, reject ) =>
 		{
-			const channel = msg.member.getVoiceChannel()
+			const channel = msg.member.voiceChannel
 				
 			if ( !channel )
 				return reject( 'you are not in a voice channel' )
@@ -182,23 +179,24 @@ function join_channel( msg )
 					return resolve( sess )
 				else if ( !sess )
 				{
-					if ( !bot.User.can( permissions.discord.Voice.CONNECT, channel ) ||
-						!bot.User.can( permissions.discord.Voice.SPEAK, channel ) ||
-						!bot.User.can( permissions.discord.Voice.USE_VAD, channel ) )
+					if ( !channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.CONNECT ) ||
+						!channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.SPEAK ) ||
+						!channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.USE_VAD ) )
 							return reject( _.fmt( 'invalid permissions for `%s`', channel.name ) )
 
-					const guild = bot.Guilds.get( channel.guild.id )
-					for ( const c in guild.voiceChannels )
-					{
-						const chan = guild.voiceChannels[c]
-						if ( chan.id == channel.id )
-						{
-							chan.join().then( conn => resolve( create_session( bot, chan, conn ) ) )
-								.catch( e => reject( `error joining channel: \`${ e.message }\`` ) )
-							success = true
-							break
-						}
-					}
+					const guild = bot.guilds.find( 'id', channel.guild.id )
+					if ( guild )
+						guild.channels.findAll( 'type', 'voice' ).forEach( chan =>
+							{
+								if ( success ) return
+								if ( chan.id == channel.id )
+								{
+									chan.join().then( conn => resolve( create_session( bot, chan, conn ) ) )
+										.catch( e => reject( `error joining channel: \`${ e.message }\`` ) )
+									success = true
+									return
+								}
+							})
 
 					if ( success )
 						break
@@ -214,10 +212,19 @@ function join_channel( msg )
 
 function leave_channel( sess )
 {
-	if ( sess.playing )
+	sess.closing = true
+	sess.playing = false
+
+	if ( sess.ffmpeg )
+		sess.ffmpeg.kill( 'SIGKILL' )
+
+	if ( sess.timeInterval )
+		clearInterval( sess.timeInterval )
+
+	if ( sess.dispatch )
 	{
-		sess.encoder.stop()
-		sess.encoder.destroy()
+		stop_playback( sess )
+		sess.dispatch.destroy()
 	}
 
 	if ( sess.conn.channel )
@@ -227,28 +234,40 @@ function leave_channel( sess )
 	delete bot.concord_audioSessions[ sess.guild ]
 }
 
-function rotate_queue( sess )
+function stop_playback( sess )
 {
-	if ( typeof sess.loop === 'undefined' || !sess.loop )
-		sess.queue.shift()
-	start_player( sess )
+	if ( sess.dispatch )
+	{
+		sess.dispatch.removeAllListeners( 'end' )
+		sess.dispatch.end()
+	}
 }
 
-function get_queuedby_user( song )
+function skip_playback( sess )
 {
-	let by_user = '<unknown>'
-	if ( song.queuedby )
-		by_user = _.nick( song.queuedby )
-	return by_user
+	sess.dispatch.end()
 }
 
 function start_player( sess, forceseek )
 {
-	if ( sess.playing )
+	if ( sess.closing ) return
+
+	if ( sess.ffmpeg )
 	{
-		sess.encoder.stop()
-		sess.encoder.destroy()
-		sess.playing = false
+		sess.ffmpeg.kill( 'SIGKILL' )
+		delete sess.ffmpeg
+	}
+
+	if ( sess.timeInterval )
+		clearInterval( sess.timeInterval )
+
+	stop_playback( sess )
+	sess.playing = false
+
+	if ( sess.dispatch )
+	{
+		sess.dispatch.destroy()
+		delete sess.dispatch
 	}
 	
 	sess.lastActivity = _.time()
@@ -258,7 +277,7 @@ function start_player( sess, forceseek )
 		return
 
 	sess.lastSong = song
-	trackSong( sess.conn.guild.id, song )
+	trackSong( sess.conn.channel.guild.id, song )
 	
 	if ( song.channel && typeof forceseek === 'undefined' && !sess.loop )
 	{
@@ -267,11 +286,11 @@ function start_player( sess, forceseek )
 			by_user += `, +${sess.queue.length - 1} in queue`
 
 		if ( !sess.hideNP )
-			song.channel.sendMessage( _.fmt( '`NOW PLAYING in %s: %s [%s] (%s)`', sess.conn.channel.name, song.title, song.length, by_user ) )
+			song.channel.send( _.fmt( '`NOW PLAYING in %s: %s [%s] (%s)`', sess.conn.channel.name, song.title, song.length, by_user ) )
 	}
 	sess.hideNP = false
 	
-	const guildname = sess.conn.guild.name
+	const guildname = sess.conn.channel.guild.name
 	const channelname = sess.conn.channel.name
 	_.log( _.fmt( 'playing <%s> in (%s/%s)', song.url, guildname, channelname ) )
 	module.exports.songsSinceBoot++
@@ -281,20 +300,17 @@ function start_player( sess, forceseek )
 	
 	sess.starttime = 0
 	const seek = forceseek || song.seek
-	let inputArgs = []
+	let params = [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2' ]
 	if ( seek )
 	{
 		sess.starttime = seek
-		inputArgs = [ '-ss', seek ]
+		params.push( '-ss', seek )
 	}
 	
 	const volume = sess.volume || settings.get( 'audio', 'volume_default', 0.5 )
 
-	if ( settings.get( 'audio', 'native_fr', false ) )
-		inputArgs.push( '-re' )
-	
-	if ( sess.encoder )
-		delete sess.encoder
+	if ( settings.get( 'audio', 'force_speed', false ) )
+		params.push( '-re' )
 
 	let filter = `volume=${volume}`
 	if ( settings.get( 'audio', 'normalize', true ) )
@@ -312,211 +328,292 @@ function start_player( sess, forceseek )
 		filter = `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:offset=${offset}`
 	}
 
-	const encoder = sess.conn.createExternalEncoder(
-		{
-			type: 'ffmpeg',
-			source: song.streamurl,
-			format: 'opus',
-			inputArgs: inputArgs.concat( [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2' ] ),
-			outputArgs: [ '-af', filter ],
-		})
-		
-	if ( !encoder )
-		return _.log( 'WARNING: voice connection is disposed' )
+	params.push( '-i', song.streamurl )
+
+	params.push( '-b:a', sess.conn.channel.bitrate )
+	params.push( '-af', filter )
+	params.push( '-f', 'opus' )
+	params.push( 'pipe:1' )
+
+	sess.ffmpeg = spawn( 'ffmpeg', params )
+	//sess.ffmpeg.stderr.on( 'data', e => console.log( e.toString() ) )
+
+	const streamOptions = { type: 'ogg/opus', passes: 3 }
+	sess.dispatch = sess.conn.play( sess.ffmpeg.stdout, streamOptions )
+
+	if ( !sess.conn.dispatcher )
+	{
+		_.log( `ERROR: could not start encoder with params "${ params.join( ' ' ) }"` )
+		leave_channel( sess )
+		return
+	}
 	
 	sess.playing = true
-	sess.encoder = encoder
-	encoder.once( 'end', () => rotate_queue( sess ) )
+	sess.dispatch.once( 'end', () =>
+		{
+			sess.playing = false
+			rotate_queue( sess )
+		})
 
-	const encoderStream = encoder.play()
-	encoderStream.resetTimestamp()
-	encoderStream.removeAllListeners( 'timestamp' )
-	encoderStream.on( 'timestamp', time =>
+	sess.timeInterval = setInterval( () =>
 		{
 			sess.lastActivity = _.time()
-			sess.time = sess.starttime + time
+			sess.time = sess.starttime + ( sess.dispatch.streamTime / 1000 )
 			if ( sess.queue[0] && sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
-				rotate_queue( sess )
-		})
+				skip_playback( sess )
+		}, 1000 )
 }
 
-function queryRemote( args )
+function rotate_queue( sess )
+{
+	if ( sess.closing ) return
+
+	if ( typeof sess.loop === 'undefined' || !sess.loop )
+		sess.queue.shift()
+	start_player( sess )
+}
+
+function get_queuedby_user( song )
+{
+	let by_user = '<unknown>'
+	if ( song.queuedby )
+		by_user = _.nick( song.queuedby, song.channel.guild )
+	return by_user
+}
+
+function queryErr( err )
+{
+	console.log( _.filterlinks( err ) )
+	return _.fmt( 'could not query youtube info (%s)', _.filterlinks( err ) )
+}
+
+function exceedsLength( length_seconds )
+{
+	const max_length = settings.get( 'audio', 'max_length', 62 ) * 60
+	if ( length_seconds > max_length )
+	{
+		const thislen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
+		const maxlen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
+		return _.fmt( 'song exceeds max length: %s > %s', thislen, maxlen )
+	}
+
+	return false
+}
+
+function parseVars( url )
+{
+	let songInfo = {}
+
+	songInfo.seek = false
+	if ( url.indexOf( 't=' ) !== -1 )
+		seek = _.parsetime( _.matches( /t=(.*)/g, url )[0] )
+	if ( url.indexOf( 'start=' ) !== -1 )
+		seek = _.parsetime( _.matches( /start=(.*)/g, url )[0] )
+
+	songInfo.endAt = false
+	if ( url.indexOf( 'end=' ) !== -1 )
+		endAt = _.parsetime( _.matches( /end=(.*)/g, url )[0] )
+
+	return songInfo
+}
+
+function parseYoutube( args )
 {
 	const msg = args.msg
 	const url = args.url
-	const sess = args.sess
-	const returnInfo = args.returnInfo
-	const forPlaylist = args.forPlaylist
-	const quiet = args.quiet
-	
-	const promise = new Promise( ( resolve, reject ) => {
-			const doQuery = tempMsg => {
-                function parseInfo( err, info )
-                {
-                    if ( err )
-                    {
-                        console.log( _.filterlinks( err ) )
-                        if ( !quiet )
-                        	if ( tempMsg ) tempMsg.delete()
-                        return reject( _.fmt( 'could not query info (%s)', _.filterlinks( err ) ) )
-                    }
-                    
-                    const title = info.title
-                    
-					let length_seconds = 0
-                    let length = '??:??'
-                    if ( info.duration && info.duration !== 'NaN' )
-                    {
-                        const split = info.duration.split( ':' )
-                        if ( split.length === 1 )
-                            split.unshift( '00' )
-                        if ( split.length === 2 )
-                            split.unshift( '00' )
-                        
-                        length = _.fmt( '%s:%s:%s', _.pad( _.round(split[0]), 2 ), _.pad( _.round(split[1]), 2 ), _.pad( _.round(split[2]), 2 ) )
-                        length_seconds = moment.duration( length ).format( 'ss' )
-                        
-                        if ( length.substring( 0, 3 ) === '00:' )
-                            length = length.substring( 3 )
-                        
-                        const max_length = settings.get( 'audio', 'max_length', 62 ) * 60
-                        if ( length_seconds > max_length )
-                        {
-                            const maxlen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
-                            if ( tempMsg ) tempMsg.delete()
-                            return reject( _.fmt( 'song exceeds max length: %s > %s', length, maxlen ) )
-                        }
-                    }
-                    
-                    let streamurl = info.url
-                    if ( info.formats )
-                    {
-                        streamurl = info.formats[0].url
-                        
-                        // skip rtmp links (soundcloud)
-                        if ( info.formats[0].protocol )
-                        {
-                            for ( let i = info.formats.length - 1; i >= 0; i-- )
-                            {
-                                if ( info.formats[i].protocol === 'rtmp' )
-                                    info.formats.splice( i, 1 )
-                                else
-                                    streamurl = info.formats[i].url
-                            }
-                        }
-                        
-                        const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
-                        if ( desired_bitrate )
-                        {
-                            let closest = info.formats[0]
-                            let diff = 9999
-                            for ( const i in info.formats )
-                            {
-                                const format = info.formats[i]
-                                const abr = format.abr || format.audioBitrate
-                                const d = Math.abs( desired_bitrate - abr )
-                                if ( d < diff )
-                                {
-                                    closest = format
-                                    diff = d
-                                }
-                            }
-                            streamurl = closest.url
-                        }
-                        else
-                        {
-                            if ( info.formats[0].abr )
-                                streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url
-                            if ( info.formats[0].audioBitrate )
-                                streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url
-                        }
-                    }
-                    
-                    let seek = false
-                    if ( url.indexOf( 't=' ) !== -1 )
-                        seek = _.parsetime( _.matches( /t=(.*)/g, url )[0] )
-                    if ( url.indexOf( 'start=' ) !== -1 )
-                        seek = _.parsetime( _.matches( /start=(.*)/g, url )[0] )
 
-                    let endAt = false
-                    if ( url.indexOf( 'end=' ) !== -1 )
-                        endAt = _.parsetime( _.matches( /end=(.*)/g, url )[0] )
-                    
-                    if ( tempMsg ) tempMsg.delete()
-                    const songInfo = { url, title, length, seek, endAt, length_seconds }
-                    if ( !forPlaylist )
-                    {
-                        songInfo.streamurl = streamurl
-                        songInfo.queuedby = msg.member
-                    }
-                    if ( returnInfo )
-                        return resolve( songInfo )
-                    
-                    // never return this
-                    songInfo.channel = msg.channel
-					
-                    if ( !sess )
-                        return reject( 'invalid audio session' )
-                    
-                    const queue_empty = sess.queue.length === 0
-                    sess.queue.push( songInfo )
-                    
-                    if ( queue_empty )
-                    {
-                        resolve( _.fmt( '`%s` started playing `%s [%s]`', _.nick( msg.member ), title, length ) )
-						sess.hideNP = true
-						start_player( sess, 0 )
-                    }
-                    else
-                        resolve( _.fmt( '`%s` queued `%s [%s]`', _.nick( msg.member ), title, length ) )
-                }
-                
-                function parseInfoFast( err, info )
-                {
-                    if ( info )
-                        info.duration = moment.duration( parseInt( info.length_seconds ) * 1000 ).format( 'hh:mm:ss' )
-                    parseInfo( err, info )
-                }
-                
-                const accepted_files = settings.get( 'audio', 'accepted_files', default_accepted_files )
-                for ( const i in accepted_files )
-                    if ( url.match( accepted_files[i] ) )
-                    {
-                        let fn = url.split('/')
-                        fn = fn[ fn.length - 1 ]
-                        
-                        request( url, ( error, response, body ) => {
-                            if ( !error && response.statusCode === 200 )
-                                parseInfo( false, { title: fn, url } )
-                            else
-                            {
-                                if ( tempMsg ) tempMsg.delete()
-                                reject( 'remote file does not exist' )
-                            }
-                        })
-                        
-                        return
-                    }
-                    
-                const youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls )
-                for ( const i in youtube_urls )
-                    if ( url.match( youtube_urls[i] ) )
-                        return ytdl_core.getInfo( url, parseInfoFast )
-                    
-                const additional_urls = settings.get( 'audio', 'additional_urls', default_additional_urls )
-                for ( const i in additional_urls )
-                    if ( url.match( additional_urls[i] ) )
-                        return ydl.getInfo( url, [], parseInfo )
-                    
-                if ( tempMsg ) tempMsg.delete()
-                console.log( _.fmt( 'WARNING: could not find suitable query mode for <%s>', url ) )
-                return reject( 'could not find suitable query mode' )
-            }
-			
-			doQuery()
-		})
+	const resolve = args.resolve
+	const reject = args.reject
+
+	const err = args.err
+	const info = args.info
+
+	if ( err )
+		return queryErr( err )
+
+	const len_err = exceedsLength( info.length_seconds )
+	if ( len_err !== false )
+		return reject( len_err )
+
+	let songInfo = {}
+	songInfo.url = url
+	songInfo.title = info.title
+	songInfo.length = moment.duration( info.length_seconds * 1000 ).format( 'h:mm:ss' )
+	songInfo.length_seconds = info.length_seconds
+
+	songInfo = Object.assign( parseVars( url ), songInfo )
+
+	songInfo.streamurl = info.url
+	if ( info.formats )
+	{
+		songInfo.streamurl = info.formats[0].url
 		
+		const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
+		if ( desired_bitrate )
+		{
+			format = ytdl.chooseFormat( info.formats, { quality: desired_bitrate } )
+			if ( format )
+				songInfo.streamurl = format.url
+		}
+	}
+
+	resolve( songInfo )
+}
+
+function parseGeneric( args )
+{
+	const msg = args.msg
+	const url = args.url
+
+	const resolve = args.resolve
+	const reject = args.reject
+
+	const err = args.err
+	const info = args.info
+
+	if ( err )
+		return queryErr( err )
+
+	const length_seconds = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + + time )
+
+	const len_err = exceedsLength( length_seconds )
+	if ( len_err !== false )
+		return reject( len_err )
+
+	let songInfo = {}
+	songInfo.url = url
+	songInfo.title = info.title
+	songInfo.length = moment.duration( length_seconds * 1000 ).format( 'h:mm:ss' )
+	songInfo.length_seconds = length_seconds
+
+	songInfo = Object.assign( parseVars( url ), songInfo )
+
+	songInfo.streamurl = info.url
+	if ( info.formats )
+	{
+		songInfo.streamurl = info.formats[0].url
+		
+		// skip rtmp links (soundcloud)
+		if ( info.formats[0].protocol )
+		{
+			for ( let i = info.formats.length - 1; i >= 0; i-- )
+			{
+				if ( info.formats[i].protocol === 'rtmp' )
+					info.formats.splice( i, 1 )
+				else
+					songInfo.streamurl = info.formats[i].url
+			}
+		}
+		
+		const desired_bitrate = settings.get( 'audio', 'desired_bitrate', false )
+		if ( desired_bitrate )
+		{
+			let closest = info.formats[0]
+			let diff = 9999
+			for ( const i in info.formats )
+			{
+				const format = info.formats[i]
+				const abr = format.abr || format.audioBitrate
+				const d = Math.abs( desired_bitrate - abr )
+				if ( d < diff )
+				{
+					closest = format
+					diff = d
+				}
+			}
+			songInfo.streamurl = closest.url
+		}
+		else
+		{
+			if ( info.formats[0].abr )
+				songInfo.streamurl = info.formats.sort( (a, b) => b.abr - a.abr )[0].url
+			if ( info.formats[0].audioBitrate )
+				songInfo.streamurl = info.formats.sort( (a, b) => b.audioBitrate - a.audioBitrate )[0].url
+		}
+	}
+
+	resolve( songInfo )
+}
+
+function parseFile( args )
+{
+	const msg = args.msg
+	const url = args.url
+
+	const resolve = args.resolve
+	const reject = args.reject
+
+	let fn = url.split( '/' )
+	fn = fn[ fn.length - 1 ]
+
+	let songInfo = {}
+	songInfo.url = url
+	songInfo.title = fn
+	songInfo.length = '??:??'
+	songInfo.length_seconds = 0
+
+	songInfo = Object.assign( parseVars( url ), songInfo )
+
+	songInfo.streamurl = url
+
+	resolve( songInfo )
+}
+
+function queryRemote( msg, url )
+{
+	const promise = new Promise( ( resolve, reject ) =>
+		{		
+			const youtube_urls = settings.get( 'audio', 'youtube_urls', default_youtube_urls )
+			for ( const i in youtube_urls )
+				if ( url.match( youtube_urls[i] ) )
+					return ytdl_core.getInfo( url, { filter: 'audioonly' }, ( err, info ) => parseYoutube( { msg, url, resolve, reject, err, info } ) )
+				
+			const additional_urls = settings.get( 'audio', 'additional_urls', default_additional_urls )
+			for ( const i in additional_urls )
+				if ( url.match( additional_urls[i] ) )
+					return ydl.getInfo( url, [], ( err, info ) => parseGeneric( { msg, url, resolve, reject, err, info } ) )
+
+			const accepted_files = settings.get( 'audio', 'accepted_files', default_accepted_files )
+				for ( const i in accepted_files )
+					if ( url.match( accepted_files[i] ) )
+					{						
+						request( { url: url, method: 'HEAD' }, ( error, response, body ) =>
+							{
+								if ( !error && response.statusCode === 200 )
+									parseFile( { msg, url, resolve, reject } )
+								else
+									reject( `remote file error ${ error }` )
+							})
+
+						return
+					}
+				
+			console.log( _.fmt( 'ERROR: could not find suitable query mode for <%s>', url ) )
+			reject( '`ERROR: could not find suitable query mode`' )
+		})
+
 	return promise
+}
+
+function queueSong( msg, sess, info )
+{
+	info.channel = msg.channel
+	info.queuedby = msg.member
+
+	if ( !sess )
+		return '`invalid audio session`'
+	
+	const queue_empty = sess.queue.length === 0
+	sess.queue.push( info )
+	
+	if ( queue_empty )
+	{
+		sess.hideNP = true
+		start_player( sess )
+		return _.fmt( '`%s` started playing `%s [%s]`', _.nick( msg.member, msg.guild ), info.title, info.length )
+	}
+	else
+		return _.fmt( '`%s` queued `%s [%s]`', _.nick( msg.member, msg.guild ), info.title, info.length )
 }
 
 function is_accepted_url( link )
@@ -548,13 +645,16 @@ commands.register( {
 	{
 		args = args.replace( /</g, '' ).replace( />/g, '' ) // remove filtering
 		if ( !is_accepted_url( args ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', args ) )
+			return msg.channel.send( _.fmt( '`%s` is not an accepted url', args ) )
 		
-		join_channel( msg ).then( res =>
+		join_channel( msg ).then( sess =>
 			{				
-				queryRemote( { msg, url: args, sess: res } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( '```' + s + '```' ) )
+				queryRemote( msg, args ).then( info =>
+					{
+						msg.channel.send( queueSong( msg, sess, info ) )
+					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
-			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ) } )
+			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
 	} })
 
 commands.register( {
@@ -567,17 +667,19 @@ commands.register( {
 	{
 		args = args.replace( /</g, '' ).replace( />/g, '' ) // remove filtering
 		if ( !is_accepted_url( args ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', args ) )
+			return msg.channel.send( _.fmt( '`%s` is not an accepted url', args ) )
 		
-		join_channel( msg ).then( res =>
+		join_channel( msg ).then( sess =>
 			{
-				const sess = findSession( msg )
 				if ( sess.playing )
 					sess.queue = []
 
-				queryRemote( { msg, url: args, sess: res } ).then( s => msg.channel.sendMessage( s ) ).catch( s => msg.channel.sendMessage( '```' + s + '```' ) )
+				queryRemote( msg, args ).then( info =>
+					{
+						msg.channel.send( queueSong( msg, sess, info ) )
+					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
-			.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ) } )
+			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
 	} })
 
 commands.register( {
@@ -595,18 +697,26 @@ commands.register( {
 commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'youtubeplaylist', 'ytpl' ],
-	help: 'queue up a youtube playlist & optionally save it',
+	help: 'save a youtube playlist for later',
 	flags: [ 'no_pm' ],
-	args: 'url [name]',
+	args: 'name url',
 	callback: ( client, msg, args ) =>
 	{
 		const split = args.split( ' ' )
-		if ( !is_accepted_url( split[0] ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', split[0] ) )
+
+		const plname = split[0]
+		const plurl = split[1]
+
+		if ( !is_accepted_url( plurl ) )
+			return msg.channel.send( _.fmt( '`%s` is not an accepted url', plurl ) )
+
+		const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + plname + '.json' )
+		if ( fs.existsSync( filePath ) )
+			return msg.channel.send( _.fmt( '`%s` already exists', plname ) )
 		
 		function playlistQuery( tempMsg )
 		{
-			ydl.exec( split[0], [ '--flat-playlist', '-J' ], {},
+			ydl.exec( plurl, [ '--flat-playlist', '-J' ], {},
 			( err, output ) =>
 				{
                     tempMsg.delete()
@@ -614,44 +724,35 @@ commands.register( {
                     if ( err )
 					{
 						console.log( _.filterlinks( err ) )
-						return msg.channel.sendMessage( _.fmt( 'could not query info `(%s)`', _.filterlinks( err ) ) )
+						return msg.channel.send( _.fmt( 'could not query info `(%s)`', _.filterlinks( err ) ) )
 					}
 
                     const data = []
                     const playlist = JSON.parse( output ).entries
 
                     if ( !playlist )
-						return msg.channel.sendMessage( 'invalid remote playlist' )
+						return msg.channel.send( 'invalid remote playlist' )
 
 					for ( const song of playlist )
 					{
                         const url = `https://www.youtube.com/watch?v=${song.url}`
                         if ( !song.title )
-							return msg.channel.sendMessage( _.fmt( 'malformed playlist, could not find song title for `%s`', song.url ) )
+							return msg.channel.send( _.fmt( 'malformed playlist, could not find song title for `%s`', song.url ) )
                         data.push( { url, title: song.title, length: '??:??' } )
                     }
-
-                    let name = args
-                    if ( split[1] )
-					{
-						name = split[1]
-						const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' )
-						if ( fs.existsSync( filePath ) )
-							return msg.channel.sendMessage( _.fmt( '`%s` already exists', name ) )
-						
-						queryMultiple( data, msg, name ).then( res =>
-							{
-								fs.writeFileSync( filePath, JSON.stringify( res.queue, null, 4 ), 'utf8' )
-								msg.channel.sendMessage( _.fmt( 'saved `%s` songs under `%s`%s', res.queue.length, name ), res.errors )
-							}).catch( errs =>
-							{
-								return msg.channel.sendMessage( errs )
-							})
-					}
+					
+					queryMultiple( data, msg, plname ).then( res =>
+						{
+							fs.writeFileSync( filePath, JSON.stringify( res.queue, null, 4 ), 'utf8' )
+							msg.channel.send( _.fmt( 'saved `%s` songs under `%s`%s', res.queue.length, plname, res.errors ) )
+						}).catch( errs =>
+						{
+							return msg.channel.send( errs.toString() )
+						})
                 })
 		}
 		
-		msg.channel.sendMessage( 'fetching playlist info, please wait...' ).then( tempMsg => playlistQuery( tempMsg ) )
+		msg.channel.send( 'fetching playlist info, please wait...' ).then( tempMsg => playlistQuery( tempMsg ) )
 	} })
 
 commands.register( {
@@ -665,12 +766,12 @@ commands.register( {
 		if ( sess )
 		{
 			if ( !sess.playing )
-				return msg.channel.sendMessage( 'not playing anything to skip' )
+				return msg.channel.send( 'not playing anything to skip' )
 			
-			const channel = msg.member.getVoiceChannel()
+			const channel = msg.member.voiceChannel
 			const samechan = sess.conn.channel.id === channel.id
 			if ( !samechan )
-				return msg.channel.sendMessage( "can't vote to skip from another channel" )
+				return msg.channel.send( "can't vote to skip from another channel" )
 			
 			if ( !sess.skipVotes )
 				sess.skipVotes = []
@@ -697,13 +798,13 @@ commands.register( {
 			if ( numVotes >= votesNeeded )
 			{
 				sess.skipVotes = []
-				return rotate_queue( sess )
+				return skip_playback( sess )
 			}
 			else if ( numVotes % 3 === 1 )
-				msg.channel.sendMessage( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member ), numVotes, votesNeeded ) )
+				msg.channel.send( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member, msg.guild ), numVotes, votesNeeded ) )
 		}
 		else
-			msg.channel.sendMessage( 'nothing is currently playing' )
+			msg.channel.send( 'nothing is currently playing' )
 	} })
 
 commands.register( {
@@ -715,7 +816,7 @@ commands.register( {
 	{		
 		const sess = findSession( msg )
 		if ( sess )
-			rotate_queue( sess )
+			skip_playback( sess )
 	} })
 
 commands.register( {
@@ -733,25 +834,24 @@ commands.register( {
 			if ( !sess )
 			{
 				const def = settings.get( 'audio', 'volume_default', 0.5 )
-				return msg.channel.sendMessage( _.fmt( 'no current audio session, default volume is `%s`', def ) )
+				return msg.channel.send( _.fmt( 'no current audio session, default volume is `%s`', def ) )
 			}
 
 			const vol = sess.volume
-			return msg.channel.sendMessage( _.fmt( 'current volume is `%s`', vol ) )
+			return msg.channel.send( _.fmt( 'current volume is `%s`', vol ) )
 		}
 		
 		if ( isNaN( args ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` is not a number', args ) )
+			return msg.channel.send( _.fmt( '`%s` is not a number', args ) )
 		
 		const vol = Math.max( 0, Math.min( args, settings.get( 'audio', 'volume_max', 1 ) ) )
-		msg.channel.sendMessage( _.fmt( '`%s` changed volume to `%s`', _.nick( msg.member ), vol ) )
+		msg.channel.send( _.fmt( '`%s` changed volume to `%s`', _.nick( msg.member, msg.guild ), vol ) )
 		
 		if ( sess )
 		{
 			if ( !sess.playing ) return
 			
 			sess.volume = vol
-			sess.encoder.stop()
 			start_player( sess, sess.time )
 		}
 	} })
@@ -766,19 +866,19 @@ commands.register( {
 		const sess = findSession( msg )
 		if ( sess )
 		{
-			if ( !sess.playing ) return msg.channel.sendMessage( 'nothing is currently playing' )
+			if ( !sess.playing ) return msg.channel.send( 'nothing is currently playing' )
 			
 			const song = sess.queue[0]
 			if ( !song )
-				return msg.channel.sendMessage( 'nothing is currently playing' )
+				return msg.channel.send( 'nothing is currently playing' )
 			
 			let by_user = get_queuedby_user( song )
 			if ( sess.queue.length > 1 )
 				by_user += `, +${sess.queue.length - 1} in queue`
-			msg.channel.sendMessage( _.fmt( '`NOW PLAYING in %s:\n%s [%s] (%s)`\n<%s>', sess.conn.channel.name, song.title, song.length, by_user, song.url ) )
+			msg.channel.send( _.fmt( '`NOW PLAYING in %s:\n%s [%s] (%s)`\n<%s>', sess.conn.channel.name, song.title, song.length, by_user, song.url ) )
 		}
 		else
-			msg.channel.sendMessage( 'nothing is currently playing' )
+			msg.channel.send( 'nothing is currently playing' )
 	} })
 
 commands.register( {
@@ -791,11 +891,11 @@ commands.register( {
 		const sess = findSession( msg )
 		if ( sess )
 		{
-			if ( !sess.playing ) return msg.channel.sendMessage( '```\nempty\n```' )
+			if ( !sess.playing ) return msg.channel.send( '```\nempty\n```' )
 			
 			const queue = sess.queue
 			if ( queue.length === 0 )
-				return msg.channel.sendMessage( '```\nempty\n```' )
+				return msg.channel.send( '```\nempty\n```' )
 			
 			let total_len = 0
 			const fields = []
@@ -808,10 +908,16 @@ commands.register( {
 			}
 			
 			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
-			msg.channel.sendMessage( '', false, { title: `${queue.length} songs [${total_len}]`, description: '-', fields } )
+
+			const embed = new Discord.MessageEmbed({
+				title: `${queue.length} songs [${total_len}]`,
+				description: '-',
+				fields: fields,
+			})
+			msg.channel.send( '', embed )
 		}
 		else
-			msg.channel.sendMessage( '```\nempty\n```' )
+			msg.channel.send( '```\nempty\n```' )
 	} })
 
 commands.register( {
@@ -828,7 +934,7 @@ commands.register( {
 			if ( sess.paused ) return
 			
 			sess.paused = true
-			sess.encoder.stop()
+			stop_playback( sess )
 		}
 	} })
 
@@ -864,17 +970,14 @@ commands.register( {
 			if ( !sess.playing ) return
 			
 			if ( args )
-			{
-				sess.encoder.stop()
-				start_player( sess, _.parsetime(args) )
-			}
+				start_player( sess, _.parsetime( args ) )
 			else
 			{
 				let currentSeek = moment.duration( Math.round(sess.time) * 1000 ).format('hh:mm:ss')
 				if ( !currentSeek.match( ':' ) )
 					currentSeek = '00:' + currentSeek
 	
-				msg.channel.sendMessage( _.fmt( 'current seek time: `%s / %s`', currentSeek, sess.queue[0].length ) )
+				msg.channel.send( _.fmt( 'current seek time: `%s / %s`', currentSeek, sess.queue[0].length ) )
 			}
 		}
 	} })
@@ -892,7 +995,7 @@ commands.register( {
 			sess.loop = !sess.loop
 			if ( sess.loop )
 			{
-				msg.channel.sendMessage( _.fmt( 'turned on looping, use `%sloop` again to toggle off', settings.get( 'config', 'command_prefix', '!' ) ) )
+				msg.channel.send( _.fmt( 'turned on looping, use `%sloop` again to toggle off', settings.get( 'config', 'command_prefix', '!' ) ) )
 				if ( sess.lastSong && !sess.playing )
 				{
 					sess.queue.push( sess.lastSong )
@@ -900,7 +1003,7 @@ commands.register( {
 				}
 			}
 			else
-				msg.channel.sendMessage( 'turned off looping, queue will proceed as normal' )
+				msg.channel.send( 'turned off looping, queue will proceed as normal' )
 		}
 	} })
 
@@ -924,11 +1027,11 @@ commands.register( {
 		
 		name = sanitize_filename( name )
 		if ( !name )
-			return msg.channel.sendMessage( 'please enter a valid playlist name' )
+			return msg.channel.send( 'please enter a valid playlist name' )
 		
 		link = link.replace( /</g, '' ).replace( />/g, '' ) // remove filtering
 		if ( !is_accepted_url( link ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` is not an accepted url', link ) )
+			return msg.channel.send( _.fmt( '`%s` is not an accepted url', link ) )
 		
 		const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' )
 		
@@ -937,17 +1040,19 @@ commands.register( {
 		{
 			const playlist = fs.readFileSync( filePath, 'utf8' )
 			if ( !_.isjson( playlist ) )
-				return msg.channel.sendMessage( 'error in `%s`, please delete', name )
+				return msg.channel.send( 'error in `%s`, please delete', name )
 			data = JSON.parse( playlist )
 		}
 		
-		queryRemote( { msg, url: link, returnInfo: true, forPlaylist: true } ).then( info =>
+		queryRemote( msg, link ).then( info =>
 			{
+				delete info.streamurl
+
 				data.push( info )
 				fs.writeFileSync( filePath, JSON.stringify( data, null, 4 ), 'utf8' )
-				msg.channel.sendMessage( _.fmt( '`%s` added `%s [%s]` to `%s`', _.nick( msg.member ), info.title, info.length, name ) )
+				msg.channel.send( _.fmt( '`%s` added `%s [%s]` to `%s`', _.nick( msg.member, msg.guild ), info.title, info.length, name ) )
 			})
-			.catch( s => msg.channel.sendMessage( '```' + s + '```' ) )
+			.catch( s => msg.channel.send( '```' + s + '```' ) )
 	} })
 
 function queryMultiple( data, msg, name )
@@ -996,10 +1101,8 @@ function queryMultiple( data, msg, name )
 				return
 			}
 			
-			queryRemote( { quiet: true, msg, url: song.url, returnInfo: true } ).then( info =>
+			queryRemote( msg, song.url ).then( info =>
 				{
-					info.channel = msg.channel
-					info.queuedby = msg.member
 					queueBuffer.push( info )
 					checkLoaded( i )
 				})
@@ -1013,7 +1116,7 @@ function queryMultiple( data, msg, name )
 		
 		if ( numSongs > 1 )
 		{
-			msg.channel.sendMessage( _.fmt( 'fetching info for `%s` song(s), please wait...', numSongs ) ).then( m =>
+			msg.channel.send( _.fmt( 'fetching info for `%s` song(s), please wait...', numSongs ) ).then( m =>
 			{
 				tempMsg = m
 				queryPlaylist( 0 )
@@ -1032,31 +1135,46 @@ function queueMultiple( data, msg, name )
 	{		
 		const sess = res
 
-		function do_rest( errors )
+		function do_rest( firstSong, errors )
 		{
+			data.shift()
+			
 			queryMultiple( data, msg, name ).then( res =>
 				{
 					const queueBuffer = res.queue
 					errors += res.errors
+
+					if ( firstSong )
+						queueBuffer.unshift( firstSong )
 	
 					const queue_empty = sess.queue.length === 0					
 					if ( queue_empty )
 						sess.hideNP = true
 	
 					const verb = queue_empty ? 'started playing' : 'queued'
-					const confirmation = _.fmt( '`%s` %s `%s`%s', _.nick( msg.member ), verb, name, errors )
+					const confirmation = _.fmt( '`%s` %s `%s`%s', _.nick( msg.member, msg.guild ), verb, name, errors )
 					
 					let total_len = 0
 					const fields = []
 					for ( const i in queueBuffer )
 					{
 						const song = queueBuffer[i]
+						song.channel = msg.channel
+						song.queuedby = msg.member
+
 						total_len += parseInt( song.length_seconds )
 						fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i) + 1, song.title, song.length ), value: song.url } )
 					}
 	
 					total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
-					msg.channel.sendMessage( confirmation, false, { title: `${queueBuffer.length} songs [${total_len}]`, description: '-', fields } )
+
+					
+					const embed = new Discord.MessageEmbed({
+						title: `${queueBuffer.length} songs [${total_len}]`,
+						description: '-',
+						fields: fields,
+					})
+					msg.channel.send( confirmation, embed )
 					
 					queueBuffer.shift()
 					sess.queue.push(...queueBuffer)
@@ -1065,12 +1183,16 @@ function queueMultiple( data, msg, name )
 				})
 				.catch( errs =>
 				{
-					return msg.channel.sendMessage( errs )
+					return msg.channel.send( errs )
 				})
 		}
-		queryRemote( { msg, url: data[0].url, sess: sess } ).then( do_rest('') ).catch( s => do_rest( s+'\n' ) )
+		queryRemote( msg, data[0].url ).then( info =>
+			{
+				msg.channel.send( queueSong( msg, sess, info ) )
+				do_rest( info, '' )
+			}).catch( s => do_rest( false, s+'\n' ) )
 	})
-	.catch( e => { if ( e.message ) throw e; msg.channel.sendMessage( e ) } )
+	.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
 }
 
 commands.register( {
@@ -1083,15 +1205,15 @@ commands.register( {
 	{
 		const name = sanitize_filename( args )
 		if ( !name )
-			return msg.channel.sendMessage( 'please enter a valid playlist name' )
+			return msg.channel.send( 'please enter a valid playlist name' )
 		
 		const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' )
 		if ( !fs.existsSync( filePath ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) )
+			return msg.channel.send( _.fmt( '`%s` does not exist', name ) )
 		
 		const playlist = fs.readFileSync( filePath, 'utf8' )
 		if ( !_.isjson( playlist ) )
-			return msg.channel.sendMessage( 'error in `%s`, please delete', name )
+			return msg.channel.send( 'error in `%s`, please delete', name )
 		const data = JSON.parse( playlist )
 		
 		queueMultiple( data, msg, name )
@@ -1114,23 +1236,23 @@ commands.register( {
 					if ( !file.startsWith( msg.guild.id + '_' ) ) return
 					list += file.replace( '.json', '' ).replace( msg.guild.id + '_', '' ) + ', '
 				})
-			msg.channel.sendMessage( '```--- playlists ---\n' + list.substring( 0, list.length - 2 ) + '```' )
+			msg.channel.send( '```--- playlists ---\n' + list.substring( 0, list.length - 2 ) + '```' )
 		}
 		else
 		{
 			const name = sanitize_filename( args )
 			if ( !name )
-				return msg.channel.sendMessage( 'please enter a valid playlist name' )
+				return msg.channel.send( 'please enter a valid playlist name' )
 			
 			const filename = msg.guild.id + '_' + name + '.json'
 			const filePath = path.join( __dirname, playlistDir, filename )
 			
 			if ( !fs.existsSync( filePath ) )
-				return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) )
+				return msg.channel.send( _.fmt( '`%s` does not exist', name ) )
 			
 			const playlist = fs.readFileSync( filePath, 'utf8' )
 			if ( !_.isjson( playlist ) )
-				return msg.channel.sendMessage( 'error in `%s`, please delete', name )
+				return msg.channel.send( 'error in `%s`, please delete', name )
 			
 			let total_len = 0
 			const fields = []
@@ -1143,7 +1265,13 @@ commands.register( {
 			}
 			
 			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
-			msg.channel.sendMessage( '', false, { title: `${data.length} songs [${total_len}]`, description: '-', fields } )
+
+			const embed = new Discord.MessageEmbed({
+				title: `${data.length} songs [${total_len}]`,
+				description: '-',
+				fields: fields,
+			})
+			msg.channel.send( '', embed )
 		}
 	} })
 
@@ -1162,19 +1290,19 @@ commands.register( {
 		oldName = sanitize_filename( oldName )
 		newName = sanitize_filename( newName )
 		if ( !oldName || !newName )
-			return msg.channel.sendMessage( 'please enter valid playlist names' )
+			return msg.channel.send( 'please enter valid playlist names' )
 		
 		const oldPath = path.join( __dirname, playlistDir, msg.guild.id + '_' + oldName + '.json' )
 		const newPath = path.join( __dirname, playlistDir, msg.guild.id + '_' + newName + '.json' )
 		
 		if ( !fs.existsSync( oldPath ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', oldName ) )
+			return msg.channel.send( _.fmt( '`%s` does not exist', oldName ) )
 		
 		if ( fs.existsSync( newPath ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` already exists', newName ) )
+			return msg.channel.send( _.fmt( '`%s` already exists', newName ) )
 		
 		fs.createReadStream( oldPath ).pipe( fs.createWriteStream( newPath ) )
-		msg.channel.sendMessage( _.fmt( '`%s` has been copied to `%s`', oldName, newName ) )
+		msg.channel.send( _.fmt( '`%s` has been copied to `%s`', oldName, newName ) )
 	} })
 
 commands.register( {
@@ -1187,14 +1315,14 @@ commands.register( {
 	{
 		const name = sanitize_filename( args )
 		if ( !name )
-			return msg.channel.sendMessage( 'please enter a valid playlist name' )
+			return msg.channel.send( 'please enter a valid playlist name' )
 		
 		const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + name + '.json' )
 		if ( !fs.existsSync( filePath ) )
-			return msg.channel.sendMessage( _.fmt( '`%s` does not exist', name ) )
+			return msg.channel.send( _.fmt( '`%s` does not exist', name ) )
 		
 		fs.unlinkSync( filePath )
-		msg.channel.sendMessage( _.fmt( '`%s` deleted', name ) )
+		msg.channel.send( _.fmt( '`%s` deleted', name ) )
 	} })
 
 commands.register( {
@@ -1206,13 +1334,10 @@ commands.register( {
 	{
 		const gid = msg.guild.id
 		if ( !gid in songTracking )
-			return msg.channel.sendMessage( 'no audio data found for this server' )
+			return msg.channel.send( 'no audio data found for this server' )
 
-		const sorted = Object.keys( songTracking[ gid ] ).sort(
-			(a, b) =>
-			{
-				return songTracking[ gid ][a].plays < songTracking[ gid ][b].plays ? 1 : 0
-			})
+		let sorted = Object.keys( songTracking[ gid ] ) 
+		sorted.sort( function(a, b) { return songTracking[ gid ][b].plays - songTracking[ gid ][a].plays } )
 
 		const fields = []
 		for ( const url of sorted )
@@ -1221,12 +1346,15 @@ commands.register( {
 			const song = songTracking[ gid ][ url ]
 			const plays = song.plays
 			const title = song.title
-			let playtime = song.length_seconds * plays
-			playtime = moment.duration( parseInt( playtime ) * 1000 ).format( 'hh:mm:ss' )
-			fields.push( { name: `${ fields.length+1 }. ${ title } - ${ plays } plays - ${ playtime } total play time`, value: url } )
+			fields.push( { name: `${ fields.length+1 }. [${ plays } plays] ${ title }`, value: url } )
 		}
-		
-		msg.channel.sendMessage( '', false, { title: `top 10 songs`, description: '-', fields } )
+
+		const embed = new Discord.MessageEmbed({
+			title: `top 10 songs`,
+			description: '-',
+			fields: fields,
+		})
+		msg.channel.send( '', embed )
 	} })
 
 var client = null

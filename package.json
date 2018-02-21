@@ -11,13 +11,19 @@
 		"start": "node index.js"
 	},
 	"dependencies": {
-		"discordie": "git+https://github.com/qeled/discordie.git#dev",
+		"bufferutil": "^3.0.3",
+		"discord.js": "git+https://github.com/discordjs/discord.js.git",
+		"erlpack": "github:discordapp/erlpack",
 		"moment": "^2.20.1",
 		"moment-duration-format": "^2.2.2",
 		"node-fetch": "^1.7.3",
+		"node-opus": "^0.2.7",
 		"request": "^2.83.0",
 		"respawn": "*",
+		"sodium": "^2.0.3",
+		"uws": "^9.14.0",
 		"youtube-dl": "^1.12.2",
-		"ytdl-core": "^0.20.1"
+		"ytdl-core": "^0.20.1",
+		"zlib-sync": "^0.1.4"
 	}
 }

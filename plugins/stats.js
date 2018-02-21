@@ -1,4 +1,4 @@
-const Discordie = require( 'discordie' )
+const Discord = require( 'discord.js' )
 
 const commands = require( '../commands.js' )
 const permissions = require( '../permissions.js' )
@@ -14,28 +14,30 @@ let seenIn = {}
 
 const idleTime = {}
 const updateDelay = 60 * 1000
+const statsIncrement = 0.00001
 function updateUserStats()
 {
-	client.Users.forEach( ( user ) =>
+	client.users.forEach( ( user ) =>
 		{
 			if ( user.status !== 'offline' )
 			{
 				lastSeen[ user.id ] = _.time()
 
-				client.Guilds.forEach( ( guild ) =>
+				client.guilds.forEach( guild =>
 					{
-						if ( user.memberOf( guild ) )
+						const member = guild.members.find( 'id', user.id )
+						if ( member )
 						{
-							const vc = user.getVoiceChannel( guild )
+							const vc = member.voiceChannel
 							if ( vc )
 							{
 								if ( !seenIn[ user.id ] )
 									seenIn[ user.id ] = {}
 
 								if ( !seenIn[ user.id ][ guild.id ] )
-									seenIn[ user.id ][ guild.id ] = 1
-								else
-									seenIn[ user.id ][ guild.id ]++
+									seenIn[ user.id ][ guild.id ] = 0
+								
+								seenIn[ user.id ][ guild.id ] += statsIncrement
 
 
 								if ( !seenWith[ user.id ] )
@@ -43,12 +45,12 @@ function updateUserStats()
 								
 								for ( const i in vc.members )
 								{
-									const member = vc.members[i]
-									if ( member.id === user.id ) continue
-									if ( !seenWith[ user.id ][ member.id ] )
-										seenWith[ user.id ][ member.id ] = 1
-									else
-										seenWith[ user.id ][ member.id ]++
+									const other = vc.members[i]
+									if ( other.user.id === user.id ) continue
+									if ( !seenWith[ user.id ][ other.user.id ] )
+										seenWith[ user.id ][ other.user.id ] = 0
+									
+									seenWith[ user.id ][ other.user.id ] += statsIncrement
 								}
 							}
 						}
@@ -85,9 +87,9 @@ commands.register( {
 		const rows = []
 		
 		// bold
-		rows.push( _.fmt( '%s#%s', target.username, target.discriminator ) )
-		if ( target.nick )
-			rows[0] += _.fmt( ' AKA %s', target.nick )
+		rows.push( _.fmt( '%s#%s', target.username || target.user.username, target.discriminator || target.user.discriminator ) )
+		if ( target.nickname )
+			rows[0] += _.fmt( ' AKA %s', target.nickname )
 		
 		// normal
 		if ( target.status == 'offline' )
@@ -103,11 +105,13 @@ commands.register( {
 			rows.push( 'online right now' )
 		
 		// separate block
-		if ( !msg.channel.isPrivate )
+		if ( msg.guild && target.roles )
 		{
 			const roleList = [ 'everyone' ]
-			for ( const i in target.roles )
-				roleList.push( target.roles[i].name )
+			target.roles.forEach( r =>
+				{
+					roleList.push( r.name )
+				})
 			
 			// bold
 			rows.push( _.fmt( 'part of %s', roleList.join( ', ' ) ) )
@@ -119,18 +123,18 @@ commands.register( {
 		// bold
 		if ( seenIn[ target.id ] )
 		{
-			const sorted = Object.keys( seenIn[ target.id ] ).sort(
-				(a, b) =>
-				{
-					return seenIn[ target.id ][a] < seenIn[ target.id ][b] ? 1 : 0
-				})
+			let sorted = Object.keys( seenIn[ target.id ] ) 
+			sorted.sort( function(a, b) { return seenIn[ target.id ][b] - seenIn[ target.id ][a] } )
 
 			const top5 = []
 			for ( const gid of sorted )
 			{
 				if ( top5.length > 5 ) break
 
-				const gname = client.Guilds.get( gid ).name
+				const guild = client.guilds.find( 'id', gid )
+				if ( !guild ) continue
+
+				const gname = guild.name
 				top5.push( gname )
 			}
 			rows.push( 'frequently seen in ' + top5.join( ', ' ) )
@@ -139,22 +143,19 @@ commands.register( {
 		// normal
 		if ( seenWith[ target.id ] )
 		{
-			const sorted = Object.keys( seenWith[ target.id ] ).sort(
-				(a, b) =>
-				{
-					return seenWith[ target.id ][a] < seenWith[ target.id ][b] ? 1 : 0
-				})
+			let sorted = Object.keys( seenWith[ target.id ] ) 
+			sorted.sort( function(a, b) { return seenWith[ target.id ][b] - seenWith[ target.id ][a] } )
 
 			const top5 = []
-			for ( const member of sorted )
+			for ( const mid of sorted )
 			{
 				if ( top5.length > 5 ) break
+				if ( !mid ) continue
 
-				const mem = client.Users.get( member )
-				if ( msg.channel.isPrivate )
-					top5.push( _.nick( mem ) )
-				else
-					top5.push( _.nick( mem, msg.guild ) )
+				const member = client.users.find( 'id', mid )
+				if ( !member ) continue
+
+				top5.push( _.nick( member, msg.guild ) )
 			}
 			rows.push( 'frequently seen with ' + top5.join( ', ' ) )
 		}
@@ -175,13 +176,14 @@ commands.register( {
 			colour = 0xfaa61a
 		else if ( target.status === 'offline' )
 			colour = 0x8a8a8a
+
+		const embed = new Discord.MessageEmbed({
+							color: colour,
+							fields: fields,
+							thumbnail: { url: target.avatarURL },
+						})
 		
-		msg.channel.sendMessage( '', false,
-			{
-				color: colour,
-				fields,
-				thumbnail: { url: target.avatarURL },
-			})
+		msg.channel.send( '', embed )
 	} })
 
 let startTime = 0
@@ -195,21 +197,22 @@ commands.register( {
 		
 		let stats = _.fmt( 'uptime: %s (%s)\n', uptime.humanize(), uptime.format( 'h:mm:ss' ) )
 		stats += _.fmt( 'commands since boot: %s\n', commands.numSinceBoot )
-		stats += _.fmt( 'servers connected: %s\n', client.Guilds.length )
+		stats += _.fmt( 'servers connected: %s\n', client.guilds.size )
 		
 		let total = 0
 		let listening = 0
-		client.Channels.forEach( ( channel ) => {
-				if ( channel.type === Discordie.ChannelTypes.GUILD_TEXT && !channel.isPrivate )
+		client.channels.forEach( channel =>
+			{
+				if ( channel.type === 'text' && channel.guild )
 				{
 					total++
-					if ( client.User.can( permissions.discord.Text.READ_MESSAGES, channel ) )
+					if ( channel.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.READ_MESSAGES ) )
 						listening++
 				}
 			})
 			
 		stats += _.fmt( 'channels listening: %s / %s\n', listening, total )
-		stats += _.fmt( 'users seen online: %s / %s\n', Object.keys( lastSeen ).length, client.Users.length )
+		stats += _.fmt( 'users seen / online: %s / %s\n', Object.keys( lastSeen ).length, client.users.size )
 		
 		try
 		{
@@ -217,7 +220,7 @@ commands.register( {
 			stats += _.fmt( 'songs played since boot: %s\n', audio.songsSinceBoot )
 		} catch (e) {}
 		
-		msg.channel.sendMessage( '```' + stats + '```' )
+		msg.channel.send( '```' + stats + '```' )
 	} })
 
 var client = null
