@@ -325,11 +325,13 @@ function start_player( sess, forceseek )
 
 	params.push( '-i', song.streamurl )
 
+	params.push( '-b:a', sess.conn.channel.bitrate )
 	params.push( '-af', filter )
 	params.push( '-f', 'opus' )
 	params.push( 'pipe:1' )
 
 	sess.ffmpeg = spawn( 'ffmpeg', params )
+	//sess.ffmpeg.stderr.on( 'data', e => console.log( e.toString() ) )
 
 	const streamOptions = { type: 'ogg/opus', passes: 3 }
 	sess.dispatch = sess.conn.play( sess.ffmpeg.stdout, streamOptions )
