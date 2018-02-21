@@ -43,15 +43,14 @@ function updateUserStats()
 								if ( !seenWith[ user.id ] )
 									seenWith[ user.id ] = {}
 								
-								for ( const i in vc.members )
-								{
-									const other = vc.members[i]
-									if ( other.user.id === user.id ) continue
-									if ( !seenWith[ user.id ][ other.user.id ] )
-										seenWith[ user.id ][ other.user.id ] = 0
-									
-									seenWith[ user.id ][ other.user.id ] += statsIncrement
-								}
+								vc.members.forEach( other =>
+									{
+										if ( other.user.id === user.id ) continue
+										if ( !seenWith[ user.id ][ other.user.id ] )
+											seenWith[ user.id ][ other.user.id ] = 0
+										
+										seenWith[ user.id ][ other.user.id ] += statsIncrement
+									})
 							}
 						}
 					})
