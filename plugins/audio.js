@@ -87,7 +87,6 @@ function trackSong( gid, song )
 		songTracking[ gid ][ url ] = {}
 		songTracking[ gid ][ url ].plays = 1
 		songTracking[ gid ][ url ].title = song.title
-		songTracking[ gid ][ url ].length_seconds = song.length_seconds
 	}
 	else
 		songTracking[ gid ][ url ].plays++
@@ -1336,13 +1335,8 @@ commands.register( {
 		if ( !gid in songTracking )
 			return msg.channel.send( 'no audio data found for this server' )
 
-		const sorted = Object.keys( songTracking[ gid ] ).sort(
-			(a, b) =>
-			{
-				return songTracking[ gid ][a].plays < songTracking[ gid ][b].plays ? 1 : 0
-			})
-
-		console.log( sorted )
+		let sorted = Object.keys( songTracking[ gid ] ) 
+		sorted.sort( function(a, b) { return songTracking[ gid ][b].plays - songTracking[ gid ][a].plays } )
 
 		const fields = []
 		for ( const url of sorted )

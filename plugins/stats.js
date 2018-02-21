@@ -123,19 +123,19 @@ commands.register( {
 		// bold
 		if ( seenIn[ target.id ] )
 		{
-			const sorted = Object.keys( seenIn[ target.id ] ).sort(
-				(a, b) =>
-				{
-					return seenIn[ target.id ][a] < seenIn[ target.id ][b] ? 1 : 0
-				})
+			let sorted = Object.keys( seenIn[ target.id ] ) 
+			sorted.sort( function(a, b) { return seenIn[ target.id ][b] - seenIn[ target.id ][a] } )
 
 			const top5 = []
 			for ( const gid of sorted )
 			{
 				if ( top5.length > 5 ) break
 
-				const gname = client.guilds.find( 'id', gid ).name
-				top5.push( gname )
+				const guild = client.guilds.find( 'id', gid )
+				if ( !guild ) continue
+
+				const gname = guild.name
+				top5.push( seenIn[ target.id ][gid] + gname )
 			}
 			rows.push( 'frequently seen in ' + top5.join( ', ' ) )
 		}
@@ -143,20 +143,19 @@ commands.register( {
 		// normal
 		if ( seenWith[ target.id ] )
 		{
-			const sorted = Object.keys( seenWith[ target.id ] ).sort(
-				(a, b) =>
-				{
-					return seenWith[ target.id ][a] < seenWith[ target.id ][b] ? 1 : 0
-				})
+			let sorted = Object.keys( seenWith[ target.id ] ) 
+			sorted.sort( function(a, b) { return seenWith[ target.id ][b] - seenWith[ target.id ][a] } )
 
 			const top5 = []
-			for ( const member of sorted )
+			for ( const mid of sorted )
 			{
 				if ( top5.length > 5 ) break
+				if ( !mid ) continue
+
+				const member = client.users.find( 'id', mid )
 				if ( !member ) continue
 
-				const mem = client.users.find( 'id', member )
-				top5.push( _.nick( mem, msg.guild ) )
+				top5.push( seenWith[ target.id ][mid] + _.nick( member, msg.guild ) )
 			}
 			rows.push( 'frequently seen with ' + top5.join( ', ' ) )
 		}
