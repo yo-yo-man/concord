@@ -149,7 +149,7 @@ function voiceStateUpdate( oldMember, newMember )
 		sendGuildNotice( guild.id, `\`${ _.nick( newMember, guild ) }\` switched to \`${ newMember.voiceChannel.name }\``, newMember )
 
 	if ( oldMember.voiceChannel && !newMember.voiceChannel )
-		sendGuildNotice( guild.id, `\`${ _.nick( oldMember, guild ) }\` disconnedted`, oldMember )
+		sendGuildNotice( guild.id, `\`${ _.nick( oldMember, guild ) }\` disconnected`, oldMember )
 }
 
 var client = null
