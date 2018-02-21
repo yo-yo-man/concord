@@ -116,7 +116,7 @@ commands.register( {
 			rows.push( _.fmt( 'part of %s', roleList.join( ', ' ) ) )
 
 			// normal
-			rows.push( _.fmt( 'joined server %s', moment( target.joined_at ).fromNow() ) )
+			rows.push( _.fmt( 'joined server %s', moment( target.joinedTimestamp ).fromNow() ) )
 		}
 		
 		// bold
