@@ -1128,12 +1128,17 @@ function queueMultiple( data, msg, name )
 	{		
 		const sess = res
 
-		function do_rest( errors )
+		function do_rest( firstSong, errors )
 		{
+			data.shift()
+			
 			queryMultiple( data, msg, name ).then( res =>
 				{
 					const queueBuffer = res.queue
 					errors += res.errors
+
+					if ( firstSong )
+						queueBuffer.unshift( firstSong )
 	
 					const queue_empty = sess.queue.length === 0					
 					if ( queue_empty )
@@ -1155,7 +1160,14 @@ function queueMultiple( data, msg, name )
 					}
 	
 					total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
-					msg.channel.send( confirmation, false, { title: `${queueBuffer.length} songs [${total_len}]`, description: '-', fields } )
+
+					
+					const embed = new Discord.MessageEmbed({
+						title: `${queueBuffer.length} songs [${total_len}]`,
+						description: '-',
+						fields: fields,
+					})
+					msg.channel.send( confirmation, embed )
 					
 					queueBuffer.shift()
 					sess.queue.push(...queueBuffer)
@@ -1170,8 +1182,8 @@ function queueMultiple( data, msg, name )
 		queryRemote( msg, data[0].url ).then( info =>
 			{
 				msg.channel.send( queueSong( msg, sess, info ) )
-				do_rest('')
-			}).catch( s => do_rest( s+'\n' ) )
+				do_rest( info, '' )
+			}).catch( s => do_rest( false, s+'\n' ) )
 	})
 	.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
 }
