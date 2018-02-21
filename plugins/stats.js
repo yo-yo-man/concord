@@ -45,7 +45,7 @@ function updateUserStats()
 								
 								vc.members.forEach( other =>
 									{
-										if ( other.user.id === user.id ) continue
+										if ( other.user.id === user.id ) return
 										if ( !seenWith[ user.id ][ other.user.id ] )
 											seenWith[ user.id ][ other.user.id ] = 0
 										
