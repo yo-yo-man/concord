@@ -61,11 +61,11 @@ function initAudio()
 				_.log( `connected helper as ${ cl.user.tag }`)
 			})
 
-		client.on( 'disconnected', e => _.logEvent( 'helper-disconnected', e ) )
-		client.on( 'guildCreate', e => _.logEvent( 'helper-guildCreate', e ) )
-		client.on( 'guildDelete', e => _.logEvent( 'helper-guildDelete', e ) )
-		client.on( 'guildUnavailable', e => _.logEvent( 'helper-guildUnavailable', e ) )
-		client.on( 'error', e => _.logError( e ) )
+		cl.on( 'disconnected', e => _.logEvent( 'helper-disconnected', e ) )
+		cl.on( 'guildCreate', e => _.logEvent( 'helper-guildCreate', e ) )
+		cl.on( 'guildDelete', e => _.logEvent( 'helper-guildDelete', e ) )
+		cl.on( 'guildUnavailable', e => _.logEvent( 'helper-guildUnavailable', e ) )
+		cl.on( 'error', e => _.logError( e ) )
 
 		cl.concord_audioSessions = {}
 		audioBots.push( cl )
