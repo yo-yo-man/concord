@@ -14,6 +14,7 @@ let seenIn = {}
 
 const idleTime = {}
 const updateDelay = 60 * 1000
+const statsIncrement = 0.00001
 function updateUserStats()
 {
 	client.users.forEach( ( user ) =>
@@ -34,9 +35,9 @@ function updateUserStats()
 									seenIn[ user.id ] = {}
 
 								if ( !seenIn[ user.id ][ guild.id ] )
-									seenIn[ user.id ][ guild.id ] = 1
-								else
-									seenIn[ user.id ][ guild.id ]++
+									seenIn[ user.id ][ guild.id ] = 0
+								
+								seenIn[ user.id ][ guild.id ] += statsIncrement
 
 
 								if ( !seenWith[ user.id ] )
@@ -47,9 +48,9 @@ function updateUserStats()
 									const other = vc.members[i]
 									if ( other.user.id === user.id ) continue
 									if ( !seenWith[ user.id ][ other.user.id ] )
-										seenWith[ user.id ][ other.user.id ] = 1
-									else
-										seenWith[ user.id ][ other.user.id ]++
+										seenWith[ user.id ][ other.user.id ] = 0
+									
+									seenWith[ user.id ][ other.user.id ] += statsIncrement
 								}
 							}
 						}
