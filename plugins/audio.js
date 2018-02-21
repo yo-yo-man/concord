@@ -208,6 +208,7 @@ function join_channel( msg )
 function leave_channel( sess )
 {
 	sess.closing = true
+	sess.playing = false
 
 	if ( sess.ffmpeg )
 		sess.ffmpeg.kill( 'SIGKILL' )
@@ -216,7 +217,10 @@ function leave_channel( sess )
 		clearInterval( sess.timeInterval )
 
 	if ( sess.dispatch )
-		sess.dispatch.end()
+	{
+		stop_playback( sess )
+		sess.dispatch.destroy()
+	}
 
 	if ( sess.conn.channel )
 		sess.conn.channel.leave()
@@ -225,20 +229,40 @@ function leave_channel( sess )
 	delete bot.concord_audioSessions[ sess.guild ]
 }
 
+function stop_playback( sess )
+{
+	if ( sess.dispatch )
+	{
+		sess.dispatch.removeAllListeners( 'end' )
+		sess.dispatch.end()
+	}
+}
+
+function skip_playback( sess )
+{
+	sess.dispatch.end()
+}
+
 function start_player( sess, forceseek )
 {
 	if ( sess.closing ) return
 
 	if ( sess.ffmpeg )
+	{
 		sess.ffmpeg.kill( 'SIGKILL' )
+		delete sess.ffmpeg
+	}
 
 	if ( sess.timeInterval )
 		clearInterval( sess.timeInterval )
 
-	if ( sess.playing )
+	stop_playback( sess )
+	sess.playing = false
+
+	if ( sess.dispatch )
 	{
-		sess.dispatch.end()
-		sess.playing = false
+		sess.dispatch.destroy()
+		delete sess.dispatch
 	}
 	
 	sess.lastActivity = _.time()
@@ -305,18 +329,12 @@ function start_player( sess, forceseek )
 	params.push( '-f', 'opus' )
 	params.push( 'pipe:1' )
 
-	if ( sess.ffmpeg )
-		delete sess.ffmpeg
-
 	sess.ffmpeg = spawn( 'ffmpeg', params )
-
-	if ( sess.dispatch )
-		delete sess.dispatch
 
 	const streamOptions = { type: 'ogg/opus', passes: 3 }
 	sess.dispatch = sess.conn.play( sess.ffmpeg.stdout, streamOptions )
 
-	if ( !sess.dispatch )
+	if ( !sess.conn.dispatcher )
 	{
 		_.log( `ERROR: could not start encoder with params "${ params.join( ' ' ) }"` )
 		leave_channel( sess )
@@ -335,7 +353,7 @@ function start_player( sess, forceseek )
 			sess.lastActivity = _.time()
 			sess.time = sess.starttime + ( sess.dispatch.streamTime / 1000 )
 			if ( sess.queue[0] && sess.queue[0].endAt && sess.time >= sess.queue[0].endAt )
-				sess.dispatch.end()
+				skip_playback( sess )
 		}, 1000 )
 }
 
@@ -773,7 +791,7 @@ commands.register( {
 			if ( numVotes >= votesNeeded )
 			{
 				sess.skipVotes = []
-				return sess.dispatch.end()
+				return skip_playback( sess )
 			}
 			else if ( numVotes % 3 === 1 )
 				msg.channel.send( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member, msg.guild ), numVotes, votesNeeded ) )
@@ -791,7 +809,7 @@ commands.register( {
 	{		
 		const sess = findSession( msg )
 		if ( sess )
-			sess.dispatch.end()
+			skip_playback( sess )
 	} })
 
 commands.register( {
@@ -909,8 +927,7 @@ commands.register( {
 			if ( sess.paused ) return
 			
 			sess.paused = true
-			sess.playing = false
-			sess.dispatch.end()
+			stop_playback( sess )
 		}
 	} })
 
@@ -946,9 +963,7 @@ commands.register( {
 			if ( !sess.playing ) return
 			
 			if ( args )
-			{
-				start_player( sess, _.parsetime(args) )
-			}
+				start_player( sess, _.parsetime( args ) )
 			else
 			{
 				let currentSeek = moment.duration( Math.round(sess.time) * 1000 ).format('hh:mm:ss')
