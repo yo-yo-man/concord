@@ -128,5 +128,9 @@ _.logEvent = ( type, e ) =>
 		const message = e.id || e || ''
 		return _.log('<' + type + '> ' + message )
 	}
+_.logError = e =>
+	{
+		_.log( 'ERROR:', e )
+	}
 
 module.exports = _

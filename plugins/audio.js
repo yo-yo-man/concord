@@ -65,6 +65,7 @@ function initAudio()
 		client.on( 'guildCreate', e => _.logEvent( 'helper-guildCreate', e ) )
 		client.on( 'guildDelete', e => _.logEvent( 'helper-guildDelete', e ) )
 		client.on( 'guildUnavailable', e => _.logEvent( 'helper-guildUnavailable', e ) )
+		client.on( 'error', e => _.logError( e ) )
 
 		cl.concord_audioSessions = {}
 		audioBots.push( cl )
@@ -641,7 +642,7 @@ commands.register( {
 						msg.channel.send( queueSong( msg, sess, info ) )
 					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
-			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
+			.catch( e => { if ( e.message ) _.logError( e ); msg.channel.send( e ) } )
 	} })
 
 commands.register( {
@@ -666,7 +667,7 @@ commands.register( {
 						msg.channel.send( queueSong( msg, sess, info ) )
 					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
-			.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
+			.catch( e => { if ( e.message ) _.logError( e ); msg.channel.send( e ) } )
 	} })
 
 commands.register( {
@@ -1179,7 +1180,7 @@ function queueMultiple( data, msg, name )
 				do_rest( info, '' )
 			}).catch( s => do_rest( false, s+'\n' ) )
 	})
-	.catch( e => { if ( e.message ) throw e; msg.channel.send( e ) } )
+	.catch( e => { if ( e.message ) _.logError( e ); msg.channel.send( e ) } )
 }
 
 commands.register( {

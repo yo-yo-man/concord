@@ -53,6 +53,7 @@ client.on( 'disconnected', e => _.logEvent( 'disconnected', e ) )
 client.on( 'guildCreate', e => _.logEvent( 'guildCreate', e ) )
 client.on( 'guildDelete', e => _.logEvent( 'guildDelete', e ) )
 client.on( 'guildUnavailable', e => _.logEvent( 'guildUnavailable', e ) )
+client.on( 'error', e => _.logError( e ) )
 
 
 function sendOwnerMessage( type, msg )
