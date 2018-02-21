@@ -42,6 +42,11 @@ const default_accepted_files =
 		'.*\\.mp4',
 	]
 
+function formatTime( sec )
+{
+	return moment.duration( sec * 1000 ).format( 'mm:ss', { forceLength: true, trim: false } )
+}
+
 const audioBots = []
 function initAudio()
 {
@@ -393,8 +398,8 @@ function exceedsLength( length_seconds )
 	const max_length = settings.get( 'audio', 'max_length', 62 ) * 60
 	if ( length_seconds > max_length )
 	{
-		const thislen = moment.duration( max_length * 1000 ).format( 'hh:mm:ss' )
-		const maxlen = moment.duration( max_length * 1000 ).format( 'hh:mm:ss' )
+		const thislen = formatTime( max_length )
+		const maxlen = formatTime( max_length )
 		return _.fmt( 'song exceeds max length: %s > %s', thislen, maxlen )
 	}
 
@@ -452,7 +457,7 @@ function parseYoutube( args )
 	let songInfo = {}
 	songInfo.url = url
 	songInfo.title = info.title
-	songInfo.length = moment.duration( info.length_seconds * 1000 ).format( 'hh:mm:ss' )
+	songInfo.length = formatTime( info.length_seconds )
 	songInfo.length_seconds = info.length_seconds
 
 	songInfo = Object.assign( parseVars( url ), songInfo )
@@ -493,7 +498,7 @@ function parseGeneric( args )
 	let songInfo = {}
 	songInfo.url = url
 	songInfo.title = info.title
-	songInfo.length = moment.duration( length_seconds * 1000 ).format( 'hh:mm:ss' )
+	songInfo.length = formatTime( length_seconds )
 	songInfo.length_seconds = length_seconds
 
 	songInfo = Object.assign( parseVars( url ), songInfo )
@@ -895,7 +900,7 @@ commands.register( {
 				fields.push( { name: _.fmt( '%s. %s [%s] (%s)', parseInt(i) + 1, song.title, song.length, by_user ), value: song.url } )
 			}
 			
-			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
+			total_len = formatTime( total_len )
 
 			const embed = new Discord.MessageEmbed({
 				title: `${queue.length} songs [${total_len}]`,
@@ -961,7 +966,7 @@ commands.register( {
 				start_player( sess, _.parsetime( args ) )
 			else
 			{
-				let currentSeek = moment.duration( Math.round(sess.time) * 1000 ).format( 'hh:mm:ss' )
+				let currentSeek = formatTime( Math.round(sess.time) )
 				if ( !currentSeek.match( ':' ) )
 					currentSeek = '00:' + currentSeek
 	
@@ -1156,7 +1161,7 @@ function queueMultiple( data, msg, name )
 						fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i) + 1, song.title, song.length ), value: song.url } )
 					}
 	
-					total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
+					total_len = formatTime( total_len )
 
 					
 					const embed = new Discord.MessageEmbed({
@@ -1254,7 +1259,7 @@ commands.register( {
 				fields.push( { name: _.fmt( '%s. %s [%s]', parseInt(i) + 1, song.title, song.length ), value: song.url } )
 			}
 			
-			total_len = moment.duration( total_len * 1000 ).format( 'hh:mm:ss' )
+			total_len = formatTime( total_len )
 
 			const embed = new Discord.MessageEmbed({
 				title: `${data.length} songs [${total_len}]`,
