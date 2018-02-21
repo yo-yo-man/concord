@@ -19,7 +19,7 @@ function updateUserStats()
 {
 	client.users.forEach( ( user ) =>
 		{
-			if ( user.status !== 'offline' )
+			if ( user.presence.status !== 'offline' )
 			{
 				lastSeen[ user.id ] = _.time()
 
@@ -56,7 +56,7 @@ function updateUserStats()
 					})
 			}
 
-			if ( user.status === 'idle' )
+			if ( user.presence.status === 'idle' )
 			{
 				if ( !( user.id in idleTime ) )
 					idleTime[ user.id ] = _.time()
@@ -91,7 +91,8 @@ commands.register( {
 			rows[0] += _.fmt( ' AKA %s', target.nickname )
 		
 		// normal
-		if ( target.status == 'offline' )
+		const targetStatus = target.presence.status || target.user.presence.status
+		if ( targetStatus === 'offline' )
 		{
 			let timestamp = 0
 			if ( target.id in lastSeen )
@@ -171,9 +172,9 @@ commands.register( {
 		}
 		
 		let colour = 0x43b581
-		if ( target.status === 'idle' )
+		if ( targetStatus === 'idle' )
 			colour = 0xfaa61a
-		else if ( target.status === 'offline' )
+		else if ( targetStatus === 'offline' )
 			colour = 0x8a8a8a
 
 		const embed = new Discord.MessageEmbed({
