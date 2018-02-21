@@ -130,7 +130,7 @@ _.logEvent = ( type, e ) =>
 	}
 _.logError = e =>
 	{
-		_.log( 'ERROR:', e )
+		_.log( 'CLIENT ERROR:', e.error.toString() )
 	}
 
 module.exports = _
