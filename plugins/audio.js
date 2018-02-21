@@ -393,8 +393,8 @@ function exceedsLength( length_seconds )
 	const max_length = settings.get( 'audio', 'max_length', 62 ) * 60
 	if ( length_seconds > max_length )
 	{
-		const thislen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
-		const maxlen = moment.duration( max_length * 1000 ).format( 'h:mm:ss' )
+		const thislen = moment.duration( max_length * 1000 ).format( 'hh:mm:ss' )
+		const maxlen = moment.duration( max_length * 1000 ).format( 'hh:mm:ss' )
 		return _.fmt( 'song exceeds max length: %s > %s', thislen, maxlen )
 	}
 
@@ -452,7 +452,7 @@ function parseYoutube( args )
 	let songInfo = {}
 	songInfo.url = url
 	songInfo.title = info.title
-	songInfo.length = moment.duration( info.length_seconds * 1000 ).format( 'h:mm:ss' )
+	songInfo.length = moment.duration( info.length_seconds * 1000 ).format( 'hh:mm:ss' )
 	songInfo.length_seconds = info.length_seconds
 
 	songInfo = Object.assign( parseVars( url ), songInfo )
@@ -493,7 +493,7 @@ function parseGeneric( args )
 	let songInfo = {}
 	songInfo.url = url
 	songInfo.title = info.title
-	songInfo.length = moment.duration( length_seconds * 1000 ).format( 'h:mm:ss' )
+	songInfo.length = moment.duration( length_seconds * 1000 ).format( 'hh:mm:ss' )
 	songInfo.length_seconds = length_seconds
 
 	songInfo = Object.assign( parseVars( url ), songInfo )
@@ -961,7 +961,7 @@ commands.register( {
 				start_player( sess, _.parsetime( args ) )
 			else
 			{
-				let currentSeek = moment.duration( Math.round(sess.time) * 1000 ).format('hh:mm:ss')
+				let currentSeek = moment.duration( Math.round(sess.time) * 1000 ).format( 'hh:mm:ss' )
 				if ( !currentSeek.match( ':' ) )
 					currentSeek = '00:' + currentSeek
 	
