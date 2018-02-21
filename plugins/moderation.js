@@ -13,7 +13,7 @@ function clearMessages( msg, limit, target, after )
 	if ( !msg.channel.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.MANAGE_MESSAGES ) )
 		return msg.channel.send( "invalid 'manage messages' permission in this channel" )
 
-	msg.channel.fetchMessages(
+	msg.channel.messages.fetch(
 			{
 				limit: 10,
 				after: after,
