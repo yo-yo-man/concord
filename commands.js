@@ -61,14 +61,22 @@ commands.findTarget = ( msg, str ) =>
 		
 		if ( msg.guild )
 		{
+			for ( const i in matches )
+			{
+				const match = matches[i]
+				const member = msg.guild.members.find( 'id', match.id )
+				if ( member )
+					matches[i] = member
+			}
+
 			msg.guild.members.forEach( member =>
 				{
 					if ( member.nickname && member.nickname.toLowerCase().includes( str ) )
-						if ( !matches.includes( member.user ) ) matches.push( member.user )
+						if ( !matches.includes( member ) ) matches.push( member )
 					if ( member.user.username.toLowerCase().includes( str ) )
-						if ( !matches.includes( member.user ) ) matches.push( member.user )
+						if ( !matches.includes( member ) ) matches.push( member )
 					if ( str === member.user.username.toLowerCase() + '#' + member.user.discriminator )
-						if ( !matches.includes( member.user ) ) matches.push( member.user )
+						if ( !matches.includes( member ) ) matches.push( member )
 				})
 		}
 		

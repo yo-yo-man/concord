@@ -135,7 +135,7 @@ commands.register( {
 				if ( !guild ) continue
 
 				const gname = guild.name
-				top5.push( seenIn[ target.id ][gid] + gname )
+				top5.push( gname )
 			}
 			rows.push( 'frequently seen in ' + top5.join( ', ' ) )
 		}
@@ -155,7 +155,7 @@ commands.register( {
 				const member = client.users.find( 'id', mid )
 				if ( !member ) continue
 
-				top5.push( seenWith[ target.id ][mid] + _.nick( member, msg.guild ) )
+				top5.push( _.nick( member, msg.guild ) )
 			}
 			rows.push( 'frequently seen with ' + top5.join( ', ' ) )
 		}

@@ -79,11 +79,13 @@ commands.register( {
 			for ( const i in commands.blacklistedUsers )
 			{
 				const u = client.users.find( 'id', commands.blacklistedUsers[i] )
+				if ( !u ) continue
 				list.push( _.fmt( '%s#%s', u.username, u.discriminator ) )
 			}
 			for ( const i in commands.tempBlacklist )
 			{
 				const u = client.users.find( 'id', commands.tempBlacklist[i] )
+				if ( !u ) continue
 				list.push( _.fmt( '%s#%s (temp)', u.username, u.discriminator ) )
 			}
 			return msg.channel.send( _.fmt( 'blacklisted users:\n```%s```', list.join( ', ' ).replace( /((?:[^, ]*, ){3})/g, '$1\n' ) || 'none' ) )
