@@ -241,7 +241,7 @@ function leave_channel( sess )
 
 	const bot = sess.bot
 	delete bot.concord_audioSessions[ sess.guild ]
-	module.exports.numSessions++
+	module.exports.numSessions--
 }
 
 function stop_playback( sess )

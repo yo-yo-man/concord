@@ -197,6 +197,7 @@ commands.register( {
 	{
 		const audio = require( './audio.js' )
 
+		const secsToHrs = 60 * 60
 		const uptime = _.time() - startTime
 		const uptimeDate = moment.duration( uptime * 1000 )
 		const uptimeDateFull = uptimeDate.format( 'hh:mm:ss', { forceLength: true, trim: false } )
@@ -212,12 +213,8 @@ commands.register( {
 		fields.push( { inline: true, name: 'songs since boot', value: audio.songsSinceBoot } )
 
 		fields.push( { inline: true, name: 'commands since boot', value: commands.numSinceBoot } )
-		fields.push( { inline: true, name: 'avg commands per hr', value: uptime / commands.numSinceBoot } )
-
-		let avgSongs = uptime / audio.songsSinceBoot
-		if ( avgSongs === Infinity )
-			avgSongs = 0
-		fields.push( { inline: true, name: 'avg songs per hr', value: avgSongs } )
+		fields.push( { inline: true, name: 'avg commands per hr', value: _.round( commands.numSinceBoot / uptime * secsToHrs, 2 ).toString() } )
+		fields.push( { inline: true, name: 'avg songs per hr', value: _.round( audio.songsSinceBoot / uptime * secsToHrs, 2 ).toString() } )
 
 		fields.push( { inline: true, name: 'channels listening', value: client.channels.findAll( 'type', 'text' ).length } )
 		fields.push( { inline: true, name: 'users seen', value: Object.keys( lastSeen ).length } )
