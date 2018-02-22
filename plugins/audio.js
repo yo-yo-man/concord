@@ -648,7 +648,7 @@ commands.register( {
 						msg.channel.send( queueSong( msg, sess, info ) )
 					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
-			.catch( e => { if ( e.message ) throw e; msg.channel.send( e.message ) } )
+			.catch( e => { if ( e ) msg.channel.send( e ) } )
 	} })
 
 commands.register( {
@@ -673,7 +673,7 @@ commands.register( {
 						msg.channel.send( queueSong( msg, sess, info ) )
 					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
-			.catch( e => { if ( e.message ) throw e; msg.channel.send( e.message ) } )
+			.catch( e => { if ( e ) msg.channel.send( e ) } )
 	} })
 
 commands.register( {
@@ -1188,7 +1188,7 @@ function queueMultiple( data, msg, name )
 				do_rest( info, '' )
 			}).catch( s => do_rest( false, s + '\n' ) )
 	})
-	.catch( e => { if ( e.message ) throw e; msg.channel.send( e.message ) } )
+	.catch( e => { if ( e ) msg.channel.send( e ) } )
 }
 
 commands.register( {
