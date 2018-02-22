@@ -52,7 +52,7 @@ commands.findTarget = ( msg, str ) =>
 	{
 		const matches = []
 
-		const id = /<@(\d+)>/g.exec( str )
+		const id = /<@!?(\d+)>/g.exec( str )
 		if ( id )
 		{
 			match = client.users.find( 'id', id[1] )
