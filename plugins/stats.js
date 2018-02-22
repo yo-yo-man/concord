@@ -206,7 +206,7 @@ commands.register( {
 
 		fields.push( { inline: true, name: 'uptime', value: `${ uptimeDate.humanize() } (${ uptimeDateFull })` } )
 		fields.push( { inline: true, name: 'servers connected', value: client.guilds.size } )
-		fields.push( { inline: true, name: 'ping', value: `${ client.ping }ms` } )
+		fields.push( { inline: true, name: 'ping', value: `${ parseInt( client.ping ) }ms` } )
 		
 		fields.push( { inline: true, name: 'helper bots', value: audio.numHelpers } )
 		fields.push( { inline: true, name: 'active audio sessions', value: audio.numSessions } )
