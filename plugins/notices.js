@@ -146,11 +146,11 @@ function voiceStateUpdate( oldMember, newMember )
 	if ( !oldMember.voiceChannel && newMember.voiceChannel )
 		sendGuildNotice( guild.id, `\`${ _.nick( newMember, guild ) }\` connected to \`${ newMember.voiceChannel.name }\``, newMember )
 
-	if ( oldMember.voiceChannel && newMember.voiceChannel )
-		sendGuildNotice( guild.id, `\`${ _.nick( newMember, guild ) }\` switched to \`${ newMember.voiceChannel.name }\``, newMember )
-
-	if ( oldMember.voiceChannel && !newMember.voiceChannel )
+	else if ( oldMember.voiceChannel && !newMember.voiceChannel )
 		sendGuildNotice( guild.id, `\`${ _.nick( oldMember, guild ) }\` disconnected`, oldMember )
+
+	else if ( oldMember.voiceChannel && newMember.voiceChannel && oldMember.voiceChannel.id !== newMember.voiceChannel.id )
+		sendGuildNotice( guild.id, `\`${ _.nick( newMember, guild ) }\` switched to \`${ newMember.voiceChannel.name }\``, newMember )
 }
 
 module.exports.setup = _cl => {
