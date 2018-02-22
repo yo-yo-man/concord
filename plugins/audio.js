@@ -66,14 +66,18 @@ function initAudio()
 		cl.on( 'ready', e =>
 			{
 				module.exports.numHelpers++
-				_.log( `connected helper as ${ cl.user.tag }`)
+				_.logEvent( cl, 'helper-ready', e )
 			})
 
-		cl.on( 'disconnected', e => _.logEvent( 'helper-disconnected', e ) )
-		cl.on( 'guildCreate', e => _.logEvent( 'helper-guildCreate', e ) )
-		cl.on( 'guildDelete', e => _.logEvent( 'helper-guildDelete', e ) )
-		cl.on( 'guildUnavailable', e => _.logEvent( 'helper-guildUnavailable', e ) )
-		cl.on( 'error', e => _.logError( e ) )
+		cl.on( 'disconnect', e =>
+			{
+				module.exports.numHelpers--
+				_.logEvent( cl, 'helper-disconnect', e )
+			})
+		cl.on( 'guildCreate', e => _.logEvent( cl, 'helper-guildCreate', e ) )
+		cl.on( 'guildDelete', e => _.logEvent( cl, 'helper-guildDelete', e ) )
+		cl.on( 'guildUnavailable', e => _.logEvent( cl, 'helper-guildUnavailable', e ) )
+		cl.on( 'error', e => _.logError( cl, e ) )
 
 		cl.concord_audioSessions = {}
 		audioBots.push( cl )
@@ -1368,3 +1372,4 @@ module.exports.setup = _cl => {
 module.exports.songsSinceBoot = 0
 module.exports.numSessions = 0
 module.exports.numHelpers = 0
+module.exports.audioBots = audioBots

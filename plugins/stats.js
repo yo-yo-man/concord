@@ -208,7 +208,7 @@ commands.register( {
 		fields.push( { inline: true, name: 'servers connected', value: client.guilds.size } )
 		fields.push( { inline: true, name: 'ping', value: `${ parseInt( client.ping ) }ms` } )
 		
-		fields.push( { inline: true, name: 'helper bots', value: audio.numHelpers } )
+		fields.push( { inline: true, name: 'helper bots connected', value: audio.numHelpers } )
 		fields.push( { inline: true, name: 'active audio sessions', value: audio.numSessions } )
 		fields.push( { inline: true, name: 'songs since boot', value: audio.songsSinceBoot } )
 

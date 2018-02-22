@@ -122,14 +122,16 @@ _.shuffleArr = arr => {
 	  
 		return arr
 	}
-_.logEvent = ( type, e ) =>
+_.logEvent = ( cl, type, e ) =>
 	{
-		const message = e.id || e || ''
-		return _.log('<' + type + '> ' + message )
+		let ctx = ''
+		if ( e && e.id )
+			ctx = e.id
+		return _.log( `<${ cl.user.tag }> ${ type } ${ ctx }` )
 	}
-_.logError = e =>
+_.logError = ( cl, e ) =>
 	{
-		_.log( 'CAUGHT CLIENT ERROR' )
+		_.log( `<${ cl.user.tag }> error` )
 		console.error( e.error )
 	}
 

@@ -35,7 +35,7 @@ client.on( 'ready', e =>
 		if ( initialized ) return
 		initialized = true
 		
-		_.log( `logged in as ${ client.user.tag }`)
+		_.logEvent( client, 'ready', e )
 		require('./permissions.js').init( client )
 		require('./commands.js').init( client )
 		require('./plugins.js').load( client )
@@ -49,11 +49,11 @@ client.on( 'ready', e =>
 		}
 	})
 
-client.on( 'disconnected', e => _.logEvent( 'disconnected', e ) )
-client.on( 'guildCreate', e => _.logEvent( 'guildCreate', e ) )
-client.on( 'guildDelete', e => _.logEvent( 'guildDelete', e ) )
-client.on( 'guildUnavailable', e => _.logEvent( 'guildUnavailable', e ) )
-client.on( 'error', e => _.logError( e ) )
+client.on( 'disconnect', e => _.logEvent( client, 'disconnect', e ) )
+client.on( 'guildCreate', e => _.logEvent( client, 'guildCreate', e ) )
+client.on( 'guildDelete', e => _.logEvent( client, 'guildDelete', e ) )
+client.on( 'guildUnavailable', e => _.logEvent( client, 'guildUnavailable', e ) )
+client.on( 'error', e => _.logError( client, e ) )
 
 
 function sendOwnerMessage( type, msg )
