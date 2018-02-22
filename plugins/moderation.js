@@ -6,28 +6,47 @@ const permissions = require( '../permissions.js' )
 const settings = require( '../settings.js' )
 const _ = require( '../helper.js' )
 
-function clearMessages( msg, limit, target, after )
+function clearMessages( args )
 {
-	if ( isNaN( limit ) )
-		return msg.channel.send( _.fmt( '`%s` is not a number', limit ) )
-	
+	let limit = parseInt( args.limit )
+	const msg = args.msg
+	const after = args.after
+	const target = args.target
+	const regex = args.regex
+
 	if ( !msg.channel.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.MANAGE_MESSAGES ) )
 		return msg.channel.send( "invalid 'manage messages' permission in this channel" )
 
+	const maxLimit = 100
+	if ( !limit )
+		limit = maxLimit
+	if ( isNaN( limit ) )
+		return msg.channel.send( `\`${ limit }\` is not a number` )
+	if ( limit > maxLimit )
+		return msg.channel.send( `\`${ limit }\` exceeds maximum deletions per command of \`${ maxLimit }\`` )
+
+	let fetchLimit = limit
+	if ( regex || target )
+		fetchLimit = maxLimit
+
 	msg.channel.messages.fetch(
 			{
-				limit: limit,
+				limit: fetchLimit,
 				after: after,
 			})
 		.then( messages =>
 			{
+				
 				const toDelete = []
 				messages.forEach( m =>
 					{
-						if ( target && target.id !== m.author.id )
+						if ( toDelete.length >= limit )
 							return
-						
-						if ( toDelete.length > limit )
+
+						if ( target && m.author.id !== target.id )
+							return
+
+						if ( regex && !m.content.match( regex ) )
 							return
 
 						toDelete.push( m )
@@ -39,6 +58,8 @@ function clearMessages( msg, limit, target, after )
 							let suffix = ''
 							if ( target )
 								suffix = ` by \`${ _.nick( target, msg.guild ) }\``
+							if ( regex )
+								suffix += ` matching \`${ regex.toString() }\``
 							msg.channel.send( `\`${ _.nick( msg.member, msg.guild ) }\` cleared \`${ deleted.size }\` messages${ suffix }` )
 						})
 					.catch( e => msg.channel.send( _.fmt( 'error deleting messages: `%s`', e.message ) ) )
@@ -49,14 +70,26 @@ function clearMessages( msg, limit, target, after )
 commands.register( {
 	category: 'moderation',
 	aliases: [ 'clear' ],
-	help: 'clear messages',
+	help: 'clear a number of messages',
 	flags: [ 'admin_only', 'no_pm' ],
-	args: 'limit [user]',
+	args: 'limit',
+	callback: ( client, msg, args ) =>
+	{
+		const limit = parseInt( args ) + 1
+		clearMessages( { msg: msg, limit: limit } )
+	} })
+
+commands.register( {
+	category: 'moderation',
+	aliases: [ 'clearuser' ],
+	help: 'clear messages by a specific user',
+	flags: [ 'admin_only', 'no_pm' ],
+	args: 'user [limit=100]',
 	callback: ( client, msg, args ) =>
 	{
 		const split = args.split( ' ' )
-		const limit = split[0]
-		let target = split[1] || false
+		let target = split[0]
+		const limit = split[1] || false
 
 		if ( target )
 		{
@@ -65,7 +98,7 @@ commands.register( {
 				return
 		}
 		
-		clearMessages( msg, limit, target, null )
+		clearMessages( { msg: msg, limit: limit, target: target } )
 	} })
 
 commands.register( {
@@ -78,12 +111,40 @@ commands.register( {
 	{
 		const split = args.split( ' ' )
 		const after = split[0]
-		const limit = split[1] || 99
+		const limit = split[1] || false
 		
 		if ( isNaN( after ) )
 			return msg.channel.send( _.fmt( '`%s` is not a numeric message ID', after ) )
 		
-		clearMessages( msg, limit, false, after )
+		clearMessages( { msg: msg, limit: limit, after: after } )
+	} })
+
+commands.register( {
+	category: 'moderation',
+	aliases: [ 'clearmatches' ],
+	help: 'clear messages that match a regex string',
+	flags: [ 'admin_only', 'no_pm' ],
+	args: 'regex [limit=100]',
+	callback: ( client, msg, args ) =>
+	{
+		const split = args.split( ' ' )
+		const str = split[0]
+		const limit = split[1] || false
+		
+		let regex = false
+		try
+		{
+			const parts = str.match( /^\/(.*?)\/([gimy]*)$/ )
+			if ( parts )
+				regex = new RegExp( parts[1], parts[2] )
+			else
+				regex = new RegExp( str )
+		} catch(e){}
+
+		if ( !regex )
+			return msg.channel.send( `\`${ str }\` is not valid regex` )
+		
+		clearMessages( { msg: msg, limit: limit, regex: regex } )
 	} })
 
 const tempBlacklists = {}
