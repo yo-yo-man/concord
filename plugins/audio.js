@@ -65,6 +65,7 @@ function initAudio()
 
 		cl.on( 'ready', e =>
 			{
+				module.exports.numHelpers++
 				_.log( `connected helper as ${ cl.user.tag }`)
 			})
 
@@ -202,6 +203,7 @@ function join_channel( msg )
 									chan.join().then( conn => resolve( create_session( bot, chan, conn ) ) )
 										.catch( e => reject( `error joining channel: \`${ e.message }\`` ) )
 									success = true
+									module.exports.numSessions++
 								}
 							})
 
@@ -239,6 +241,7 @@ function leave_channel( sess )
 
 	const bot = sess.bot
 	delete bot.concord_audioSessions[ sess.guild ]
+	module.exports.numSessions++
 }
 
 function stop_playback( sess )
@@ -1363,3 +1366,5 @@ module.exports.setup = _cl => {
 }
 
 module.exports.songsSinceBoot = 0
+module.exports.numSessions = 0
+module.exports.numHelpers = 0

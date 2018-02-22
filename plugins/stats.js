@@ -164,24 +164,20 @@ commands.register( {
 			if ( top5.length > 0 )
 				rows.push( 'frequently seen with ' + top5.join( ', ' ) )
 		}
-		
-		
-		const fields = []
-		for ( let i = 0; i < rows.length; i++ )
-		{
-			const f = {}
-			f.name = rows[i]
-			f.value = rows[i + 1] || '---'
-			f.inline = true
-			fields.push( f )
-			i++
-		}
+
 		
 		let colour = 0x43b581
 		if ( targetStatus === 'idle' )
 			colour = 0xfaa61a
 		else if ( targetStatus === 'offline' )
 			colour = 0x8a8a8a
+
+		const fields = rows.reduce( ( acc, r, i ) =>
+			{
+				if ( i % 2 === 0 )
+					acc.push( { name: r, value: rows[i+1] || '---', inline: true } )
+				return acc
+			}, [] )
 
 		const embed = new Discord.MessageEmbed({
 							color: colour,
@@ -199,20 +195,39 @@ commands.register( {
 	help: 'bot uptime and statistics',
 	callback: ( client, msg, args ) =>
 	{
-		const uptime = moment.duration( (_.time() - startTime) * 1000 )
+		const audio = require( './audio.js' )
+
+		const uptime = _.time() - startTime
+		const uptimeDate = moment.duration( uptime * 1000 )
+		const uptimeDateFull = uptimeDate.format( 'hh:mm:ss', { forceLength: true, trim: false } )
 		
-		let stats = _.fmt( 'uptime: %s (%s)\n', uptime.humanize(), uptime.format( 'h:mm:ss' ) )
-		stats += _.fmt( 'commands since boot: %s\n', commands.numSinceBoot )
-		stats += _.fmt( 'servers connected: %s\n', client.guilds.size )
-		stats += _.fmt( 'users seen / online: %s / %s\n', Object.keys( lastSeen ).length, client.users.size )
+		const fields = []
+
+		fields.push( { inline: true, name: 'uptime', value: `${ uptimeDate.humanize() } (${ uptimeDateFull })` } )
+		fields.push( { inline: true, name: 'servers connected', value: client.guilds.size } )
+		fields.push( { inline: true, name: 'ping', value: `${ client.ping }ms` } )
 		
-		try
-		{
-			const audio = require( './audio.js' )
-			stats += _.fmt( 'songs played since boot: %s\n', audio.songsSinceBoot )
-		} catch (e) {}
+		fields.push( { inline: true, name: 'helper bots', value: audio.numHelpers } )
+		fields.push( { inline: true, name: 'active audio sessions', value: audio.numSessions } )
+		fields.push( { inline: true, name: 'songs since boot', value: audio.songsSinceBoot } )
+
+		fields.push( { inline: true, name: 'commands since boot', value: commands.numSinceBoot } )
+		fields.push( { inline: true, name: 'avg commands per hr', value: uptime / commands.numSinceBoot } )
+
+		let avgSongs = uptime / audio.songsSinceBoot
+		if ( avgSongs === Infinity )
+			avgSongs = 0
+		fields.push( { inline: true, name: 'avg songs per hr', value: avgSongs } )
+
+		fields.push( { inline: true, name: 'channels listening', value: client.channels.findAll( 'type', 'text' ).length } )
+		fields.push( { inline: true, name: 'users seen', value: Object.keys( lastSeen ).length } )
+		fields.push( { inline: true, name: 'users online', value: client.users.size } )
+
+		const embed = new Discord.MessageEmbed({
+							fields: fields,
+						})
 		
-		msg.channel.send( '```' + stats + '```' )
+		msg.channel.send( '', embed )
 	} })
 
 module.exports.setup = _cl => {
