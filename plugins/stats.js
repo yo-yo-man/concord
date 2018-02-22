@@ -216,7 +216,10 @@ commands.register( {
 		fields.push( { inline: true, name: 'avg commands per hr', value: _.round( commands.numSinceBoot / uptime * secsToHrs, 2 ).toString() } )
 		fields.push( { inline: true, name: 'avg songs per hr', value: _.round( audio.songsSinceBoot / uptime * secsToHrs, 2 ).toString() } )
 
-		fields.push( { inline: true, name: 'channels listening', value: client.channels.findAll( 'type', 'text' ).length } )
+		const channels = client.channels
+			.findAll( 'type', 'text' )
+			.filter( c => c.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.VIEW_CHANNEL ) )
+		fields.push( { inline: true, name: 'channels listening', value: channels.length } )
 		fields.push( { inline: true, name: 'users seen', value: Object.keys( lastSeen ).length } )
 		fields.push( { inline: true, name: 'users online', value: client.users.size } )
 
