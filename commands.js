@@ -51,35 +51,51 @@ commands.generateHelp = cmd =>
 commands.findTarget = ( msg, str ) =>
 	{
 		const matches = []
-		str = str.toLowerCase()
 
-		client.users.forEach( user =>
-			{
-				if ( user.username.toLowerCase().includes( str ) )
-					if ( !matches.includes( user ) ) matches.push( user )
-				if ( str === user.username.toLowerCase() + '#' + user.discriminator )
-					if ( !matches.includes( user ) ) matches.push( user )
-			})
-		
-		if ( msg.guild )
+		const id = /<@(\d+)>/g.exec( str )
+		if ( id )
 		{
-			for ( const i in matches )
+			match = client.users.find( 'id', id[1] )
+			if ( msg.guild )
 			{
-				const match = matches[i]
-				const member = msg.guild.members.find( 'id', match.id )
+				const member = msg.guild.members.find( 'id', id[1] )
 				if ( member )
-					matches[i] = member
+					match = member
 			}
+			matches.push( match )		
+		}
+		else
+		{
+			str = str.toLowerCase()
 
-			msg.guild.members.forEach( member =>
+			client.users.forEach( user =>
 				{
-					if ( member.nickname && member.nickname.toLowerCase().includes( str ) )
-						if ( !matches.includes( member ) ) matches.push( member )
-					if ( member.user.username.toLowerCase().includes( str ) )
-						if ( !matches.includes( member ) ) matches.push( member )
-					if ( str === member.user.username.toLowerCase() + '#' + member.user.discriminator )
-						if ( !matches.includes( member ) ) matches.push( member )
+					if ( user.username.toLowerCase().includes( str ) )
+						if ( !matches.includes( user ) ) matches.push( user )
+					if ( str === user.username.toLowerCase() + '#' + user.discriminator )
+						if ( !matches.includes( user ) ) matches.push( user )
 				})
+			
+			if ( msg.guild )
+			{
+				for ( const i in matches )
+				{
+					const match = matches[i]
+					const member = msg.guild.members.find( 'id', match.id )
+					if ( member )
+						matches[i] = member
+				}
+
+				msg.guild.members.forEach( member =>
+					{
+						if ( member.nickname && member.nickname.toLowerCase().includes( str ) )
+							if ( !matches.includes( member ) ) matches.push( member )
+						if ( member.user.username.toLowerCase().includes( str ) )
+							if ( !matches.includes( member ) ) matches.push( member )
+						if ( str === member.user.username.toLowerCase() + '#' + member.user.discriminator )
+							if ( !matches.includes( member ) ) matches.push( member )
+					})
+			}
 		}
 		
 		if ( matches.length === 0 )
@@ -92,11 +108,16 @@ commands.findTarget = ( msg, str ) =>
 		if ( matches.length > 1 )
 		{
 			let matchesString = ''
-			for ( const match of matches )
+			for ( const i in matches )
 			{
+				let match = matches[i]
 				let nick = ''
 				if ( match.user )
-					nick = '(' + match.nickname + ')'
+				{
+					if ( match.nickname )
+						nick = '(' + match.nickname + ')'
+					match = match.user
+				}
 				matchesString += _.fmt( '%s#%s %s\n', match.username, match.discriminator, nick )
 			}
 			const reply = _.fmt( 'found %s matches for `%s`:\n```\n%s```', matches.length, str, matchesString )

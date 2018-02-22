@@ -172,6 +172,7 @@ commands.register( {
 			const f = {}
 			f.name = rows[i]
 			f.value = rows[i + 1] || '---'
+			f.inline = true
 			fields.push( f )
 			i++
 		}
