@@ -1,3 +1,5 @@
+let client = null
+
 const commands = require( '../commands.js' )
 const permissions = require( '../permissions.js' )
 const settings = require( '../settings.js' )
@@ -104,7 +106,6 @@ commands.register( {
 		msg.channel.send( _.fmt( '`%s`', answers[ _.rand( 0, max ) ] ) )
 	} })
 
-let client = null
 module.exports.setup = _cl => {
     client = _cl
     _.log( 'loaded plugin: fun' )

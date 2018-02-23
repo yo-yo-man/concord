@@ -28,7 +28,7 @@ else
 			_.log( e )
 		})
 
-
+		
 let initialized = false
 client.on( 'ready', e =>
 	{
@@ -47,6 +47,10 @@ client.on( 'ready', e =>
 			sendOwnerMessage( 'CRASH LOG', log )
 			fs.unlinkSync( './crash.log' )
 		}
+
+		const activity = settings.get( 'botactivity', client.user.id, false )
+		if ( activity )
+			client.user.setActivity( activity.message, { type: activity.type } )
 	})
 
 client.on( 'disconnect', e => _.logEvent( client, 'disconnect', e ) )

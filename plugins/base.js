@@ -1,3 +1,5 @@
+let client = null
+
 const commands = require( '../commands.js' )
 const permissions = require( '../permissions.js' )
 const settings = require( '../settings.js' )
@@ -66,7 +68,7 @@ commands.register( {
 	} })
 
 commands.register( {
-	category: 'blacklist',
+	category: 'base',
 	aliases: [ 'blacklist' ],
 	help: 'blacklist a user from bot commands',
 	flags: [ 'owner_only' ],
@@ -135,6 +137,54 @@ commands.register( {
 
 commands.register( {
 	category: 'base',
+	aliases: [ 'activity' ],
+	help: 'change bot activity',
+	flags: [ 'owner_only' ],
+	args: 'target message',
+	callback: ( client, msg, args ) =>
+	{
+		const split = _.sanesplit( args, ' ', 1 )
+		let target = split[0]
+		let message = split[1]
+
+		target = commands.findTarget( msg, target )
+		if ( !target )
+			return
+		
+		let bot = false
+		const botList = require('./audio.js').audioBots
+		for ( const c of botList )
+			if ( c.user.id === target.id )
+			{
+				bot = c
+				break
+			}
+		
+		if ( !bot )
+			return msg.channel.send( 'Target is not a bot under our control' )
+		
+		const match = message.toLowerCase().match( /(playing|listening to) (.*)/ )
+		if ( !match )
+			return msg.channel.send( 'Invalid activity type (must be "playing" or "listening to")' )
+		
+		let typeNum = ''
+		if ( match[1] === 'playing' )
+			typeNum = 0
+		else if ( match[1] === 'listening to' )
+			typeNum = 2
+
+		message = match[2]
+
+		if ( !message )
+			return msg.channel.send( 'No message could be parsed from input string' )
+
+		bot.user.setActivity( message, { type: typeNum } )
+		settings.set( 'botactivity', target.id, { message: message, type: typeNum } )
+		settings.save( 'botactivity' )
+	} })
+
+commands.register( {
+	category: 'base',
 	aliases: [ 'help' ],
 	help: 'display help menu, optionally for a specific command',
 	args: '[command]',
@@ -197,9 +247,7 @@ commands.register( {
 		}
 	} })
 
-let client = null
-module.exports.setup = _cl =>
-	{
-		client = _cl
-		_.log( 'loaded plugin: base' )
-	}
+module.exports.setup = _cl => {
+	client = _cl
+	_.log( 'loaded plugin: base' )
+}

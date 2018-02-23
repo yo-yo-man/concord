@@ -89,14 +89,14 @@ commands.register( {
 	{
 		const split = args.split( ' ' )
 		let target = split[0]
-		const limit = split[1] || false
+		let limit = split[1] || false
 
-		if ( target )
-		{
-			target = commands.findTarget( msg, target )
-			if ( !target )
-				return
-		}
+		target = commands.findTarget( msg, target )
+		if ( !target )
+			return
+
+		if ( target.id === msg.author.id )
+			limit++
 		
 		clearMessages( { msg: msg, limit: limit, target: target } )
 	} })
