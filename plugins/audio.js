@@ -173,6 +173,8 @@ function create_session( bot, channel, conn )
 	bot.concord_audioSessions[ gid ].guild = gid
 	bot.concord_audioSessions[ gid ].bot = bot
 
+	bot.concord_audioSessions[ gid ].lastActivity = _.time()
+
 	return bot.concord_audioSessions[ gid ]
 }
 
@@ -193,7 +195,10 @@ function join_channel( msg )
 			{
 				const sess = findSession( msg )
 				if ( sess )
+				{
+					sess.lastActivity = _.time()
 					return resolve( sess )
+				}
 				else if ( !sess && !bot.concord_audioSessions[ channel.guild.id ] )
 				{
 					if ( !channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.CONNECT ) ||
