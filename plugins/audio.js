@@ -289,6 +289,7 @@ function start_player( sess, forceseek )
 
 	if ( sess.dispatch )
 	{
+		stop_playback( sess )
 		sess.dispatch.destroy()
 		delete sess.dispatch
 	}
