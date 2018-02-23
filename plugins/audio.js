@@ -338,18 +338,18 @@ function start_player( sess, forceseek )
 
 	let filter = `volume=${volume}`
 	if ( settings.get( 'audio', 'normalize', true ) )
-	{
-		const I = settings.get( 'audio', 'norm_target', -24 )
-		const TP = settings.get( 'audio', 'norm_maxpeak', -2 )
-		const LRA = settings.get( 'audio', 'norm_range', 7 )
+	{		
+		let threshold = settings.get( 'audio', 'comp_threshold', 0.04 ) // 10 ^ ( -dB / 20 )
+		const ratio = settings.get( 'audio', 'comp_ratio', 20 )
+		const attack = settings.get( 'audio', 'comp_attack', 50 )
+		const release = settings.get( 'audio', 'comp_release', 300 )
 
-		let offset = 10 * Math.log( volume ) / Math.log( 2 )
-		if ( offset < -99 || offset === -Infinity )
-			offset = -99
-		if ( offset > 99 || offset === Infinity )
-			offset = 99
-
-		filter = `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:offset=${offset}`
+		let makeup = 1
+		if ( volume < 1 )
+			threshold *= volume
+		else
+			makeup = volume
+		filter = `acompressor=threshold=${threshold}:ratio=${ratio}:attack=${attack}:release=${release}:makeup=${makeup}`
 	}
 
 	params.push( '-i', song.streamurl )
