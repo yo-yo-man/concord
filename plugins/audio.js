@@ -606,7 +606,7 @@ function queryRemote( msg, url )
 	return promise
 }
 
-function queueSong( msg, sess, info )
+function queueSong( msg, sess, info, interrupt )
 {
 	info.channel = msg.channel
 	info.queuedby = msg.member
@@ -615,9 +615,16 @@ function queueSong( msg, sess, info )
 		return '`invalid audio session`'
 	
 	const queue_empty = sess.queue.length === 0
-	sess.queue.push( info )
+
+	if ( interrupt )
+	{
+		sess.queue[0].seek = sess.time
+		sess.queue.unshift( info )
+	}
+	else
+		sess.queue.push( info )
 	
-	if ( queue_empty )
+	if ( queue_empty || interrupt )
 	{
 		sess.hideNP = true
 		start_player( sess )
@@ -671,7 +678,7 @@ commands.register( {
 commands.register( {
 	category: 'audio',
 	aliases: [ 'immediateplay', 'ip', 'fp', 'forceplay' ],
-	help: 'immediately play a url (skip current song)',
+	help: 'immediately play a url (interrupt current song)',
 	flags: [ 'admin_only', 'no_pm' ],
 	args: 'url',
 	callback: ( client, msg, args ) =>
@@ -682,12 +689,9 @@ commands.register( {
 		
 		join_channel( msg ).then( sess =>
 			{
-				if ( sess.playing )
-					sess.queue = []
-
 				queryRemote( msg, args ).then( info =>
 					{
-						msg.channel.send( queueSong( msg, sess, info ) )
+						msg.channel.send( queueSong( msg, sess, info, true ) )
 					}).catch( err => msg.channel.send( '```' + err + '```' ) )
 			})
 			.catch( e => { if ( e ) msg.channel.send( e ) } )
