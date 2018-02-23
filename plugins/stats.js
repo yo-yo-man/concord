@@ -47,6 +47,7 @@ function updateUserStats()
 								vc.members.forEach( other =>
 									{
 										if ( other.user.id === user.id ) return
+										if ( other.user.presence.status === 'offline' ) return
 										if ( !seenWith[ user.id ][ other.user.id ] )
 											seenWith[ user.id ][ other.user.id ] = 0
 										

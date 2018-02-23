@@ -116,6 +116,7 @@ commands.register( {
 		const names = []
 		channel.members.forEach( member =>
 			{
+				if ( member.user.presence.status === 'offline' ) return
 				names.push( '`' + _.nick( member, channel.guild ) + '`' )
 				notices.suppressNotice( channel.guild.id, 'voiceStateUpdate', member.id )
 				member.setVoiceChannel( target )
