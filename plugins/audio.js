@@ -53,6 +53,7 @@ const audioBots = []
 function initAudio()
 {
 	client.concord_audioSessions = {}
+	client.on( 'voiceStateUpdate', ( o, n ) => audioBotMoved( client, o, n ) )
 	audioBots.push( client )
 
 	const tokens = settings.get( 'config', 'helper_tokens', [] )
@@ -83,9 +84,24 @@ function initAudio()
 		cl.on( 'guildUnavailable', e => _.logEvent( cl, 'helper-guildUnavailable', e ) )
 		cl.on( 'error', e => _.logError( cl, e ) )
 
+		cl.on( 'voiceStateUpdate', ( o, n ) => audioBotMoved( cl, o, n ) )
+
 		cl.concord_audioSessions = {}
 		audioBots.push( cl )
 	}
+}
+
+function audioBotMoved( bot, oldMember, newMember )
+{
+	if ( newMember.user.id !== bot.user.id ) return
+
+	const oldChannel = oldMember.voiceChannel
+	if ( !oldChannel ) return
+	
+	const sess = bot.concord_audioSessions[ oldChannel.guild.id ]
+	if ( !sess ) return
+
+	leave_channel( sess )
 }
 
 let songTracking = {}
