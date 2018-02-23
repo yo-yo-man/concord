@@ -834,6 +834,23 @@ commands.register( {
 			skip_playback( sess )
 	} })
 
+	commands.register( {
+		category: 'audio',
+		aliases: [ 'restart', 'fixlag' ],
+		help: 'restarts the audio stream in case of lag',
+		flags: [ 'admin_only', 'no_pm' ],
+		callback: ( client, msg, args ) =>
+		{
+			const sess = findSession( msg )			
+			if ( sess )
+			{
+				if ( !sess.playing ) return
+				start_player( sess, sess.time )
+			}
+			else
+				msg.channel.send( 'no audio session found for your channel' )
+		} })
+
 commands.register( {
 	category: 'audio',
 	aliases: [ 'volume', 'v' ],
