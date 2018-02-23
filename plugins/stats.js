@@ -191,7 +191,7 @@ commands.register( {
 let startTime = 0
 commands.register( {
 	category: 'stats',
-	aliases: [ 'uptime', 'stats' ],
+	aliases: [ 'uptime', 'stats', 'ping' ],
 	help: 'bot uptime and statistics',
 	callback: ( client, msg, args ) =>
 	{
