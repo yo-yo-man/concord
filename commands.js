@@ -198,7 +198,7 @@ function onMessage( msg )
 	content = content.substring( prefix.length )
 	const split = content.split( / (.+)?/ )
 	
-	const command = split[0]
+	const command = split[0].toLowerCase()
 	let args = split[1]
 	
 	if ( args )
