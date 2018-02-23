@@ -97,6 +97,19 @@ function audioBotMoved( bot, oldMember, newMember )
 
 	const oldChannel = oldMember.voiceChannel
 	if ( !oldChannel ) return
+
+	const newChannel = newMember.voiceChannel
+	if ( !newChannel ) return
+
+	let shouldLeave = false
+	newChannel.members.forEach( m =>
+		{
+			if ( m.user.bot && m.user.id !== bot.user.id )
+				shouldLeave = true
+		})
+
+	if ( !shouldLeave )
+		return
 	
 	const sess = bot.concord_audioSessions[ oldChannel.guild.id ]
 	if ( !sess ) return
