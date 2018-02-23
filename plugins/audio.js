@@ -465,7 +465,7 @@ function parseYoutube( args )
 	const info = args.info
 
 	if ( err )
-		return queryErr( err )
+		return reject( queryErr( err ) )
 
 	const len_err = exceedsLength( info.length_seconds )
 	if ( len_err !== false )
@@ -504,7 +504,7 @@ function parseGeneric( args )
 	const info = args.info
 
 	if ( err )
-		return queryErr( err )
+		return reject( queryErr( err ) )
 
 	const length_seconds = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + +time )
 
