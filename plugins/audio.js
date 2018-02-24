@@ -104,6 +104,7 @@ function audioBotMoved( bot, oldMember, newMember )
 	let shouldLeave = false
 	newChannel.members.forEach( m =>
 		{
+			if ( m.user.presence.status === 'offline' ) return
 			if ( m.user.bot && m.user.id !== bot.user.id )
 				shouldLeave = true
 		})
@@ -177,7 +178,7 @@ function checkSessionActivity()
 				continue
 			}
 
-			const numVoice = sess.conn.channel.members.size
+			const numVoice = sess.conn.channel.members.filter( m => m.user.presence.status !== 'offline' ).size
 			if ( numVoice === 1 )
 			{
 				leave_channel( sess )
