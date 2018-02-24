@@ -21,12 +21,6 @@ if ( !token )
 	console.log( '\nBot has not been configured.\nPlease edit settings/config.json and restart.' )
 	process.exit( 8 )
 }
-else
-	client.login( token )
-		.catch( e =>
-		{
-			_.log( e )
-		})
 
 		
 let initialized = false
@@ -58,6 +52,12 @@ client.on( 'guildCreate', e => _.logEvent( client, 'guildCreate', e ) )
 client.on( 'guildDelete', e => _.logEvent( client, 'guildDelete', e ) )
 client.on( 'guildUnavailable', e => _.logEvent( client, 'guildUnavailable', e ) )
 client.on( 'error', e => _.logError( client, e ) )
+
+client.login( token )
+	.catch( e =>
+	{
+		_.log( e )
+	})
 
 
 function sendOwnerMessage( type, msg )

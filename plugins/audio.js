@@ -63,10 +63,10 @@ function initAudio()
 		const tok = tokens[i]
 
 		const cl = new Discord.Client()
-		cl.login( tok )
 
 		cl.on( 'ready', e =>
 			{
+				audioBots.push( cl )
 				module.exports.numHelpers++
 				_.logEvent( cl, 'helper-ready', e )
 
@@ -88,7 +88,15 @@ function initAudio()
 		cl.on( 'voiceStateUpdate', ( o, n ) => audioBotMoved( cl, o, n ) )
 
 		cl.concord_audioSessions = {}
-		audioBots.push( cl )
+
+		setTimeout( ( cl ) =>
+			{
+				cl.login( tok )
+					.catch( e =>
+					{
+						_.log( e )
+					})
+			}, 3000 * (i+1), cl )
 	}
 }
 
