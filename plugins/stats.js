@@ -213,9 +213,17 @@ commands.register( {
 		fields.push( { inline: true, name: 'active audio sessions', value: audio.numSessions } )
 		fields.push( { inline: true, name: 'songs since boot', value: audio.songsSinceBoot } )
 
+		let commandsPerHr = 'unavailable'
+		let songsPerHr = 'unavailable'
+		if ( uptime >= 3600 )
+		{
+			commandsPerHr = _.round( commands.numSinceBoot / uptime * secsToHrs, 2 ).toString()
+			songsPerHr = _.round( audio.songsSinceBoot / uptime * secsToHrs, 2 ).toString()
+		}
+
 		fields.push( { inline: true, name: 'commands since boot', value: commands.numSinceBoot } )
-		fields.push( { inline: true, name: 'avg commands per hr', value: _.round( commands.numSinceBoot / uptime * secsToHrs, 2 ).toString() } )
-		fields.push( { inline: true, name: 'avg songs per hr', value: _.round( audio.songsSinceBoot / uptime * secsToHrs, 2 ).toString() } )
+		fields.push( { inline: true, name: 'avg commands per hr', value: commandsPerHr } )
+		fields.push( { inline: true, name: 'avg songs per hr', value: songsPerHr } )
 
 		const channels = client.channels
 			.findAll( 'type', 'text' )
