@@ -25,11 +25,17 @@ if ( !token )
 		
 let initialized = false
 client.on( 'ready', e =>
-	{
+	{		
+		_.logEvent( client, 'ready', e )
+
+		const activity = settings.get( 'botactivity', client.user.id, false )
+		if ( activity )
+			client.user.setActivity( activity.message, { type: activity.type } )
+
+			
 		if ( initialized ) return
 		initialized = true
-		
-		_.logEvent( client, 'ready', e )
+
 		require('./permissions.js').init( client )
 		require('./commands.js').init( client )
 		require('./plugins.js').load( client )
@@ -41,10 +47,6 @@ client.on( 'ready', e =>
 			sendOwnerMessage( 'CRASH LOG', log )
 			fs.unlinkSync( './crash.log' )
 		}
-
-		const activity = settings.get( 'botactivity', client.user.id, false )
-		if ( activity )
-			client.user.setActivity( activity.message, { type: activity.type } )
 	})
 
 client.on( 'disconnect', e => _.logEvent( client, 'disconnect', e ) )
