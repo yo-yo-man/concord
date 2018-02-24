@@ -459,13 +459,13 @@ function parseVars( url )
 
 	songInfo.seek = false
 	if ( url.indexOf( 't=' ) !== -1 )
-		songInfo.seek = _.parsetime( _.matches( /t=(.*)/g, url )[0] )
+		songInfo.seek = _.parsetime( _.matches( /t=(.+?)(?:&|$)/g, url )[0] )
 	if ( url.indexOf( 'start=' ) !== -1 )
-		songInfo.seek = _.parsetime( _.matches( /start=(.*)/g, url )[0] )
+		songInfo.seek = _.parsetime( _.matches( /start=(.+?)(?:&|$)/g, url )[0] )
 
 	songInfo.endAt = false
 	if ( url.indexOf( 'end=' ) !== -1 )
-		songInfo.endAt = _.parsetime( _.matches( /end=(.*)/g, url )[0] )
+		songInfo.endAt = _.parsetime( _.matches( /end=(.+?)(?:&|$)/g, url )[0] )
 
 	return songInfo
 }
@@ -497,17 +497,27 @@ function parseYoutube( args )
 	if ( err )
 		return reject( queryErr( err ) )
 
-	const len_err = exceedsLength( info.length_seconds )
-	if ( len_err !== false )
-		return reject( len_err )
-
 	let songInfo = {}
 	songInfo.url = url
 	songInfo.title = info.title
-	songInfo.length = formatTime( info.length_seconds )
-	songInfo.length_seconds = info.length_seconds
+
+	let len_sec = info.length_seconds
 
 	songInfo = Object.assign( parseVars( url ), songInfo )
+	if ( songInfo.endAt )
+		len_sec -= len_sec - songInfo.endAt
+	if ( songInfo.seek )
+		len_sec -= songInfo.seek
+	
+	if ( songInfo.seek && songInfo.endAt && songInfo.seek >= songInfo.endAt )
+		return reject( 'cannot play song: start time is beyond end time' )
+
+	const len_err = exceedsLength( len_sec )
+	if ( len_err !== false )
+		return reject( len_err )
+
+	songInfo.length = formatTime( len_sec )
+	songInfo.length_seconds = len_sec
 
 	songInfo.streamurl = info.url
 	if ( info.formats )
@@ -536,19 +546,27 @@ function parseGeneric( args )
 	if ( err )
 		return reject( queryErr( err ) )
 
-	const length_seconds = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + +time )
-
-	const len_err = exceedsLength( length_seconds )
-	if ( len_err !== false )
-		return reject( len_err )
-
 	let songInfo = {}
 	songInfo.url = url
 	songInfo.title = info.title
-	songInfo.length = formatTime( length_seconds )
-	songInfo.length_seconds = length_seconds
+
+	let len_sec = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + +time )
 
 	songInfo = Object.assign( parseVars( url ), songInfo )
+	if ( songInfo.endAt )
+		len_sec -= len_sec - songInfo.endAt
+	if ( songInfo.seek )
+		len_sec -= songInfo.seek
+
+	if ( songInfo.seek && songInfo.endAt && songInfo.seek >= songInfo.endAt )
+		return reject( 'cannot play song: start time is beyond end time' )
+
+	const len_err = exceedsLength( len_sec )
+	if ( len_err !== false )
+		return reject( len_err )
+
+	songInfo.length = formatTime( len_sec )
+	songInfo.length_seconds = len_sec
 
 	songInfo.streamurl = info.url
 	if ( info.formats )
