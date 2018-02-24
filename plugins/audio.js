@@ -359,7 +359,19 @@ function start_player( sess, forceseek )
 		sess.starttime = seek
 		params.push( '-ss', seek )
 	}
-	
+
+	if ( song.volOverride )
+	{
+		if ( !sess.lastVolume )
+			sess.lastVolume = sess.volume
+		sess.volume = song.volOverride
+	}
+	else if ( sess.lastVolume )
+	{
+		sess.volume = sess.lastVolume
+		sess.lastVolume = false
+	}
+
 	const volume = sess.volume || settings.get( 'audio', 'volume_default', 0.5 )
 
 	if ( settings.get( 'audio', 'force_speed', false ) )
@@ -466,6 +478,14 @@ function parseVars( url )
 	songInfo.endAt = false
 	if ( url.indexOf( 'end=' ) !== -1 )
 		songInfo.endAt = _.parsetime( _.matches( /end=(.+?)(?:&|$)/g, url )[0] )
+
+	songInfo.volOverride = false
+	if ( url.indexOf( 'vol=' ) !== -1 )
+	{
+		const v = _.parsetime( _.matches( /vol=(.+?)(?:&|$)/g, url )[0] )
+		if ( !isNaN( v ) )
+			songInfo.volOverride = Math.max( 0, Math.min( v, settings.get( 'audio', 'volume_max', 1 ) ) )
+	}
 
 	return songInfo
 }
