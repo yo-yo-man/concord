@@ -479,7 +479,11 @@ function parseVars( url )
 
 	songInfo.endAt = false
 	if ( url.indexOf( 'end=' ) !== -1 )
-		songInfo.endAt = _.parsetime( _.matches( /end=(.+?)(?:&|$)/g, url )[0] )
+	{
+		const endAt = _.parsetime( _.matches( /end=(.+?)(?:&|$)/g, url )[0] )
+		if ( endAt >= 1 )
+			songInfo.endAt = endAt
+	}
 
 	songInfo.volOverride = false
 	if ( url.indexOf( 'vol=' ) !== -1 )
@@ -514,7 +518,9 @@ function parseLength( url, len_sec, resolve, reject )
 	if ( songInfo.seek )
 		len_sec -= songInfo.seek
 	
-	if ( songInfo.seek && songInfo.endAt && songInfo.seek >= songInfo.endAt )
+	if ( songInfo.seek &&
+		( songInfo.endAt && songInfo.seek >= songInfo.endAt ) ||
+		( songInfo.seek >= songInfo.length_seconds ) )
 		return reject( 'cannot play song: start time is beyond end time' )
 
 	const len_err = exceedsLength( len_sec )
