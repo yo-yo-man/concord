@@ -9,6 +9,7 @@ const _ = require( '../helper.js' )
 const fs = require( 'fs' )
 const path = require( 'path' )
 const spawn = require('child_process').spawn
+const exec = require('child_process').exec
 
 const request = require('request')
 const ydl = require( 'youtube-dl' )
@@ -504,6 +505,28 @@ function findDesiredBitrate( formats )
 	return false
 }
 
+function parseLength( url, len_sec, resolve, reject )
+{
+	const songInfo = parseVars( url )
+
+	if ( songInfo.endAt )
+		len_sec -= len_sec - songInfo.endAt
+	if ( songInfo.seek )
+		len_sec -= songInfo.seek
+	
+	if ( songInfo.seek && songInfo.endAt && songInfo.seek >= songInfo.endAt )
+		return reject( 'cannot play song: start time is beyond end time' )
+
+	const len_err = exceedsLength( len_sec )
+	if ( len_err !== false )
+		return reject( len_err )
+
+	songInfo.length = formatTime( len_sec )
+	songInfo.length_seconds = len_sec
+
+	return songInfo
+}
+
 function parseYoutube( args )
 {
 	const msg = args.msg
@@ -523,22 +546,7 @@ function parseYoutube( args )
 	songInfo.title = info.title
 
 	let len_sec = info.length_seconds
-
-	songInfo = Object.assign( parseVars( url ), songInfo )
-	if ( songInfo.endAt )
-		len_sec -= len_sec - songInfo.endAt
-	if ( songInfo.seek )
-		len_sec -= songInfo.seek
-	
-	if ( songInfo.seek && songInfo.endAt && songInfo.seek >= songInfo.endAt )
-		return reject( 'cannot play song: start time is beyond end time' )
-
-	const len_err = exceedsLength( len_sec )
-	if ( len_err !== false )
-		return reject( len_err )
-
-	songInfo.length = formatTime( len_sec )
-	songInfo.length_seconds = len_sec
+	songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
 
 	songInfo.streamurl = info.url
 	if ( info.formats )
@@ -572,22 +580,7 @@ function parseGeneric( args )
 	songInfo.title = info.title
 
 	let len_sec = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + +time )
-
-	songInfo = Object.assign( parseVars( url ), songInfo )
-	if ( songInfo.endAt )
-		len_sec -= len_sec - songInfo.endAt
-	if ( songInfo.seek )
-		len_sec -= songInfo.seek
-
-	if ( songInfo.seek && songInfo.endAt && songInfo.seek >= songInfo.endAt )
-		return reject( 'cannot play song: start time is beyond end time' )
-
-	const len_err = exceedsLength( len_sec )
-	if ( len_err !== false )
-		return reject( len_err )
-
-	songInfo.length = formatTime( len_sec )
-	songInfo.length_seconds = len_sec
+	songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
 
 	songInfo.streamurl = info.url
 	if ( info.formats )
@@ -628,14 +621,21 @@ function parseFile( args )
 	let songInfo = {}
 	songInfo.url = url
 	songInfo.title = fn
-	songInfo.length = '??:??'
-	songInfo.length_seconds = 0
 
-	songInfo = Object.assign( parseVars( url ), songInfo )
+	exec( `ffprobe -v quiet -print_format json -show_format ${ url }`,
+		( err, stdout, stderr ) =>
+			{
+				if ( err )
+					return reject( 'ffprobe error: ' + err.toString() )
 
-	songInfo.streamurl = url
+				const json = JSON.parse( stdout )
+				const len_sec = Math.ceil( json.format.duration )
 
-	resolve( songInfo )
+				songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
+
+				songInfo.streamurl = url
+				resolve( songInfo )
+			})
 }
 
 function queryRemote( msg, url )
