@@ -357,13 +357,18 @@ function start_player( sess, forceseek )
 	const channelname = sess.conn.channel.name
 	_.log( _.fmt( 'playing <%s> in (%s/%s)', song.url, guildname, channelname ) )
 	module.exports.songsSinceBoot++
+
+	const params = []
+	params.push( '-i', song.streamurl )
+	params.push( '-reconnect', '1' )
+	params.push( '-reconnect_streamed', '1' )
+	params.push( '-reconnect_delay_max', '2' )
 	
 	sess.skipVotes = []
 	sess.paused = false
 	
 	sess.starttime = 0
 	const seek = forceseek || song.seek
-	const params = [ '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '2' ]
 	if ( seek )
 	{
 		sess.starttime = seek
@@ -403,17 +408,31 @@ function start_player( sess, forceseek )
 		filter = `acompressor=threshold=${threshold}:ratio=${ratio}:attack=${attack}:release=${release}:makeup=${makeup}`
 	}
 
-	params.push( '-i', song.streamurl )
+	params.push( '-f', 'mp3' ) // mp3 | opus
+	//params.push( '-acodec', 'libopus' )
+
+	params.push( '-analyzeduration', '0' )
+	params.push( '-f', 's16le' )
+	params.push( '-ar', '48000' )
+	params.push( '-ac', '2' )
 
 	params.push( '-b:a', sess.conn.channel.bitrate )
 	params.push( '-af', filter )
-	params.push( '-f', 'opus' )
+	
+	const loglevel = settings.get( 'audio', 'loglevel', 24 )
+	params.push( '-loglevel', loglevel )
 	params.push( 'pipe:1' )
 
+	//console.log( params.join( ' ' ) )
 	sess.ffmpeg = spawn( 'ffmpeg', params )
-	//sess.ffmpeg.stderr.on( 'data', e => console.log( e.toString() ) )
+	sess.ffmpeg.stderr.on( 'data', e => console.log( e.toString() ) )
 
-	const streamOptions = { type: 'ogg/opus', passes: 3 }
+	const streamType = 'converted' // opus | converted
+	const passes = settings.get( 'audio', 'passes', 2 )
+	const fec = settings.get( 'audio', 'fec', true )
+	const plp = settings.get( 'audio', 'plp', 1 ) / 100 / 100
+
+	const streamOptions = { type: streamType, passes: passes, 'fec': fec, 'plp': plp }
 	sess.dispatch = sess.conn.play( sess.ffmpeg.stdout, streamOptions )
 
 	if ( !sess.conn.dispatcher )
