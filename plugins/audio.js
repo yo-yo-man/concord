@@ -277,7 +277,10 @@ function leave_channel( sess )
 	sess.playing = false
 
 	if ( sess.ffmpeg )
-		sess.ffmpeg.kill( 'SIGKILL' )
+	{
+		sess.ffmpeg.kill()
+		setTimeout( ( ffmpeg ) => ffmpeg.kill( 'SIGKILL' ), 5000, sess.ffmpeg )
+	}
 
 	if ( sess.timeInterval )
 		clearInterval( sess.timeInterval )
@@ -316,7 +319,8 @@ function start_player( sess, forceseek )
 
 	if ( sess.ffmpeg )
 	{
-		sess.ffmpeg.kill( 'SIGKILL' )
+		sess.ffmpeg.kill()
+		setTimeout( ( ffmpeg ) => ffmpeg.kill( 'SIGKILL' ), 5000, sess.ffmpeg )
 		delete sess.ffmpeg
 	}
 
