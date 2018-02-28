@@ -408,11 +408,11 @@ function start_player( sess, forceseek )
 		filter = `acompressor=threshold=${threshold}:ratio=${ratio}:attack=${attack}:release=${release}:makeup=${makeup}`
 	}
 
-	params.push( '-f', 'mp3' ) // mp3 | opus
-	//params.push( '-acodec', 'libopus' )
+	//params.push( '-f', 's16le' ) // pcm
+	params.push( '-f', 'opus' )
+	params.push( '-acodec', 'libopus' )
 
 	params.push( '-analyzeduration', '0' )
-	params.push( '-f', 's16le' )
 	params.push( '-ar', '48000' )
 	params.push( '-ac', '2' )
 
@@ -427,7 +427,7 @@ function start_player( sess, forceseek )
 	sess.ffmpeg = spawn( 'ffmpeg', params )
 	sess.ffmpeg.stderr.on( 'data', e => console.log( e.toString() ) )
 
-	const streamType = 'converted' // opus | converted
+	const streamType = 'ogg/opus'
 	const passes = settings.get( 'audio', 'passes', 2 )
 	const fec = settings.get( 'audio', 'fec', true )
 	const plp = settings.get( 'audio', 'plp', 1 ) / 100 / 100
