@@ -14,7 +14,7 @@ let seenWith = {}
 let seenIn = {}
 
 const idleTime = {}
-const updateDelay = 60 * 1000
+const updateDelay = 10 * 60 * 1000
 const statsIncrement = 0.00001
 function updateUserStats()
 {
