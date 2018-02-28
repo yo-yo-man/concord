@@ -63,7 +63,7 @@ settings.save = (file, json) =>
 		if ( typeof json !== 'undefined' )
 			jsonCache[file] = json
 		
-		fs.writeFileSync( makefn( file ), JSON.stringify( jsonCache[file], null, 4 ), 'utf8' )
+		fs.writeFile( makefn( file ), JSON.stringify( jsonCache[file], null, 4 ), 'utf8' )
 	}
 
 settings.reload = file =>
