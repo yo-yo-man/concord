@@ -800,8 +800,8 @@ commands.register( {
 
 commands.register( {
 	category: 'audio',
-	aliases: [ 'stop', 's', 'leave' ],
-	help: 'stop the currently playing audio',
+	aliases: [ 'stop', 'leave', 'l' ],
+	help: 'stop the current song & leave the channel',
 	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
 	{
@@ -925,7 +925,7 @@ commands.register( {
 
 commands.register( {
 	category: 'audio',
-	aliases: [ 'skip', 'forceskip' ],
+	aliases: [ 'skip', 's', 'forceskip' ],
 	help: 'force-skip the current song',
 	flags: [ 'admin_only', 'no_pm' ],
 	callback: ( client, msg, args ) =>
