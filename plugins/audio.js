@@ -616,9 +616,6 @@ function parseGeneric( args )
 	songInfo.url = url
 	songInfo.title = info.title
 
-	let len_sec = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + +time )
-	songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
-
 	songInfo.streamurl = info.url
 	if ( info.formats )
 	{
@@ -641,7 +638,42 @@ function parseGeneric( args )
 			songInfo.streamurl = desiredStream
 	}
 
-	resolve( songInfo )
+	if ( !info.duration )
+	{
+		probeLength( songInfo.streamurl )
+			.then( len_sec => 
+				{
+					songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
+					resolve( songInfo )
+				})
+	}
+	else
+	{
+		const len_sec = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + +time )
+		songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
+		resolve( songInfo )
+	}
+}
+
+function probeLength( url )
+{
+	const promise = new Promise(
+		( resolve, reject ) =>
+		{
+			exec( `ffprobe -v quiet -print_format json -show_format ${ url }`,
+				( err, stdout, stderr ) =>
+					{
+						if ( err )
+							return reject( 'ffprobe error: ' + err.toString() )
+
+						const json = JSON.parse( stdout )
+						const len_sec = Math.ceil( json.format.duration )
+
+						resolve( len_sec )
+					})
+		})
+	
+	return promise
 }
 
 function parseFile( args )
@@ -659,15 +691,9 @@ function parseFile( args )
 	songInfo.url = url
 	songInfo.title = fn
 
-	exec( `ffprobe -v quiet -print_format json -show_format ${ url }`,
-		( err, stdout, stderr ) =>
+	probeLength( url )
+		.then( len_sec => 
 			{
-				if ( err )
-					return reject( 'ffprobe error: ' + err.toString() )
-
-				const json = JSON.parse( stdout )
-				const len_sec = Math.ceil( json.format.duration )
-
 				songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
 
 				songInfo.streamurl = url
