@@ -987,11 +987,12 @@ commands.register( {
 								results.push( song.url )
 							}
 
+							const prefix = settings.get( 'config', 'command_prefix', '!' )
 							const embed = new Discord.MessageEmbed({
 								title: `${_.nick( msg.member, msg.guild )}'s youtube search`,
 								description: `search results for "${query}"`,
 								fields: fields,
-								footer: { text: 'type `~playresult #` or `~pr #` to play a song from your last search' },
+								footer: { text: `type \`${prefix}playresult #\` or \`${prefix}pr #\` to play a song from your last search` },
 							})
 							msg.channel.send( '', embed )
 							searchResults[ msg.member.user.id ] = results
