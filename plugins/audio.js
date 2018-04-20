@@ -1147,7 +1147,7 @@ commands.register( {
 
 function sanitize_filename( str )
 {
-	return str.replace( /[^a-zA-Z0-9-_]/g, '_' ).trim()
+	return str.replace( /[^a-zA-Z0-9-_]/g, '_' ).trim().toLowerCase()
 }
 
 commands.register( {
