@@ -822,7 +822,7 @@ commands.register( {
 		if ( !is_accepted_url( url ) )
 			return msg.channel.send( _.fmt( '`%s` is not an accepted url', url ) )
 		
-		playURL( url )
+		playURL( url, msg )
 	} })
 
 commands.register( {
