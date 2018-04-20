@@ -914,10 +914,11 @@ commands.register( {
 			return msg.channel.send( _.fmt( '`%s` is not an accepted url', plurl ) )
 
 		let savePlaylist = false
+		let filePath = ''
 		if ( plname )
 		{
 			savePlaylist = true
-			const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + plname + '.json' )
+			filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + plname + '.json' )
 			if ( fs.existsSync( filePath ) )
 				return msg.channel.send( _.fmt( '`%s` already exists', plname ) )
 		}
