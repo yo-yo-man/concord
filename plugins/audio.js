@@ -423,7 +423,7 @@ function start_player( sess, forceseek )
 	params.push( '-b:a', sess.conn.channel.bitrate )
 	params.push( '-af', filter )
 	
-	const loglevel = settings.get( 'audio', 'loglevel', 24 )
+	const loglevel = settings.get( 'audio', 'loglevel', 16 )
 	params.push( '-loglevel', loglevel )
 	params.push( 'pipe:1' )
 
