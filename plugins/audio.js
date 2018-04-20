@@ -955,7 +955,9 @@ commands.register( {
 			if ( numVotes >= votesNeeded )
 			{
 				sess.skipVotes = []
-				return skip_playback( sess )
+				sess.looping = false
+				skip_playback( sess )
+				return
 			}
 			else if ( numVotes % 3 === 1 )
 				msg.channel.send( _.fmt( '`%s` voted to skip, votes: `%s/%s`', _.nick( msg.member, msg.guild ), numVotes, votesNeeded ) )
@@ -973,7 +975,10 @@ commands.register( {
 	{
 		const sess = findSession( msg )
 		if ( sess )
+		{
+			sess.looping = false
 			skip_playback( sess )
+		}
 	} })
 
 commands.register( {
