@@ -798,6 +798,18 @@ function is_accepted_url( link )
 	return found
 }
 
+function playURL( url, msg )
+{
+	join_channel( msg ).then( sess =>
+		{
+			queryRemote( msg, url ).then( info =>
+				{
+					msg.channel.send( queueSong( msg, sess, info ) )
+				}).catch( err => msg.channel.send( '```' + err + '```' ) )
+		})
+		.catch( e => { if ( e ) msg.channel.send( e ) } )
+}
+
 commands.register( {
 	category: 'audio',
 	aliases: [ 'play', 'p' ],
@@ -806,18 +818,11 @@ commands.register( {
 	args: 'url',
 	callback: ( client, msg, args ) =>
 	{
-		args = args.replace( /</g, '' ).replace( />/g, '' ) // remove filtering
-		if ( !is_accepted_url( args ) )
-			return msg.channel.send( _.fmt( '`%s` is not an accepted url', args ) )
+		const url = args.replace( /</g, '' ).replace( />/g, '' ) // remove filtering
+		if ( !is_accepted_url( url ) )
+			return msg.channel.send( _.fmt( '`%s` is not an accepted url', url ) )
 		
-		join_channel( msg ).then( sess =>
-			{
-				queryRemote( msg, args ).then( info =>
-					{
-						msg.channel.send( queueSong( msg, sess, info ) )
-					}).catch( err => msg.channel.send( '```' + err + '```' ) )
-			})
-			.catch( e => { if ( e ) msg.channel.send( e ) } )
+		playURL( url )
 	} })
 
 commands.register( {
@@ -854,7 +859,7 @@ commands.register( {
 			leave_channel( sess )
 	} })
 
-function playlistQuery( plurl )
+function playlistQuery( plurl, msg )
 {
 	const promise = new Promise(
 		( resolve, reject ) =>
@@ -883,8 +888,8 @@ function playlistQuery( plurl )
 						const url = `https://www.youtube.com/watch?v=${song.url}`
 						if ( !song.title )
 						{
-							msg.channel.send( _.fmt( 'malformed playlist, could not find song title for `%s`', song.url ) )
-							return reject()
+							console.log( _.filterlinks( _.fmt( 'malformed playlist, could not find song title for `%s`', song.url ) ) )
+							continue
 						}
 						
 						data.push( { url, title: song.title, length: '??:??' } )
@@ -928,7 +933,7 @@ commands.register( {
 		msg.channel.send( 'fetching playlist info, please wait...' )
 			.then( tempMsg =>
 				{
-					playlistQuery( plurl )
+					playlistQuery( plurl, msg )
 					.then( data =>
 						{
 							tempMsg.delete()
@@ -950,6 +955,66 @@ commands.register( {
 							}
 						})
 				})
+	} })
+
+const searchResults = {}
+commands.register( {
+	category: 'audio',
+	aliases: [ 'youtube', 'yt', 'search' ],
+	help: 'search youtube',
+	flags: [ 'no_pm' ],
+	args: 'query',
+	callback: ( client, msg, args ) =>
+	{
+		const query = args
+		const search_url = `https://www.youtube.com/results?search_query=${query}&page=1`
+
+		msg.channel.send( 'searching, please wait...' )
+			.then( tempMsg =>
+				{
+					playlistQuery( search_url, msg )
+					.then( data =>
+						{
+							tempMsg.delete()
+
+							const results = []
+							const fields = []
+							for ( const i in data )
+							{
+								if ( fields.length >= settings.get( 'audio', 'max_search_results', 10 ) ) break
+								const song = data[i]
+								fields.push( { name: `${parseInt(i)+1}. ${song.title}`, value: song.url } )
+								results.push( song.url )
+							}
+
+							const embed = new Discord.MessageEmbed({
+								title: `${_.nick( msg.member, msg.guild )}'s youtube search`,
+								description: `search results for "${query}"`,
+								fields: fields,
+								footer: { text: 'type `~playresult #` or `~pr #` to play a song from your last search' },
+							})
+							msg.channel.send( '', embed )
+							searchResults[ msg.member.user.id ] = results
+						})
+				})
+	} })
+
+commands.register( {
+	category: 'audio',
+	aliases: [ 'playresult', 'pr' ],
+	help: 'play a song from your last search results',
+	flags: [ 'no_pm' ],
+	args: 'number',
+	callback: ( client, msg, args ) =>
+	{
+		if ( !searchResults[ msg.member.user.id ] )
+			return msg.channel.send( `no previous search results stored for \`${_.nick( msg.member, msg.guild )}\`` )
+
+		const num = parseInt(args)
+		if ( num > settings.get( 'audio', 'max_search_results', 10 ) )
+			return msg.channel.send( 'invalid search result number' )
+
+		playURL( searchResults[ msg.member.user.id ][num-1], msg )
 	} })
 
 commands.register( {
