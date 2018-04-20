@@ -854,65 +854,101 @@ commands.register( {
 			leave_channel( sess )
 	} })
 
+function playlistQuery( plurl )
+{
+	const promise = new Promise(
+		( resolve, reject ) =>
+		{
+			ydl.exec( plurl, [ '--flat-playlist', '-J' ], {},
+			( err, output ) =>
+				{
+					if ( err )
+					{
+						console.log( _.filterlinks( err ) )
+						msg.channel.send( _.fmt( 'could not query info `(%s)`', _.filterlinks( err ) ) )
+						return reject()
+					}
+
+					const data = []
+					const playlist = JSON.parse( output ).entries
+
+					if ( !playlist )
+					{
+						msg.channel.send( 'invalid remote playlist' )
+						return reject()
+					}
+
+					for ( const song of playlist )
+					{
+						const url = `https://www.youtube.com/watch?v=${song.url}`
+						if ( !song.title )
+						{
+							msg.channel.send( _.fmt( 'malformed playlist, could not find song title for `%s`', song.url ) )
+							return reject()
+						}
+						
+						data.push( { url, title: song.title, length: '??:??' } )
+					}
+
+					resolve( data )
+				})
+		})
+
+	return promise
+}
+
 commands.register( {
 	category: 'audio playlists',
 	aliases: [ 'youtubeplaylist', 'ytpl' ],
 	help: 'save a youtube playlist for later',
 	flags: [ 'no_pm' ],
-	args: 'name url',
+	args: 'url [name]',
 	callback: ( client, msg, args ) =>
 	{
 		const split = args.split( ' ' )
 
-		const plname = split[0]
-		const plurl = split[1]
+		const plurl = split[0]
+		let plname = split[1]
 
 		if ( !is_accepted_url( plurl ) )
 			return msg.channel.send( _.fmt( '`%s` is not an accepted url', plurl ) )
 
-		const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + plname + '.json' )
-		if ( fs.existsSync( filePath ) )
-			return msg.channel.send( _.fmt( '`%s` already exists', plname ) )
-		
-		function playlistQuery( tempMsg )
+		let savePlaylist = false
+		if ( plname )
 		{
-			ydl.exec( plurl, [ '--flat-playlist', '-J' ], {},
-			( err, output ) =>
-				{
-                    tempMsg.delete()
-
-                    if ( err )
-					{
-						console.log( _.filterlinks( err ) )
-						return msg.channel.send( _.fmt( 'could not query info `(%s)`', _.filterlinks( err ) ) )
-					}
-
-                    const data = []
-                    const playlist = JSON.parse( output ).entries
-
-                    if ( !playlist )
-						return msg.channel.send( 'invalid remote playlist' )
-
-					for ( const song of playlist )
-					{
-                        const url = `https://www.youtube.com/watch?v=${song.url}`
-                        if ( !song.title )
-							return msg.channel.send( _.fmt( 'malformed playlist, could not find song title for `%s`', song.url ) )
-                        data.push( { url, title: song.title, length: '??:??' } )
-                    }
-					
-					queryMultiple( data, msg, plname ).then( res =>
-						{
-							fs.writeFileSync( filePath, JSON.stringify( res.queue, null, 4 ), 'utf8' )
-							msg.channel.send( _.fmt( 'saved `%s` songs under `%s`%s', res.queue.length, plname, res.errors ) )
-						}).catch( errs =>
-						{
-							return msg.channel.send( errs.toString() )
-						})
-                })
+			savePlaylist = true
+			const filePath = path.join( __dirname, playlistDir, msg.guild.id + '_' + plname + '.json' )
+			if ( fs.existsSync( filePath ) )
+				return msg.channel.send( _.fmt( '`%s` already exists', plname ) )
 		}
+		else
+			plname = plurl
 		
-		msg.channel.send( 'fetching playlist info, please wait...' ).then( tempMsg => playlistQuery( tempMsg ) )
+		msg.channel.send( 'fetching playlist info, please wait...' )
+			.then( tempMsg =>
+				{
+					playlistQuery( plurl )
+					.then( data =>
+						{
+							tempMsg.delete()
+
+							if ( !savePlaylist )
+								queueMultiple( data, msg, plname )
+							else
+							{
+								queryMultiple( data, msg, plname )
+									.then( res =>
+										{
+											fs.writeFileSync( filePath, JSON.stringify( res.queue, null, 4 ), 'utf8' )
+											msg.channel.send( _.fmt( 'saved `%s` songs under `%s`%s', res.queue.length, plname, res.errors ) )
+										})
+									.catch( errs =>
+										{
+											return msg.channel.send( errs.toString() )
+										})
+							}
+						})
+				})
 	} })
 
 commands.register( {
@@ -1398,8 +1434,8 @@ commands.register( {
 		const playlist = fs.readFileSync( filePath, 'utf8' )
 		if ( !_.isjson( playlist ) )
 			return msg.channel.send( 'error in `%s`, please delete', name )
+
 		const data = JSON.parse( playlist )
-		
 		queueMultiple( data, msg, name )
 	} })
 
