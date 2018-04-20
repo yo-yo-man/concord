@@ -399,7 +399,7 @@ function start_player( sess, forceseek )
 	let filter = `volume=${volume}`
 	if ( settings.get( 'audio', 'normalize', true ) )
 	{		
-		let threshold = settings.get( 'audio', 'comp_threshold', 0.04 ) // 10 ^ ( -dB / 20 )
+		let threshold = settings.get( 'audio', 'comp_threshold', 0.034 ) // 10 ^ ( -dB / 20 )
 		const ratio = settings.get( 'audio', 'comp_ratio', 20 )
 		const attack = settings.get( 'audio', 'comp_attack', 50 )
 		const release = settings.get( 'audio', 'comp_release', 300 )
