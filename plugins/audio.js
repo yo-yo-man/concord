@@ -152,6 +152,9 @@ function trackSong( gid, song )
 
 function findSession( msg )
 {
+	if ( msg.member.user.presence.status === 'offline' )
+		return false
+		
 	const channel = msg.member.voiceChannel
 	if ( !channel )
 		return false
