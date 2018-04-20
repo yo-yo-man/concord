@@ -310,7 +310,8 @@ function stop_playback( sess )
 
 function skip_playback( sess )
 {
-	sess.dispatch.end()
+	if ( sess.dispatch )
+		sess.dispatch.end()
 }
 
 function start_player( sess, forceseek )
