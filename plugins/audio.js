@@ -541,7 +541,7 @@ function findDesiredBitrate( formats )
 	return false
 }
 
-function parseLength( url, len_sec, resolve, reject )
+function parseLength( url, len_sec, reject )
 {
 	const songInfo = parseVars( url )
 
@@ -553,11 +553,17 @@ function parseLength( url, len_sec, resolve, reject )
 	if ( songInfo.seek &&
 		( songInfo.endAt && songInfo.seek >= songInfo.endAt ) ||
 		( songInfo.seek >= songInfo.length_seconds ) )
-		return reject( 'cannot play song: start time is beyond end time' )
+		{
+			reject( 'cannot play song: start time is beyond end time' )
+			return false
+		}
 
 	const len_err = exceedsLength( len_sec )
 	if ( len_err !== false )
-		return reject( len_err )
+	{
+		reject( len_err )
+		return false
+	}
 
 	songInfo.length = formatTime( len_sec )
 	songInfo.length_seconds = len_sec
@@ -583,8 +589,9 @@ function parseYoutube( args )
 	songInfo.url = url
 	songInfo.title = info.title
 
-	let len_sec = info.length_seconds
-	songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
+	const len_sec = info.length_seconds
+	const parsedLen = parseLength( url, len_sec, reject )
+	songInfo = Object.assign( parsedLen, songInfo )
 
 	songInfo.streamurl = info.url
 	if ( info.formats )
@@ -644,14 +651,16 @@ function parseGeneric( args )
 		probeLength( songInfo.streamurl )
 			.then( len_sec => 
 				{
-					songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
+					const parsedLen = parseLength( url, len_sec, reject )
+					songInfo = Object.assign( parsedLen, songInfo )
 					resolve( songInfo )
 				})
 	}
 	else
 	{
 		const len_sec = info.duration.split(':').reduce( ( acc, time ) => ( 60 * acc ) + +time )
-		songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
+		const parsedLen = parseLength( url, len_sec, reject )
+		songInfo = Object.assign( parsedLen, songInfo )
 		resolve( songInfo )
 	}
 }
@@ -695,7 +704,8 @@ function parseFile( args )
 	probeLength( url )
 		.then( len_sec => 
 			{
-				songInfo = Object.assign( parseLength( url, len_sec, resolve, reject ), songInfo )
+				const parsedLen = parseLength( url, len_sec, reject )
+				songInfo = Object.assign( parsedLen, songInfo )
 
 				songInfo.streamurl = url
 				resolve( songInfo )
