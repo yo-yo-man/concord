@@ -966,6 +966,10 @@ commands.register( {
 	args: 'query',
 	callback: ( client, msg, args ) =>
 	{
+		const chan = msg.member.voiceChannel
+		if ( !chan )
+			return msg.channel.send( 'you are not in a voice channel' )
+
 		const query = args
 		const search_url = `https://www.youtube.com/results?search_query=${query}&page=1`
 
@@ -989,13 +993,13 @@ commands.register( {
 
 							const prefix = settings.get( 'config', 'command_prefix', '!' )
 							const embed = new Discord.MessageEmbed({
-								title: `${_.nick( msg.member, msg.guild )}'s youtube search`,
-								description: `search results for "${query}"`,
+								title: `search results for "${query}"`,
+								description: `youtube search in \`${chan.name}\``,
 								fields: fields,
 								footer: { text: `type \`${prefix}playresult #\` or \`${prefix}pr #\` to play a song from your last search` },
 							})
 							msg.channel.send( '', embed )
-							searchResults[ msg.member.user.id ] = results
+							searchResults[ chan.id ] = results
 						})
 				})
 	} })
@@ -1008,14 +1012,18 @@ commands.register( {
 	args: 'number',
 	callback: ( client, msg, args ) =>
 	{
-		if ( !searchResults[ msg.member.user.id ] )
-			return msg.channel.send( `no previous search results stored for \`${_.nick( msg.member, msg.guild )}\`` )
+		const chan = msg.member.voiceChannel
+		if ( !chan )
+			return msg.channel.send( 'you are not in a voice channel' )
+
+		if ( !searchResults[ chan.id ] )
+			return msg.channel.send( `no previous search results stored for this channel` )
 
 		const num = parseInt(args)
 		if ( num > settings.get( 'audio', 'max_search_results', 10 ) )
 			return msg.channel.send( 'invalid search result number' )
 
-		playURL( searchResults[ msg.member.user.id ][num-1], msg )
+		playURL( searchResults[ chan.id ][num-1], msg )
 	} })
 
 commands.register( {
