@@ -37,17 +37,10 @@ client.on( 'ready', e =>
 		if ( initialized ) return
 		initialized = true
 
-		try
-		{
-			require('./permissions.js').init( client )
-			require('./commands.js').init( client )
-			require('./plugins.js').load( client )
-			_.log( 'bot is ready!' )
-		}
-		catch ( e )
-		{
-			_.logError( client, e )
-		}
+		require('./permissions.js').init( client )
+		require('./commands.js').init( client )
+		require('./plugins.js').load( client )
+		_.log( 'bot is ready!' )
 		
 		if ( fs.existsSync( './crash.log' ) )
 		{
