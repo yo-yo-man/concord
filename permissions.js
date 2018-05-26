@@ -17,7 +17,7 @@ permissions.hasGlobalRole = ( user, roleName ) =>
 				if ( !member )
 					return
 				
-				if ( member.roles.find( 'name', roleName ) )
+				if ( member.roles.find( m => m.name === roleName ) )
 					found = true
 			})
 		return found
