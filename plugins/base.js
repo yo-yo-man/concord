@@ -80,13 +80,13 @@ commands.register( {
 			const list = []
 			for ( const i in commands.blacklistedUsers )
 			{
-				const u = client.users.find( 'id', commands.blacklistedUsers[i] )
+				const u = client.users.get( commands.blacklistedUsers[i] )
 				if ( !u ) continue
 				list.push( _.fmt( '%s#%s', u.username, u.discriminator ) )
 			}
 			for ( const i in commands.tempBlacklist )
 			{
-				const u = client.users.find( 'id', commands.tempBlacklist[i] )
+				const u = client.users.get( commands.tempBlacklist[i] )
 				if ( !u ) continue
 				list.push( _.fmt( '%s#%s (temp)', u.username, u.discriminator ) )
 			}

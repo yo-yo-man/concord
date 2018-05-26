@@ -95,7 +95,7 @@ _.nick = ( user, guild ) => {
 	{
 		let member = user
 		if ( !member.user )
-			member = guild.members.find( 'id', member.id )
+			member = guild.members.get( member.id )
 		if ( member )
 		{
 			if ( member.nickname )

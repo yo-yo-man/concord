@@ -248,7 +248,7 @@ function join_channel( msg )
 						!channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.USE_VAD ) )
 							return reject( _.fmt( 'invalid permissions for `%s`', channel.name ) )
 
-					const guild = bot.guilds.find( 'id', channel.guild.id )
+					const guild = bot.guilds.get( channel.guild.id )
 					if ( guild )
 						guild.channels.findAll( 'type', 'voice' ).forEach( chan =>
 							{

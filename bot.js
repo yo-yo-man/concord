@@ -39,10 +39,10 @@ client.on( 'ready', e =>
 
 		try
 		{
-		require('./permissions.js').init( client )
-		require('./commands.js').init( client )
-		require('./plugins.js').load( client )
-		_.log( 'bot is ready!' )
+			require('./permissions.js').init( client )
+			require('./commands.js').init( client )
+			require('./plugins.js').load( client )
+			_.log( 'bot is ready!' )
 		}
 		catch ( e )
 		{
@@ -71,7 +71,7 @@ client.login( token )
 
 function sendOwnerMessage( type, msg )
 {
-	const owner = client.users.find( 'id', settings.get( 'config', 'owner_id', '' ) )
+	const owner = client.users.get( settings.get( 'config', 'owner_id', '' ) )
 	if ( owner )
 		owner.createDM().then( d => d.send( `***${type}***\n\`\`\`\n${msg}\n\`\`\`` ) )
 	else
