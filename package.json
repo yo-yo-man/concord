@@ -12,7 +12,7 @@
 	},
 	"dependencies": {
 		"bufferutil": "^3.0.3",
-		"discord.js": "git+https://github.com/discordjs/discord.js.git",
+		"discord.js": "git+https://github.com/discordjs/discord.js.git#64caa33594212206b6f146c9ecc92f1f4cb5d138",
 		"erlpack": "github:discordapp/erlpack",
 		"libsodium-wrappers": "^0.7.3",
 		"moment": "^2.20.1",
