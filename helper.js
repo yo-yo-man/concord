@@ -95,7 +95,7 @@ _.nick = ( user, guild ) => {
 	{
 		let member = user
 		if ( !member.user )
-			member = guild.members.find( 'id', member.id )
+			member = guild.members.get( member.id )
 		if ( member )
 		{
 			if ( member.nickname )
@@ -132,7 +132,7 @@ _.logEvent = ( cl, type, e ) =>
 _.logError = ( cl, e ) =>
 	{
 		_.log( `<${ cl.user.tag }> error` )
-		console.error( e.error )
+		console.error( e.error || e )
 	}
 
 module.exports = _

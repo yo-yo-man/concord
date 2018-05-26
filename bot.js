@@ -6,6 +6,7 @@ const _ = require( './helper.js' )
 
 
 const client = new Discord.Client()
+client.on( 'error', e => _.logError( client, e ) )
 
 const token = settings.get( 'config', 'login_token' )
 if ( !token )
@@ -53,18 +54,17 @@ client.on( 'disconnect', e => _.logEvent( client, 'disconnect', e ) )
 client.on( 'guildCreate', e => _.logEvent( client, 'guildCreate', e ) )
 client.on( 'guildDelete', e => _.logEvent( client, 'guildDelete', e ) )
 client.on( 'guildUnavailable', e => _.logEvent( client, 'guildUnavailable', e ) )
-client.on( 'error', e => _.logError( client, e ) )
 
 client.login( token )
 	.catch( e =>
 	{
-		_.log( e )
+		_.logError( client, e )
 	})
 
 
 function sendOwnerMessage( type, msg )
 {
-	const owner = client.users.find( 'id', settings.get( 'config', 'owner_id', '' ) )
+	const owner = client.users.get( settings.get( 'config', 'owner_id', '' ) )
 	if ( owner )
 		owner.createDM().then( d => d.send( `***${type}***\n\`\`\`\n${msg}\n\`\`\`` ) )
 	else
@@ -73,13 +73,13 @@ function sendOwnerMessage( type, msg )
 
 process.on( 'uncaughtException', ( ex ) =>
 	{
-		sendOwnerMessage( 'uncaughtException', ex.stack )
 		console.log( ex.stack )
+		sendOwnerMessage( 'uncaughtException', ex.stack )
 	})
 
 process.on( 'unhandledRejection', ( reason, p ) =>
 	{
 		const err = `${p}\n${reason.stack}`
-		sendOwnerMessage( 'unhandledRejection', err )
 		console.log( err )
+		sendOwnerMessage( 'unhandledRejection', err )
 	})

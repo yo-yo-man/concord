@@ -206,7 +206,7 @@ function processCooldown( member )
 		tempBlacklists[ user.id ] = _.time() + settings.get( 'moderation', 'cooldown_blacklist_time', 60 )
 		user.createDM().then( dm => dm.send( _.fmt( '**NOTICE:** You have been temporarily blacklisted due to excess spam' ) ) )
 		
-		const owner = client.users.find( 'id', settings.get( 'config', 'owner_id', '' ) )
+		const owner = client.users.get( settings.get( 'config', 'owner_id', '' ) )
 		if ( owner )
 			owner.createDM().then( d => d.send( _.fmt( '**NOTICE:** Automatically added `%s#%s` to temporary blacklist for spam', user.username, user.discriminator ) ) )
 	}

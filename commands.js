@@ -55,10 +55,10 @@ commands.findTarget = ( msg, str ) =>
 		const id = /<@!?(\d+)>/g.exec( str )
 		if ( id )
 		{
-			match = client.users.find( 'id', id[1] )
+			match = client.users.get( id[1] )
 			if ( msg.guild )
 			{
-				const member = msg.guild.members.find( 'id', id[1] )
+				const member = msg.guild.members.get( id[1] )
 				if ( member )
 					match = member
 			}
@@ -81,7 +81,7 @@ commands.findTarget = ( msg, str ) =>
 				for ( const i in matches )
 				{
 					const match = matches[i]
-					const member = msg.guild.members.find( 'id', match.id )
+					const member = msg.guild.members.get( match.id )
 					if ( member )
 						matches[i] = member
 				}
@@ -133,7 +133,7 @@ commands.findVoiceChannel = ( msg, str ) =>
 		const matches = []
 		str = str.toLowerCase()
 		
-		for ( const ch of msg.guild.channels.findAll( 'type', 'voice' ) )
+		for ( const ch of msg.guild.channels.filter( c => c.type === 'voice' ) )
 		{
 			if ( ch.name.toLowerCase().includes( str ) )
 				if ( !matches.includes( ch ) )

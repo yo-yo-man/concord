@@ -47,7 +47,7 @@ function batchTick()
 		if ( guildNotices[ guildId ].length === 0 )
 			continue
 
-		const channel = client.channels.find( 'id', guildChannels[ guildId ] )
+		const channel = client.channels.get( guildChannels[ guildId ] )
 		if ( !channel )
 		{
 			delete guildChannels[ guildId ]
@@ -79,13 +79,13 @@ module.exports.sendGuildNotice = sendGuildNotice
 
 function execGlobalUserNotice( userId, callback )
 {
-	const user = client.users.find( 'id', userId )
+	const user = client.users.get( userId )
 	if ( !user )
 		return _.log( _.fmt( 'WARNING: tried to send global notice about invalid user %s', userId ) )
 		
 	for ( const guildId in guildChannels )
 	{
-		const guild = client.guilds.find( 'id', guildId )
+		const guild = client.guilds.get( guildId )
 		
 		if ( !guild )
 		{
@@ -95,7 +95,7 @@ function execGlobalUserNotice( userId, callback )
 			return
 		}
 		
-		const member = guild.members.find( 'id', user.id )
+		const member = guild.members.get( user.id )
 		if ( member )
 		{
 			const message = callback( member )

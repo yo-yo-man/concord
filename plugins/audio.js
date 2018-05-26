@@ -63,6 +63,7 @@ function initAudio()
 		const tok = tokens[i]
 
 		const cl = new Discord.Client()
+		cl.on( 'error', e => _.logError( cl, e ) )
 
 		cl.on( 'ready', e =>
 			{
@@ -83,7 +84,6 @@ function initAudio()
 		cl.on( 'guildCreate', e => _.logEvent( cl, 'helper-guildCreate', e ) )
 		cl.on( 'guildDelete', e => _.logEvent( cl, 'helper-guildDelete', e ) )
 		cl.on( 'guildUnavailable', e => _.logEvent( cl, 'helper-guildUnavailable', e ) )
-		cl.on( 'error', e => _.logError( cl, e ) )
 
 		cl.on( 'voiceStateUpdate', ( o, n ) => audioBotMoved( cl, o, n ) )
 
@@ -94,7 +94,7 @@ function initAudio()
 				cl.login( tok )
 					.catch( e =>
 					{
-						_.log( e )
+						_.logError( cl, e )
 					})
 			}, 3000 * (i+1), cl )
 	}
@@ -248,9 +248,9 @@ function join_channel( msg )
 						!channel.permissionsFor( bot.user ).has( Discord.Permissions.FLAGS.USE_VAD ) )
 							return reject( _.fmt( 'invalid permissions for `%s`', channel.name ) )
 
-					const guild = bot.guilds.find( 'id', channel.guild.id )
+					const guild = bot.guilds.get( channel.guild.id )
 					if ( guild )
-						guild.channels.findAll( 'type', 'voice' ).forEach( chan =>
+						guild.channels.filter( c => c.type === 'voice' ).forEach( chan =>
 							{
 								if ( success ) return
 								if ( chan.id === channel.id )

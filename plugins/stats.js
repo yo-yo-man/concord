@@ -26,7 +26,7 @@ function updateUserStats()
 
 				client.guilds.forEach( guild =>
 					{
-						const member = guild.members.find( 'id', user.id )
+						const member = guild.members.get( user.id )
 						if ( member )
 						{
 							const vc = member.voiceChannel
@@ -133,7 +133,7 @@ commands.register( {
 			{
 				if ( top5.length > 5 ) break
 
-				const guild = client.guilds.find( 'id', gid )
+				const guild = client.guilds.get( gid )
 				if ( !guild ) continue
 
 				const gname = guild.name
@@ -156,7 +156,7 @@ commands.register( {
 				if ( top5.length > 5 ) break
 				if ( !mid ) continue
 
-				const member = client.users.find( 'id', mid )
+				const member = client.users.get( mid )
 				if ( !member ) continue
 
 				top5.push( _.nick( member, msg.guild ) )
@@ -226,9 +226,9 @@ commands.register( {
 		fields.push( { inline: true, name: 'avg songs per hr', value: songsPerHr } )
 
 		const channels = client.channels
-			.findAll( 'type', 'text' )
+			.filter( c => c.type === 'text' )
 			.filter( c => c.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.VIEW_CHANNEL ) )
-		fields.push( { inline: true, name: 'channels listening', value: channels.length } )
+		fields.push( { inline: true, name: 'channels listening', value: channels.array.length } )
 		fields.push( { inline: true, name: 'users seen', value: Object.keys( lastSeen ).length } )
 		fields.push( { inline: true, name: 'users online', value: client.users.size } )
 
