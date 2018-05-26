@@ -250,7 +250,7 @@ function join_channel( msg )
 
 					const guild = bot.guilds.get( channel.guild.id )
 					if ( guild )
-						guild.channels.findAll( 'type', 'voice' ).forEach( chan =>
+						guild.channels.filter( c => c.type === 'voice' ).forEach( chan =>
 							{
 								if ( success ) return
 								if ( chan.id === channel.id )

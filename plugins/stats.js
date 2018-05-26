@@ -226,7 +226,7 @@ commands.register( {
 		fields.push( { inline: true, name: 'avg songs per hr', value: songsPerHr } )
 
 		const channels = client.channels
-			.findAll( 'type', 'text' )
+			.filter( c => c.type === 'text' )
 			.filter( c => c.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.VIEW_CHANNEL ) )
 		fields.push( { inline: true, name: 'channels listening', value: channels.length } )
 		fields.push( { inline: true, name: 'users seen', value: Object.keys( lastSeen ).length } )
