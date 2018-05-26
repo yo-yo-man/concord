@@ -228,7 +228,7 @@ commands.register( {
 		const channels = client.channels
 			.filter( c => c.type === 'text' )
 			.filter( c => c.permissionsFor( client.user ).has( Discord.Permissions.FLAGS.VIEW_CHANNEL ) )
-		fields.push( { inline: true, name: 'channels listening', value: channels.length } )
+		fields.push( { inline: true, name: 'channels listening', value: channels.array.length } )
 		fields.push( { inline: true, name: 'users seen', value: Object.keys( lastSeen ).length } )
 		fields.push( { inline: true, name: 'users online', value: client.users.size } )
 
