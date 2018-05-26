@@ -132,7 +132,7 @@ _.logEvent = ( cl, type, e ) =>
 _.logError = ( cl, e ) =>
 	{
 		_.log( `<${ cl.user.tag }> error` )
-		console.error( e.error )
+		console.error( e.error || e )
 	}
 
 module.exports = _

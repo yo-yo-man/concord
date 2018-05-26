@@ -63,6 +63,7 @@ function initAudio()
 		const tok = tokens[i]
 
 		const cl = new Discord.Client()
+		cl.on( 'error', e => _.logError( cl, e ) )
 
 		cl.on( 'ready', e =>
 			{
@@ -83,7 +84,6 @@ function initAudio()
 		cl.on( 'guildCreate', e => _.logEvent( cl, 'helper-guildCreate', e ) )
 		cl.on( 'guildDelete', e => _.logEvent( cl, 'helper-guildDelete', e ) )
 		cl.on( 'guildUnavailable', e => _.logEvent( cl, 'helper-guildUnavailable', e ) )
-		cl.on( 'error', e => _.logError( cl, e ) )
 
 		cl.on( 'voiceStateUpdate', ( o, n ) => audioBotMoved( cl, o, n ) )
 
@@ -94,7 +94,7 @@ function initAudio()
 				cl.login( tok )
 					.catch( e =>
 					{
-						_.log( e )
+						_.logError( cl, e )
 					})
 			}, 3000 * (i+1), cl )
 	}
