@@ -1,4 +1,5 @@
 let client = null
+const Discord = require( 'discord.js' )
 
 const commands = require( '../commands.js' )
 const permissions = require( '../permissions.js' )
@@ -123,6 +124,28 @@ commands.register( {
 			})
 		
 		notices.sendGuildNotice( channel.guild.id, _.fmt( '%s moved to `%s` by `%s`', names.join( ', ' ), target.name, _.nick( msg.member, channel.guild ) ) )
+	} })
+
+commands.register( {
+	category: 'util',
+	aliases: [ 'moveme' ],
+	help: 'move yourself to another voice channel',
+	args: 'channel',
+	flags: [ 'no_pm' ],
+	callback: ( client, msg, args ) =>
+	{
+		const channel = msg.member.voiceChannel
+		if ( !channel )
+			return msg.channel.send( 'you are not in a voice channel' )
+		
+		const target = commands.findVoiceChannel( msg, args )
+		if ( target === false )
+			return
+		
+		if ( !target.permissionsFor( msg.member ).has( Discord.Permissions.FLAGS.CONNECT ) )
+			return msg.channel.send( 'you do not have permission to join that channel' )
+
+		msg.member.setVoiceChannel( target )
 	} })
 
 module.exports.setup = _cl => {
