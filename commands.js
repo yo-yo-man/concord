@@ -133,12 +133,12 @@ commands.findVoiceChannel = ( msg, str ) =>
 		const matches = []
 		str = str.toLowerCase()
 		
-		for ( const ch of msg.guild.channels.filter( c => c.type === 'voice' ) )
+		msg.guild.channels.filter( c => c.type === 'voice' ).forEach( ch =>
 		{
 			if ( ch.name.toLowerCase().includes( str ) )
 				if ( !matches.includes( ch ) )
 					matches.push( ch )
-		}
+		})
 		
 		if ( matches.length === 0 )
 		{
