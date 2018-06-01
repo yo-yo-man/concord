@@ -1069,7 +1069,7 @@ commands.register( {
 			if ( numVotes >= votesNeeded )
 			{
 				sess.skipVotes = []
-				sess.looping = false
+				sess.loop = false
 				skip_playback( sess )
 				return
 			}
@@ -1090,7 +1090,7 @@ commands.register( {
 		const sess = findSession( msg )
 		if ( sess )
 		{
-			sess.looping = false
+			sess.loop = false
 			skip_playback( sess )
 		}
 	} })
