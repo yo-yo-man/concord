@@ -19,8 +19,12 @@ if ( !token )
 			command_prefix: '!',
 		}
 	settings.save( 'config', config )
-	console.log( '\nBot has not been configured.\nPlease edit settings/config.json and restart.' )
-	process.exit( 8 )
+		.then( () =>
+			{
+				console.log( '\nBot has not been configured.\nPlease edit settings/config.json and restart.' )
+				process.exit( 8 )
+			})
+	return
 }
 
 		

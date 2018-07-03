@@ -63,7 +63,19 @@ settings.save = (file, json) =>
 		if ( typeof json !== 'undefined' )
 			jsonCache[file] = json
 		
-		fs.writeFile( makefn( file ), JSON.stringify( jsonCache[file], null, 4 ), 'utf8', ()=>{} )
+		const promise = new Promise(
+		( resolve, reject ) =>
+		{
+			fs.writeFile( makefn( file ), JSON.stringify( jsonCache[file], null, 4 ), 'utf8',
+				( err ) =>
+				{
+					if ( err )
+						reject( err )
+					else
+						resolve()
+				})
+		})
+		return promise
 	}
 
 settings.reload = file =>
