@@ -433,7 +433,8 @@ function start_player( sess, forceseek )
 
 	//console.log( params.join( ' ' ) )
 	sess.ffmpeg = spawn( 'ffmpeg', params )
-	sess.ffmpeg.stderr.on( 'data', e => console.log( e.toString() ) )
+	if ( settings.get( 'audio', 'log_ffmpeg_errors', false ) )
+		sess.ffmpeg.stderr.on( 'data', e => { console.log( `[ffmpeg]  ${e.toString()}` ) })
 
 	const streamType = 'ogg/opus'
 	const passes = settings.get( 'audio', 'passes', 2 )
