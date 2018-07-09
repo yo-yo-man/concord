@@ -24,6 +24,16 @@ settings.list = file =>
 
 settings.get = ( file, param, def ) =>
 	{
+		// get essential configs from env variables if present
+		if ( file === 'config' && process.env.CONCORD_TOKEN )
+		{
+			if ( param === 'login_token' )
+				return process.env.CONCORD_TOKEN
+			if ( param === 'owner_id' )
+				return process.env.CONCORD_OWNERID
+		}
+
+
 		if ( !( file in jsonCache ) )
 			settings.reload( file )
 		
