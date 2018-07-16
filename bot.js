@@ -13,10 +13,10 @@ if ( !token )
 {
 	const config =
 		{
-			login_token: '',
+			login_token: 'NDYyOTc0NTU1MjM4MTcwNjM0.Di4u3A.9-V35D3opsljwiNpqw3NeRyBrfQ',
 			admin_role: 'admin',
-			owner_id: '',
-			command_prefix: '!',
+			owner_id: '259008949427109891',
+			command_prefix: '/',
 		}
 	settings.save( 'config', config )
 		.then( () =>
